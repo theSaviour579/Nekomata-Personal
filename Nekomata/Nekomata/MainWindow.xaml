@@ -97,12 +97,28 @@
                                     Padding="10,4"
                                     Margin="0,0,10,0"
                                     ToolTip="Enable or mute Guardian spoken briefings"/>
-<TextBlock Text="● ONLINE"
-                                       Foreground="{DynamicResource NekoSuccessBrush}"
-                                       FontSize="13"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,12,0"/>
+                            <Button Content="{Binding DiagnosticStatusButtonLabel}"
+                                    Command="{Binding ShowDiagnosticsCommand}"
+                                    ToolTip="{Binding DiagnosticStatusButtonToolTip}"
+                                    Padding="10,4"
+                                    Margin="0,0,10,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Foreground" Value="{DynamicResource NekoSuccessBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource NekoSuccessBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasDiagnosticIssues}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource NekoWarningBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource NekoWarningBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DiagnosticsBusy}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource NekoAccentBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource NekoAccentBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
 
                             <Button Content="↻ REFRESH HALO"
                                     Command="{Binding RefreshHaloTicketsCommand}"
@@ -372,6 +388,10 @@
                 <views:BattleView
                 Visibility="{Binding WorkspaceMode,
                                      Converter={StaticResource BattleVisibilityConverter}}"/>
+
+                <views:SettingsView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource DiagnosticsVisibilityConverter}}"/>
 
             </Grid>
 

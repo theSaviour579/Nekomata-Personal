@@ -180,6 +180,7 @@ public partial class MainViewModel : ObservableObject
         InitialiseIntegrationRefresh();
         InitialisePlanHealthMonitoring();
         InitialiseAttentionCentre();
+        InitialiseDiagnosticsMonitoring();
 
         _ = LoadAsync();
         _missionSimulationEngine = missionSimulationEngine;
@@ -250,6 +251,8 @@ public partial class MainViewModel : ObservableObject
             if (showSplash)
                 _ = InitialiseSpotifyArrivalAsync();
             if (showSplash)
+                _ = RefreshDiagnosticsAsync();
+            if (showSplash)
                 _ = SpeakMorningBriefingAsync();
         }
         catch (Exception ex)
@@ -274,6 +277,7 @@ public partial class MainViewModel : ObservableObject
     private async Task RefreshHaloTicketsAsync()
     {
         await LoadAsync();
+        _ = RefreshDiagnosticsAsync();
     }
 
     public IEnumerable<MissionCandidate> AlternativeMissions =>

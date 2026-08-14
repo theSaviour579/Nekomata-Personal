@@ -82,6 +82,7 @@ public partial class App : Application
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<GuardianSpeechService>();
                 services.AddSingleton<SpotifyPlaybackService>();
+                services.AddSingleton<IntegrationDiagnosticsService>();
                 services.AddSingleton<IFocusEngine, FocusEngine>();
                 services.AddSingleton<NekomataDbContext>();
                 services.AddSingleton<DatabaseInitializer>();

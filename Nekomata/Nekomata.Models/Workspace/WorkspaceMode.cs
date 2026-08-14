@@ -8,5 +8,6 @@ public enum WorkspaceMode
     Email,
     Attention,
     HaloWatchlist,
-    Battle
+    Battle,
+    Diagnostics
 }
