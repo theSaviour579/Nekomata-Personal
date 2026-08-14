@@ -24,6 +24,8 @@ public class GuardianApplyService
     {
         ArgumentNullException.ThrowIfNull(response);
 
+        response.ProjectId ??= defaultProjectId;
+
         var result =
             new GuardianApplyResult
             {
