@@ -253,6 +253,8 @@ public partial class MainViewModel : ObservableObject
             if (showSplash)
                 _ = RefreshDiagnosticsAsync();
             if (showSplash)
+                _ = InitialiseAutomaticBackupAsync();
+            if (showSplash)
                 _ = SpeakMorningBriefingAsync();
         }
         catch (Exception ex)
