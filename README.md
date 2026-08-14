@@ -21,6 +21,12 @@ The application records and applies database migrations automatically. If Postgr
 
 Run `dotnet test Nekomata.sln --configuration Release`. Tests include planning regressions, calendar and email behavior, mission continuation, Guardian action handling, configuration validation, and database migration coverage.
 
+## Windows releases
+
+The private `Windows release` GitHub Actions workflow publishes a self-contained x64 application, a conventional per-user installer, a portable ZIP, and SHA-256 checksums. Run it manually with a semantic version such as `0.2.0`, or push a matching tag such as `v0.2.0`.
+
+Installed releases do not require a separate .NET runtime. User secrets, Microsoft authentication tokens, PostgreSQL data, and encrypted backups live outside the installation directory and survive upgrades. Update checks use the authenticated GitHub CLI because the repository and its releases are private.
+
 ## Configuration
 
 Non-secret defaults live in `Nekomata/appsettings.json`. Keep database passwords, API keys, client secrets, and integration passwords in .NET user-secrets. Integrations without valid credentials fall back to their unconfigured or fake implementation where supported.
