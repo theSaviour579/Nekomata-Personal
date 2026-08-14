@@ -85,6 +85,10 @@ public partial class App : Application
                 services.AddSingleton<SpotifyPlaybackService>();
                 services.AddSingleton<IntegrationDiagnosticsService>();
                 services.AddSingleton<DatabaseBackupService>();
+                services.AddSingleton<StartupRegistrationService>();
+                services.AddSingleton<UpdateCheckService>();
+                services.AddSingleton<FirstRunService>();
+                services.AddTransient<FirstRunWindow>();
                 services.AddSingleton<IFocusEngine, FocusEngine>();
                 services.AddSingleton<NekomataDbContext>();
                 services.AddSingleton<DatabaseInitializer>();
@@ -338,6 +342,14 @@ public partial class App : Application
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = mainWindow;
         mainWindow.Show();
+
+        var firstRun = _host.Services.GetRequiredService<FirstRunService>();
+        if (firstRun.IsFirstRun)
+        {
+            var setup = _host.Services.GetRequiredService<FirstRunWindow>();
+            setup.Owner = mainWindow;
+            setup.ShowDialog();
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)

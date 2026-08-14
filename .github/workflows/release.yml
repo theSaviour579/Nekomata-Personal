@@ -1,0 +1,102 @@
+name: Windows release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version without the v prefix
+        required: true
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a prerelease
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
+          if ($version -notmatch '^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$') { throw "Invalid semantic version: $version" }
+          "value=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Restore
+        shell: pwsh
+        run: |
+          dotnet restore Nekomata/Nekomata/Nekomata.UI.csproj --runtime win-x64 --maxcpucount:1
+          dotnet restore Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --maxcpucount:1
+
+      - name: Test
+        run: dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Release --no-restore --maxcpucount:1 /p:UseSharedCompilation=false
+
+      - name: Publish self-contained application
+        run: >-
+          dotnet publish Nekomata/Nekomata/Nekomata.UI.csproj
+          --configuration Release --runtime win-x64 --self-contained true --no-restore
+          --output artifacts/publish --maxcpucount:1
+          /p:Version=${{ steps.version.outputs.value }} /p:DebugType=None /p:DebugSymbols=false
+
+      - name: Create portable archive
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/Nekomata-${{ steps.version.outputs.value }}-win-x64.zip
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup compiler was not found on the Windows runner.' }
+          & $iscc "/DMyAppVersion=${{ steps.version.outputs.value }}" "/DPublishDir=$($pwd.Path)\artifacts\publish" installer/Nekomata.iss
+
+      - name: Generate SHA-256 checksums
+        shell: pwsh
+        run: |
+          $files = @(
+            "artifacts\installer\Nekomata-Setup-${{ steps.version.outputs.value }}.exe",
+            "artifacts\Nekomata-${{ steps.version.outputs.value }}-win-x64.zip"
+          )
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content artifacts/SHA256SUMS.txt
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nekomata-${{ steps.version.outputs.value }}
+          path: |
+            artifacts/installer/*.exe
+            artifacts/*.zip
+            artifacts/SHA256SUMS.txt
+
+      - name: Publish private GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $flags = @()
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
+          gh release create '${{ steps.version.outputs.tag }}' @flags --repo '${{ github.repository }}' --target '${{ github.sha }}' --title 'Nekomata ${{ steps.version.outputs.value }}' --generate-notes artifacts/installer/*.exe artifacts/*.zip artifacts/SHA256SUMS.txt

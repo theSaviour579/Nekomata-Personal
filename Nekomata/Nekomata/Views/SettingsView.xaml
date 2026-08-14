@@ -60,6 +60,31 @@
             </Grid>
         </Border>
 
+        <Border Background="{DynamicResource NekoCardGradientBrush}"
+                BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1"
+                CornerRadius="14" Padding="16" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="APPLICATION" Style="{DynamicResource NekoSectionTitleText}"/>
+                    <TextBlock Text="{Binding InstalledVersion, StringFormat=Nekomata {0}}" FontSize="17" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                    <TextBlock Text="{Binding UpdateStatus}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    <CheckBox Content="Start Nekomata when I sign in to Windows" IsChecked="{Binding StartWithWindows}" Margin="0,10,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+                    <Button Content="OPEN RELEASE" Command="{Binding OpenLatestReleaseCommand}" Margin="0,0,8,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers><DataTrigger Binding="{Binding UpdateAvailable}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Content="CHECK FOR UPDATES" Command="{Binding CheckForUpdatesCommand}" IsEnabled="{Binding UpdateCheckBusy, Converter={StaticResource InverseBooleanConverter}}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <ItemsControl ItemsSource="{Binding Diagnostics}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

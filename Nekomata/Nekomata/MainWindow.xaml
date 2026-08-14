@@ -93,6 +93,20 @@
                                     HorizontalAlignment="Right"
                                     Margin="0,8,0,0">
 
+                            <Button Content="UPDATE AVAILABLE"
+                                    Command="{Binding OpenLatestReleaseCommand}"
+                                    Foreground="{DynamicResource NekoWarningBrush}"
+                                    BorderBrush="{DynamicResource NekoWarningBrush}"
+                                    Padding="10,4"
+                                    Margin="0,0,10,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers><DataTrigger Binding="{Binding UpdateAvailable}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
                                                         <Button Content="{Binding GuardianVoiceButtonLabel}"
                                     Command="{Binding ToggleGuardianVoiceCommand}"
                                     Padding="10,4"

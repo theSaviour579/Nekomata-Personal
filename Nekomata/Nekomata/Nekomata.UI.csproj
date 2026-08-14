@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <AssemblyName>Nekomata</AssemblyName>
+    <Product>Nekomata Guardian Command Centre</Product>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>David Myers</Authors>
     <UserSecretsId>2bff312d-aa43-432a-bd88-844804742564</UserSecretsId>
 	  <ApplicationIcon>Assets\Images\App.ico</ApplicationIcon>
   </PropertyGroup>

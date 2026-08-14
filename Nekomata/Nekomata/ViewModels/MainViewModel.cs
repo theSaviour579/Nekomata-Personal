@@ -181,6 +181,7 @@ public partial class MainViewModel : ObservableObject
         InitialisePlanHealthMonitoring();
         InitialiseAttentionCentre();
         InitialiseDiagnosticsMonitoring();
+        InitialiseReleaseSettings();
 
         _ = LoadAsync();
         _missionSimulationEngine = missionSimulationEngine;
@@ -252,6 +253,8 @@ public partial class MainViewModel : ObservableObject
                 _ = InitialiseSpotifyArrivalAsync();
             if (showSplash)
                 _ = RefreshDiagnosticsAsync();
+            if (showSplash)
+                _ = CheckForUpdatesAsync();
             if (showSplash)
                 _ = InitialiseAutomaticBackupAsync();
             if (showSplash)

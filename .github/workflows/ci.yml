@@ -40,3 +40,17 @@ jobs:
           name: test-results
           path: Nekomata/Nekomata.Tests/TestResults/tests.trx
           if-no-files-found: ignore
+
+      - name: Restore Windows runtime assets
+        run: dotnet restore Nekomata/Nekomata/Nekomata.UI.csproj --runtime win-x64 --maxcpucount:1
+
+      - name: Validate self-contained publish
+        run: dotnet publish Nekomata/Nekomata/Nekomata.UI.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore --output artifacts/publish --maxcpucount:1 /p:Version=0.0.0 /p:DebugType=None /p:DebugSymbols=false
+
+      - name: Validate Windows installer
+        shell: pwsh
+        run: |
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup compiler was not found on the Windows runner.' }
+          & $iscc "/DMyAppVersion=0.0.0" "/DPublishDir=$($pwd.Path)\artifacts\publish" installer/Nekomata.iss
