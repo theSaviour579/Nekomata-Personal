@@ -41,6 +41,7 @@ using Nekomata.Services.KnowBe4;
 using Nekomata.UI.ViewModels;
 using Nekomata.UI.Services;
 using Nekomata.UI.Windows;
+using Nekomata.UI.Views;
 using System.Windows;
 
 namespace Nekomata.UI;
@@ -115,6 +116,10 @@ public partial class App : Application
                     services.AddSingleton<IStructuredAIProvider, UnconfiguredAIProvider>();
                 }
                 services.AddSingleton<IProjectRepository, ProjectRepository>();
+                services.AddSingleton<IGuardianAuditRepository, GuardianAuditRepository>();
+                services.AddSingleton<GuardianUndoService>();
+                services.AddTransient<GuardianActivityViewModel>();
+                services.AddTransient<GuardianActivityWindow>();
                 services.AddTransient<ProjectWindowViewModel>();
                 services.AddTransient<ProjectWindow>();
                 services.AddSingleton<

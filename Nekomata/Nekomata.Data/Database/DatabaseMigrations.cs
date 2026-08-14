@@ -151,6 +151,34 @@ internal static class DatabaseMigrations
             CREATE INDEX IF NOT EXISTS ix_tasks_status_due_at ON assistant.tasks(status, due_at);
             CREATE INDEX IF NOT EXISTS ix_guardian_memory_created_at ON assistant.guardian_memory(created_at DESC);
             CREATE INDEX IF NOT EXISTS ix_mission_sessions_finished_at ON assistant.mission_sessions(finished_at DESC);
+            """),
+        new(4, "Create persistent Guardian action audit", """
+            CREATE TABLE IF NOT EXISTS assistant.guardian_audit
+            (
+                id bigserial PRIMARY KEY,
+                batch_id uuid NOT NULL,
+                operation text NOT NULL,
+                entity_type text NOT NULL,
+                entity_id bigint,
+                external_id text,
+                title text NOT NULL,
+                description text NOT NULL DEFAULT '',
+                reason text NOT NULL DEFAULT '',
+                confidence integer NOT NULL DEFAULT 0 CHECK (confidence BETWEEN 0 AND 100),
+                before_state jsonb,
+                after_state jsonb,
+                reversible boolean NOT NULL DEFAULT false,
+                irreversible_reason text,
+                status text NOT NULL DEFAULT 'Applied',
+                applied_at timestamp with time zone NOT NULL DEFAULT now(),
+                undone_at timestamp with time zone,
+                undo_message text
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_guardian_audit_applied_at
+                ON assistant.guardian_audit(applied_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_guardian_audit_batch_id
+                ON assistant.guardian_audit(batch_id);
             """)
     ];
 }

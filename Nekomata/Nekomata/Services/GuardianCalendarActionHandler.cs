@@ -3,6 +3,7 @@ using Nekomata.AI.Models.Actions;
 using Nekomata.Core.Guardian.Actions;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
 using Nekomata.Integrations.MicrosoftGraph.Models;
+using System.Text.Json;
 
 namespace Nekomata.UI.Services;
 
@@ -83,7 +84,14 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
             Type = "Calendar",
             Title = $"Scheduled {title}",
             Description = $"{fitted.Start:ddd dd MMM HH:mm}–{fitted.End:HH:mm}",
-            EntityId = change.EntityId > 0 ? change.EntityId : null
+            EntityId = change.EntityId > 0 ? change.EntityId : null,
+            ExternalId = created.Id,
+            Operation = "Create",
+            AfterState = JsonSerializer.Serialize(CalendarAuditSnapshot.From(created)),
+            Reversible = !string.IsNullOrWhiteSpace(created.Id),
+            IrreversibleReason = string.IsNullOrWhiteSpace(created.Id) ? "Microsoft 365 did not return an event ID." : null,
+            Reason = change.Reason,
+            Confidence = change.Confidence
         });
 
         if (fitted.Start != requestedStart || fitted.End != requestedEnd)
@@ -101,13 +109,30 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
         var end = ParseDate(parts[1]);
         ValidateRange(start, end);
         await EnsureNoProtectedConflictAsync(start, end, change.OldValue);
+        var existing = await FindEventAsync(change.OldValue, start);
         var moved = await _calendar.MoveFocusEventAsync(change.OldValue, start, end);
         result.Actions.Add(new GuardianAppliedAction
         {
             Type = "Calendar",
             Title = $"Moved {moved.Subject}",
-            Description = $"{start:ddd dd MMM HH:mm}–{end:HH:mm}"
+            Description = $"{start:ddd dd MMM HH:mm}–{end:HH:mm}",
+            ExternalId = moved.Id,
+            Operation = "Move",
+            BeforeState = existing is null ? null : JsonSerializer.Serialize(CalendarAuditSnapshot.From(existing)),
+            AfterState = JsonSerializer.Serialize(CalendarAuditSnapshot.From(moved)),
+            Reversible = existing is not null && !string.IsNullOrWhiteSpace(moved.Id),
+            IrreversibleReason = existing is null ? "The original calendar position could not be verified." : null,
+            Reason = change.Reason,
+            Confidence = change.Confidence
         });
+    }
+
+    private async Task<CalendarEvent?> FindEventAsync(string eventId, DateTimeOffset around)
+    {
+        var offset = TimeZoneInfo.Local.GetUtcOffset(around.Date);
+        var rangeStart = new DateTimeOffset(around.Date.AddDays(-7), offset);
+        var rangeEnd = new DateTimeOffset(around.Date.AddDays(8), offset);
+        return (await _calendar.GetEventsAsync(rangeStart, rangeEnd)).FirstOrDefault(item => item.Id == eventId);
     }
 
     private async Task<(DateTimeOffset Start, DateTimeOffset End)> FitIntoFreeWindowAsync(
@@ -218,5 +243,10 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
             throw new InvalidOperationException("The block must end after it starts.");
         if (end - start > TimeSpan.FromHours(8))
             throw new InvalidOperationException("A focus block cannot be longer than eight hours.");
+    }
+
+    private sealed record CalendarAuditSnapshot(string Id, string Subject, DateTimeOffset Start, DateTimeOffset End)
+    {
+        public static CalendarAuditSnapshot From(CalendarEvent item) => new(item.Id, item.Subject, item.Start, item.End);
     }
 }
