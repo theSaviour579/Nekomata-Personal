@@ -19,6 +19,7 @@
             <converters:HaloWatchlistVisibilityConverter x:Key="HaloWatchlistVisibilityConverter"/>
             <converters:BattleVisibilityConverter x:Key="BattleVisibilityConverter"/>
             <converters:DiagnosticsVisibilityConverter x:Key="DiagnosticsVisibilityConverter"/>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
             <converters:EditModeTitleConverter x:Key="EditModeTitleConverter"/>
         </ResourceDictionary>

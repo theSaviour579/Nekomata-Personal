@@ -42,6 +42,24 @@
             </Grid>
         </Border>
 
+        <Border Background="{DynamicResource NekoCardGradientBrush}"
+                BorderBrush="{DynamicResource NekoSpiritPurpleBrush}" BorderThickness="1"
+                CornerRadius="14" Padding="16" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="BACKUP &amp; RECOVERY" Style="{DynamicResource NekoSectionTitleText}"/>
+                    <TextBlock Text="Encrypted, verified PostgreSQL workspace backups" FontSize="17" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                    <TextBlock Text="{Binding BackupStatus}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    <TextBlock Text="Automatic daily backups activate when NEKOMATA_BACKUP_PASSPHRASE or the Backup:Passphrase user secret is configured. Manual exports can be moved to another laptop." Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+                    <Button Content="RESTORE" Command="{Binding RestoreEncryptedBackupCommand}" IsEnabled="{Binding BackupBusy, Converter={StaticResource InverseBooleanConverter}}" Margin="0,0,8,0"/>
+                    <Button Content="CREATE BACKUP" Command="{Binding CreateEncryptedBackupCommand}" IsEnabled="{Binding BackupBusy, Converter={StaticResource InverseBooleanConverter}}" Background="{DynamicResource NekoSpiritPurpleBrush}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <ItemsControl ItemsSource="{Binding Diagnostics}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

@@ -34,6 +34,7 @@ public sealed class IntegrationDiagnosticsService
         var checks = new List<IntegrationDiagnosticItem>
         {
             await CheckAsync("PostgreSQL", CheckDatabaseAsync, cancellationToken),
+            await CheckAsync("Backups", CheckBackupsAsync, cancellationToken),
             await CheckAsync("OpenAI", CheckOpenAiAsync, cancellationToken),
             await CheckAsync("Microsoft 365", CheckMicrosoftGraphAsync, cancellationToken),
             await CheckAsync("Halo", CheckHaloAsync, cancellationToken),
@@ -88,6 +89,19 @@ public sealed class IntegrationDiagnosticsService
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException($"OpenAI returned HTTP {(int)response.StatusCode}.");
         return ("Connected", "Authentication succeeded with a read-only models request.");
+    }
+
+    private async Task<(string Summary, string Detail)> CheckBackupsAsync(CancellationToken ct)
+    {
+        var status = await _services.GetRequiredService<DatabaseBackupService>().GetStatusAsync(ct);
+        if (!status.ToolingAvailable) throw new InvalidOperationException(status.ToolingDetail);
+        if (!status.AutomaticConfigured)
+            throw new DiagnosticNotConfiguredException("Automatic encryption password is not configured; manual encrypted backups remain available.");
+        if (status.LatestBackupAt is null)
+            throw new InvalidOperationException("Automatic backup is configured, but no backup has completed yet.");
+        if (!status.IsFresh)
+            throw new InvalidOperationException($"Latest backup is stale ({status.LatestBackupAt:g}).");
+        return ("Protected", status.FreshnessLabel + " · encrypted and verified before creation.");
     }
 
     private async Task<(string Summary, string Detail)> CheckMicrosoftGraphAsync(CancellationToken ct)
