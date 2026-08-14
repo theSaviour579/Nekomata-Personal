@@ -193,6 +193,7 @@ public class TaskRepository : ITaskRepository
                 estimated_minutes = @EstimatedMinutes,
                 actual_minutes = @ActualMinutes,
                 due_at = @DueAt,
+                completed_at = @CompletedAt,
                 priority_score = @PriorityScore,
                 estimated_business_value = @EstimatedBusinessValue,
                 revenue_impact = @RevenueImpact,

@@ -2,6 +2,7 @@ using Nekomata.AI.Models.Actions;
 using Nekomata.Core.Guardian.Mapping;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Tasks;
+using System.Text.Json;
 
 namespace Nekomata.Core.Guardian.Actions;
 
@@ -26,13 +27,19 @@ public class GuardianTaskActionHandler : IGuardianTaskActionHandler
         {
             var task = _taskMapper.Map(proposedTask, response.ProjectId);
             var id = await _taskRepository.SaveAsync(task);
+            task.Id = id;
             result.CreatedTaskIds.Add(id);
             result.Actions.Add(new GuardianAppliedAction
             {
                 Type = "Task",
                 Title = proposedTask.Title,
                 Description = $"Created task ({proposedTask.Priority})",
-                EntityId = id
+                EntityId = id,
+                Operation = "Create",
+                AfterState = JsonSerializer.Serialize(task),
+                Reversible = true,
+                Reason = response.Message,
+                Confidence = response.Confidence
             });
         }
 
@@ -74,10 +81,12 @@ public class GuardianTaskActionHandler : IGuardianTaskActionHandler
             return;
         }
 
+        var beforeState = JsonSerializer.Serialize(task);
         if (status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
         {
             await _taskRepository.CompleteAsync(task.Id);
         }
+
         else if (status.Equals("Open", StringComparison.OrdinalIgnoreCase))
         {
             await _taskRepository.ReopenAsync(task.Id);
@@ -90,6 +99,8 @@ public class GuardianTaskActionHandler : IGuardianTaskActionHandler
             await _taskRepository.SaveAsync(task);
         }
 
+        var updatedTask = await _taskRepository.GetByIdAsync(task.Id);
+
         result.Actions.Add(new GuardianAppliedAction
         {
             Type = "Task",
@@ -97,7 +108,14 @@ public class GuardianTaskActionHandler : IGuardianTaskActionHandler
             Description = note is null
                 ? $"Status changed to {status}."
                 : $"Status changed to {status}. Note: {note}",
-            EntityId = task.Id
+            EntityId = task.Id,
+            Operation = "Update",
+            BeforeState = beforeState,
+            AfterState = updatedTask is null ? null : JsonSerializer.Serialize(updatedTask),
+            Reversible = updatedTask is not null,
+            IrreversibleReason = updatedTask is null ? "The updated task could not be read back." : null,
+            Reason = change.Reason,
+            Confidence = change.Confidence
         });
     }
 

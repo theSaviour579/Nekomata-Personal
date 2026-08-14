@@ -2,6 +2,7 @@ namespace Nekomata.Core.Guardian.Actions;
 
 public class GuardianApplyResult
 {
+    public Guid? AuditBatchId { get; set; }
     public bool Success { get; set; }
     public int TasksCreated { get; set; }
     public List<long> CreatedTaskIds { get; set; } = [];

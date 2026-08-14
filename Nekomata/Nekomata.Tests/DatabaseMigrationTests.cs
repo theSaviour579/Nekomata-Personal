@@ -24,6 +24,7 @@ public sealed class DatabaseMigrationTests
     [InlineData("assistant.tasks")]
     [InlineData("assistant.projects")]
     [InlineData("assistant.guardian_memory")]
+    [InlineData("assistant.guardian_audit")]
     [InlineData("assistant.mission_sessions")]
     [InlineData("estimated_business_value")]
     [InlineData("completed_at")]

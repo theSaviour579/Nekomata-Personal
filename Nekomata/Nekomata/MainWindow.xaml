@@ -64,6 +64,7 @@
                             <Button Content="CALENDAR" Command="{Binding ShowCalendarCommand}" Margin="0,0,8,0"/>
                             <Button Content="EMAIL" Command="{Binding ShowEmailCommand}" Margin="0,0,8,0"/>
                             <Button Content="MEETING ANALYZER" Command="{Binding OpenGuardianPlannerCommand}" Margin="0,0,8,0" ToolTip="Turn meeting notes into reviewed tasks, projects and calendar actions"/>
+                            <Button Content="ACTIVITY" Command="{Binding OpenGuardianActivityCommand}" Margin="0,0,8,0" ToolTip="Review Guardian decisions and safely undo applied batches"/>
                             <Button Content="{Binding HaloWatchlistButtonLabel}" Command="{Binding ShowHaloWatchlistCommand}" Margin="0,0,8,0"/>
                             <Button Content="{Binding AttentionButtonLabel}" Command="{Binding ShowAttentionCommand}">
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding HasActiveAttention}" Value="True"><Setter Property="Foreground" Value="{DynamicResource NekoWarningBrush}"/></DataTrigger></Style.Triggers></Style></Button.Style>
