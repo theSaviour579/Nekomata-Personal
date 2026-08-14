@@ -131,7 +131,13 @@ public sealed class DatabaseBackupService
             .Select(part => Path.Combine(part.Trim(), name)).FirstOrDefault(File.Exists);
         if (path is not null) return path;
         var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "PostgreSQL");
-        return Directory.Exists(root) ? Directory.GetFiles(root, name, SearchOption.AllDirectories).OrderByDescending(file => file).FirstOrDefault() : null;
+        if (!Directory.Exists(root)) return null;
+
+        return Directory.EnumerateDirectories(root)
+            .Select(versionDirectory => Path.Combine(versionDirectory, "bin", name))
+            .Where(File.Exists)
+            .OrderByDescending(candidate => candidate, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
     }
 
     private void ApplyRetention()
