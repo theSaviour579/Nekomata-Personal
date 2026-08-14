@@ -2,28 +2,33 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Welcome to Nekomata" Width="650" Height="590" ResizeMode="NoResize"
-        WindowStartupLocation="CenterOwner" Background="{DynamicResource NekoBackgroundBrush}">
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource NekoBackgroundBrush}"
+        Foreground="{DynamicResource NekoTextBrush}">
     <Grid Margin="30">
         <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <StackPanel>
             <TextBlock Text="WELCOME TO NEKOMATA" Style="{DynamicResource NekoTitleText}"/>
             <TextBlock Text="Guardian Command Centre" Foreground="{DynamicResource NekoSpiritPurpleBrush}" FontSize="16" FontWeight="SemiBold"/>
-            <TextBlock Text="Your application is installed. Complete these checks before relying on the workspace:" TextWrapping="Wrap" Margin="0,22,0,14" FontSize="15"/>
+            <TextBlock Text="Your application is installed. Complete these checks before relying on the workspace:"
+                       TextWrapping="Wrap" Margin="0,22,0,14" FontSize="15"
+                       Foreground="{DynamicResource NekoTextBrush}"/>
 
             <Border Background="{DynamicResource NekoCardGradientBrush}" CornerRadius="14" Padding="18" BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="1  CONNECT POSTGRESQL" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/>
-                    <TextBlock Text="Configure Database:Password through user secrets and confirm PostgreSQL is healthy." TextWrapping="Wrap" Margin="22,4,0,12"/>
+                    <TextBlock Text="Configure Database:Password through user secrets and confirm PostgreSQL is healthy." TextWrapping="Wrap" Margin="22,4,0,12" Foreground="{DynamicResource NekoMutedTextBrush}"/>
                     <TextBlock Text="2  RESTORE OR START FRESH" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/>
-                    <TextBlock Text="On a replacement laptop, restore your encrypted .nkb backup. For a new workspace, let Nekomata initialise the database." TextWrapping="Wrap" Margin="22,4,0,12"/>
+                    <TextBlock Text="On a replacement laptop, restore your encrypted .nkb backup. For a new workspace, let Nekomata initialise the database." TextWrapping="Wrap" Margin="22,4,0,12" Foreground="{DynamicResource NekoMutedTextBrush}"/>
                     <TextBlock Text="3  CONNECT SERVICES" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/>
-                    <TextBlock Text="Run Diagnostics for Microsoft 365, OpenAI, Halo, KnowBe4 and Spotify." TextWrapping="Wrap" Margin="22,4,0,12"/>
+                    <TextBlock Text="Run Diagnostics for Microsoft 365, OpenAI, Halo, KnowBe4 and Spotify." TextWrapping="Wrap" Margin="22,4,0,12" Foreground="{DynamicResource NekoMutedTextBrush}"/>
                     <TextBlock Text="4  PROTECT THE WORKSPACE" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/>
-                    <TextBlock Text="Create and verify the first encrypted backup, then keep a copy away from this laptop." TextWrapping="Wrap" Margin="22,4,0,0"/>
+                    <TextBlock Text="Create and verify the first encrypted backup, then keep a copy away from this laptop." TextWrapping="Wrap" Margin="22,4,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
                 </StackPanel>
             </Border>
 
-            <CheckBox x:Name="StartupChoice" Content="Start Nekomata when I sign in to Windows" Margin="0,18,0,0"/>
+            <CheckBox x:Name="StartupChoice" Content="Start Nekomata when I sign in to Windows" Margin="0,18,0,0"
+                      Foreground="{DynamicResource NekoTextBrush}"/>
         </StackPanel>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="FINISH LATER" Click="FinishLater_Click" Margin="0,0,9,0"/>
