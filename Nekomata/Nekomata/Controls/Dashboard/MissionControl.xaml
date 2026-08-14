@@ -1,0 +1,190 @@
+﻿<UserControl x:Class="Nekomata.UI.Controls.Dashboard.MissionControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:common="clr-namespace:Nekomata.UI.Controls.Common">
+
+    <Border
+        CornerRadius="28"
+        Padding="28"
+        Margin="0,0,0,20"
+        Background="{DynamicResource NekoHeaderGradientBrush}"
+        BorderBrush="{DynamicResource NekoSpiritPurpleBrush}"
+        BorderThickness="1">
+
+        <Border.Effect>
+            <DropShadowEffect
+                Color="#7B5DFF"
+                BlurRadius="28"
+                ShadowDepth="0"
+                Opacity="0.25"/>
+        </Border.Effect>
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+
+            <StackPanel>
+
+                <TextBlock
+                    Text="TODAY'S MISSION"
+                    Foreground="{DynamicResource NekoAccentBrush}"
+                    FontWeight="SemiBold"
+                    FontSize="14"/>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="34"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource NekoSpiritWhiteBrush}"
+                    Text="{Binding MissionTitle,
+                                   RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+
+            </StackPanel>
+
+            <!-- Progress -->
+
+            <Border
+                Grid.Row="1"
+                Margin="0,24,0,0"
+                Height="10"
+                CornerRadius="5"
+                Background="{DynamicResource NekoSurfaceSoftBrush}">
+
+                <Grid>
+
+                    <Border
+                        Width="320"
+                        HorizontalAlignment="Left"
+                        CornerRadius="5"
+                        Background="{DynamicResource NekoLightningBrush}"/>
+
+                </Grid>
+
+            </Border>
+
+            <!-- Mission Stats -->
+
+            <Grid Grid.Row="2" Margin="0,30,0,0">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Mission Ring -->
+                <common:MissionScoreRing
+        Grid.Column="0"
+        Score="{Binding Score,
+                        RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+
+                <!-- Threat -->
+                <StackPanel Grid.Column="1"
+                Margin="20,0">
+
+                    <TextBlock
+            Text="THREAT LEVEL"
+            Style="{DynamicResource NekoTinyText}"/>
+
+                    <Border
+            Margin="0,8,0,0"
+            Padding="14,8"
+            CornerRadius="12"
+            Background="#3A2430">
+
+                        <TextBlock
+                Text="{Binding Threat,
+                               RelativeSource={RelativeSource AncestorType=UserControl}}"
+                Foreground="{DynamicResource NekoCriticalBrush}"
+                FontWeight="Bold"/>
+
+                    </Border>
+
+                </StackPanel>
+
+                <!-- Stats -->
+                <StackPanel Grid.Column="2"
+                Margin="20,0">
+
+                    <TextBlock
+            Text="BUSINESS VALUE"
+            Style="{DynamicResource NekoTinyText}"/>
+
+                    <TextBlock
+            Text="{Binding BusinessValue,
+                           RelativeSource={RelativeSource AncestorType=UserControl},
+                           StringFormat=£{0:N0}}"
+            FontSize="24"
+            FontWeight="SemiBold"
+            Foreground="{DynamicResource NekoMoneyBrush}"/>
+
+                    <TextBlock
+            Margin="0,18,0,0"
+            Text="ESTIMATED TIME"
+            Style="{DynamicResource NekoTinyText}"/>
+
+                    <TextBlock
+            Text="{Binding Duration,
+                           RelativeSource={RelativeSource AncestorType=UserControl}}"
+            FontSize="22"
+            FontWeight="SemiBold"
+            Foreground="{DynamicResource NekoSpiritWhiteBrush}"/>
+
+                </StackPanel>
+
+            </Grid>
+
+            <!-- Start Before -->
+
+            <Border
+                Grid.Row="3"
+                Margin="0,24,0,0"
+                Padding="14"
+                CornerRadius="16"
+                Background="{DynamicResource NekoSurfaceAltBrush}">
+
+                <StackPanel>
+
+                    <TextBlock
+                        Text="BEGIN BEFORE"
+                        Style="{DynamicResource NekoTinyText}"/>
+
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        FontSize="18"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource NekoWarningBrush}"
+                        Text="{Binding StartBefore,
+                                       RelativeSource={RelativeSource AncestorType=UserControl},
+                                       StringFormat={}{0:HH:mm}}"/>
+
+                </StackPanel>
+
+            </Border>
+
+            <!-- Button -->
+            <Button
+    Grid.Row="4"
+    Margin="0,28,0,0"
+    Height="54"
+    FontSize="16"
+    FontWeight="Bold"
+    Background="{DynamicResource NekoSpiritPurpleBrush}"
+    BorderThickness="0"
+    Content="▶ BEGIN MISSION"
+    Command="{Binding BeginMissionCommand,
+                      RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+
+        </Grid>
+
+    </Border>
+
+</UserControl>

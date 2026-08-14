@@ -1,0 +1,122 @@
+﻿<UserControl x:Class="Nekomata.UI.Controls.Guardian.GuardianRecommendationCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+
+    <Border Background="{DynamicResource NekoCardGradientBrush}"
+            BorderBrush="{DynamicResource NekoLightningBrush}"
+            BorderThickness="1"
+            CornerRadius="18"
+            Padding="18"
+            Margin="0,0,0,16">
+
+        <StackPanel>
+
+            <DockPanel Margin="0,0,0,14">
+
+                <TextBlock Text="GUARDIAN RECOMMENDS"
+                           Style="{DynamicResource NekoSectionTitleText}"
+                           DockPanel.Dock="Left"/>
+
+                <Border Background="{DynamicResource NekoSurfaceSoftBrush}"
+                        CornerRadius="8"
+                        Padding="8,3"
+                        DockPanel.Dock="Right">
+
+                    <TextBlock Text="{Binding RecommendationType}"
+                               Style="{DynamicResource NekoTinyText}"/>
+
+                </Border>
+
+            </DockPanel>
+
+            <TextBlock Text="{Binding Title}"
+                       Style="{DynamicResource NekoHeadingText}"
+                       TextWrapping="Wrap"/>
+
+            <TextBlock Text="{Binding Reason}"
+                       Style="{DynamicResource NekoBodyText}"
+                       TextWrapping="Wrap"
+                       Margin="0,8,0,16"/>
+
+            <Grid>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="SCORE"
+                               Style="{DynamicResource NekoTinyText}"/>
+
+                    <TextBlock Text="{Binding Score}"
+                               Foreground="{DynamicResource NekoSpiritPurpleBrush}"
+                               FontSize="22"
+                               FontWeight="Bold"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="VALUE"
+                               Style="{DynamicResource NekoTinyText}"/>
+
+                    <TextBlock Text="{Binding BusinessValue,
+                                              StringFormat=£{0:N0}}"
+                               Foreground="{DynamicResource NekoMoneyBrush}"
+                               FontSize="22"
+                               FontWeight="Bold"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="EFFORT"
+                               Style="{DynamicResource NekoTinyText}"/>
+
+                    <TextBlock Text="{Binding EstimatedMinutes,
+                                              StringFormat={}{0} mins}"
+                               Foreground="{DynamicResource NekoTextBrush}"
+                               FontSize="18"
+                               FontWeight="SemiBold"/>
+                </StackPanel>
+
+            </Grid>
+
+            <ProgressBar Minimum="0"
+                         Maximum="100"
+                         Value="{Binding ProgressPercent}"
+                         Height="8"
+                         Margin="0,18,0,0"/>
+
+            <TextBlock Text="{Binding ProgressPercent,
+                                      StringFormat={}{0}% complete}"
+                       Style="{DynamicResource NekoTinyText}"
+                       HorizontalAlignment="Right"
+                       Margin="0,5,0,0"/>
+            <Grid Margin="0,18,0,0">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+            Content="ASK GUARDIAN"
+            Command="{Binding AskGuardianCommand,
+                              ElementName=Root}"
+            Height="38"/>
+
+                <Button Grid.Column="2"
+            Content="START MISSION"
+            Command="{Binding StartMissionCommand,
+                              ElementName=Root}"
+            Height="38"
+            Background="{DynamicResource NekoSpiritPurpleBrush}"
+            Foreground="White"/>
+
+            </Grid>
+        </StackPanel>
+
+    </Border>
+
+</UserControl>

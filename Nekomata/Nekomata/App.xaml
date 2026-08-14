@@ -1,0 +1,25 @@
+<Application x:Class="Nekomata.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:Nekomata.UI.Converters"
+             ShutdownMode="OnMainWindowClose">
+
+    <Application.Resources>
+        <ResourceDictionary>
+
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:DashboardVisibilityConverter x:Key="DashboardVisibilityConverter"/>
+            <converters:MissionVisibilityConverter x:Key="MissionVisibilityConverter"/>
+            <converters:CalendarVisibilityConverter x:Key="CalendarVisibilityConverter"/>
+            <converters:EmailVisibilityConverter x:Key="EmailVisibilityConverter"/>
+            <converters:AttentionVisibilityConverter x:Key="AttentionVisibilityConverter"/>
+            <converters:HaloWatchlistVisibilityConverter x:Key="HaloWatchlistVisibilityConverter"/>
+            <converters:BattleVisibilityConverter x:Key="BattleVisibilityConverter"/>
+            <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+            <converters:EditModeTitleConverter x:Key="EditModeTitleConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

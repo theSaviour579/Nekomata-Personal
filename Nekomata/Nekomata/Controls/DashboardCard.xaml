@@ -1,0 +1,67 @@
+﻿<UserControl x:Class="Nekomata.UI.Controls.Dashboard.DashboardCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+
+    <Border CornerRadius="24"
+            Padding="20"
+            Margin="0,0,0,18"
+            Background="{DynamicResource NekoCardGradientBrush}"
+            BorderBrush="{DynamicResource NekoBorderBrush}"
+            BorderThickness="1"
+            SnapsToDevicePixels="True">
+
+        <Border.Effect>
+            <DropShadowEffect Color="#42D9FF"
+                              BlurRadius="22"
+                              ShadowDepth="0"
+                              Opacity="0.16"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title row -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Ellipse Width="8"
+                         Height="8"
+                         Fill="{DynamicResource NekoLightningBrush}"
+                         VerticalAlignment="Center"
+                         Margin="0,0,10,0"/>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Title, ElementName=Root}"
+                           Style="{DynamicResource NekoSectionTitleText}"
+                           VerticalAlignment="Center"/>
+
+                <TextBlock Grid.Column="2"
+                           Text="{Binding StatusText, ElementName=Root}"
+                           Foreground="{DynamicResource NekoMutedTextBrush}"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Divider -->
+            <Border Grid.Row="1"
+                    Height="1"
+                    Margin="0,14,0,0"
+                    Opacity="0.55"
+                    Background="{DynamicResource NekoBorderSoftBrush}"/>
+
+            <!-- Content -->
+            <ContentPresenter Grid.Row="2"
+                              Margin="0,16,0,0"/>
+        </Grid>
+    </Border>
+</UserControl>

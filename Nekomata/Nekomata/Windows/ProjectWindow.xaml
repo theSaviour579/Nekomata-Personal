@@ -1,0 +1,208 @@
+﻿<Window x:Class="Nekomata.UI.Windows.ProjectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding IsEdit,
+                        Converter={StaticResource EditModeTitleConverter},
+                        ConverterParameter=Project}"
+        Height="900"
+        Width="650"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource NekoBackgroundBrush}">
+
+    <Grid Margin="30">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0"
+                    Margin="0,0,0,25">
+
+            <TextBlock Text="{Binding IsEdit,
+                                     Converter={StaticResource EditModeTitleConverter},
+                                     ConverterParameter=Project}"
+                       Style="{DynamicResource NekoTitleText}"/>
+
+            <TextBlock Text="Projects keep Guardian organised."
+                       Style="{DynamicResource NekoMutedText}"
+                       Margin="0,6,0,0"/>
+
+        </StackPanel>
+
+        <!-- Form -->
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+
+            <StackPanel Margin="0,0,12,0">
+
+                <!-- Project Name -->
+                <TextBlock Text="Project Name"
+                           Style="{DynamicResource NekoBodyText}"/>
+
+                <TextBox Text="{Binding Project.Name,
+                                        Mode=TwoWay,
+                                        UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,6,0,18"/>
+
+                <!-- Description -->
+                <TextBlock Text="Description"
+                           Style="{DynamicResource NekoBodyText}"/>
+
+                <TextBox Text="{Binding Project.Description,
+                                        Mode=TwoWay,
+                                        UpdateSourceTrigger=PropertyChanged}"
+                         Height="90"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         Margin="0,6,0,18"/>
+
+                <!-- Priority and Status -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="25"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+
+                        <TextBlock Text="Priority"
+                                   Style="{DynamicResource NekoBodyText}"/>
+
+                        <ComboBox ItemsSource="{Binding Priorities}"
+                                  SelectedItem="{Binding Project.Priority,
+                                                         Mode=TwoWay,
+                                                         UpdateSourceTrigger=PropertyChanged}"
+                                  Margin="0,6,0,18"/>
+
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+
+                        <TextBlock Text="Status"
+                                   Style="{DynamicResource NekoBodyText}"/>
+
+                        <ComboBox ItemsSource="{Binding Statuses}"
+                                  SelectedItem="{Binding Project.Status,
+                                                         Mode=TwoWay,
+                                                         UpdateSourceTrigger=PropertyChanged}"
+                                  Margin="0,6,0,18"/>
+
+                    </StackPanel>
+                </Grid>
+
+                <!-- Business Value and Progress -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="25"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+
+                        <TextBlock Text="Business Value (£)"
+                                   Style="{DynamicResource NekoBodyText}"/>
+
+                        <TextBox Text="{Binding Project.EstimatedBusinessValue,
+                                                Mode=TwoWay,
+                                                UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,6,0,18"/>
+
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+
+                        <TextBlock Text="Progress — calculated from tasks"
+           Style="{DynamicResource NekoBodyText}"/>
+
+                        <TextBox Text="{Binding Project.ProgressPercent,
+                        StringFormat={}{0}%}"
+         IsReadOnly="True"
+         IsTabStop="False"
+         ToolTip="Calculated automatically from completed project tasks"
+         Margin="0,6,0,18"/>
+
+                    </StackPanel>
+                </Grid>
+
+                <!-- Remaining Time and Due Date -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="25"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+
+                        <TextBlock Text="Estimated Remaining Minutes"
+                                   Style="{DynamicResource NekoBodyText}"/>
+
+                        <TextBox Text="{Binding Project.EstimatedRemainingMinutes,
+                                                Mode=TwoWay,
+                                                UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,6,0,18"/>
+
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+
+                        <TextBlock Text="Due Date"
+                                   Style="{DynamicResource NekoBodyText}"/>
+
+                        <DatePicker SelectedDate="{Binding Project.DueAt,
+                                                          Mode=TwoWay,
+                                                          UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="0,6,0,18"/>
+
+                    </StackPanel>
+                </Grid>
+
+                <!-- At Risk -->
+                <CheckBox Content="Project is currently at risk"
+                          IsChecked="{Binding Project.AtRisk,
+                                             Mode=TwoWay,
+                                             UpdateSourceTrigger=PropertyChanged}"
+                          Foreground="{DynamicResource NekoTextBrush}"
+                          Margin="0,6,0,18"/>
+
+                <!-- Next Action -->
+                <TextBlock Text="Next Action"
+                           Style="{DynamicResource NekoBodyText}"/>
+
+                <TextBox Text="{Binding Project.NextAction,
+                                        Mode=TwoWay,
+                                        UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,6,0,18"/>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,25,0,0">
+
+            <Button Content="Cancel"
+                    Width="120"
+                    Margin="0,0,12,0"
+                    IsCancel="True"/>
+
+            <Button Content="Save"
+                    Width="120"
+                    Command="{Binding SaveCommand}"/>
+
+        </StackPanel>
+
+    </Grid>
+
+</Window>

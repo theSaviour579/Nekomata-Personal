@@ -1,0 +1,59 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Nekomata / Nioh-inspired palette -->
+    <Color x:Key="NekoBackgroundColor">#070B11</Color>
+    <Color x:Key="NekoSurfaceColor">#101A26</Color>
+    <Color x:Key="NekoSurfaceAltColor">#162433</Color>
+    <Color x:Key="NekoSurfaceSoftColor">#1B2D3F</Color>
+
+    <Color x:Key="NekoBorderColor">#294154</Color>
+    <Color x:Key="NekoBorderSoftColor">#1E3346</Color>
+
+    <Color x:Key="NekoLightningColor">#42D9FF</Color>
+    <Color x:Key="NekoSpiritPurpleColor">#7B5DFF</Color>
+    <Color x:Key="NekoSpiritWhiteColor">#F8F9FC</Color>
+
+    <Color x:Key="NekoTextColor">#EAF4FF</Color>
+    <Color x:Key="NekoMutedTextColor">#8FA4B8</Color>
+
+    <Color x:Key="NekoSuccessColor">#46F0B4</Color>
+    <Color x:Key="NekoWarningColor">#FFC857</Color>
+    <Color x:Key="NekoCriticalColor">#FF5A72</Color>
+    <Color x:Key="NekoMoneyColor">#46F0B4</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="NekoBackgroundBrush" Color="{StaticResource NekoBackgroundColor}" />
+    <SolidColorBrush x:Key="NekoSurfaceBrush" Color="{StaticResource NekoSurfaceColor}" />
+    <SolidColorBrush x:Key="NekoSurfaceAltBrush" Color="{StaticResource NekoSurfaceAltColor}" />
+    <SolidColorBrush x:Key="NekoSurfaceSoftBrush" Color="{StaticResource NekoSurfaceSoftColor}" />
+
+    <SolidColorBrush x:Key="NekoBorderBrush" Color="{StaticResource NekoBorderColor}" />
+    <SolidColorBrush x:Key="NekoBorderSoftBrush" Color="{StaticResource NekoBorderSoftColor}" />
+
+    <SolidColorBrush x:Key="NekoAccentBrush" Color="{StaticResource NekoLightningColor}" />
+    <SolidColorBrush x:Key="NekoSpiritPurpleBrush" Color="{StaticResource NekoSpiritPurpleColor}" />
+    <SolidColorBrush x:Key="NekoSpiritWhiteBrush" Color="{StaticResource NekoSpiritWhiteColor}" />
+
+    <SolidColorBrush x:Key="NekoTextBrush" Color="{StaticResource NekoTextColor}" />
+    <SolidColorBrush x:Key="NekoMutedTextBrush" Color="{StaticResource NekoMutedTextColor}" />
+
+    <SolidColorBrush x:Key="NekoSuccessBrush" Color="{StaticResource NekoSuccessColor}" />
+    <SolidColorBrush x:Key="NekoWarningBrush" Color="{StaticResource NekoWarningColor}" />
+    <SolidColorBrush x:Key="NekoCriticalBrush" Color="{StaticResource NekoCriticalColor}" />
+    <SolidColorBrush x:Key="NekoMoneyBrush"
+                 Color="#46F0B4"/>
+
+    <!-- Gradients -->
+    <LinearGradientBrush x:Key="NekoCardGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#111A25" Offset="0"/>
+        <GradientStop Color="#172636" Offset="1"/>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="NekoHeaderGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#101A26" Offset="0"/>
+        <GradientStop Color="#121B2B" Offset="0.55"/>
+        <GradientStop Color="#1A1730" Offset="1"/>
+    </LinearGradientBrush>
+
+</ResourceDictionary>

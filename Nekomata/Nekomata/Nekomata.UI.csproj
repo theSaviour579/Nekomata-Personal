@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UserSecretsId>2bff312d-aa43-432a-bd88-844804742564</UserSecretsId>
+	  <ApplicationIcon>Assets\Images\App.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="appsettings.json" />
+    <None Remove="Assets\Images\App.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="NAudio" Version="2.3.0" />
+    <PackageReference Include="System.Speech" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nekomata.AI\Nekomata.AI.csproj" />
+    <ProjectReference Include="..\Nekomata.Core\Nekomata.Core.csproj" />
+    <ProjectReference Include="..\Nekomata.Data\Nekomata.Data.csproj" />
+    <ProjectReference Include="..\Nekomata.Integrations\Nekomata.Integrations.csproj" />
+    <ProjectReference Include="..\Nekomata.Models\Nekomata.Models.csproj" />
+    <ProjectReference Include="..\Nekomata.Services\Nekomata.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Images\App.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>

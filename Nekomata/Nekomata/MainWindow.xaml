@@ -1,0 +1,447 @@
+<Window x:Class="Nekomata.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:Nekomata.UI.Views"
+        xmlns:guardian="clr-namespace:Nekomata.UI.Controls.Guardian"
+        Title="Nekomata"
+        Width="1200"
+        Height="900"
+        MinWidth="900"
+        MinHeight="700"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource NekoBackgroundBrush}"
+        Icon="/Assets/Images/App.ico">
+    <Grid>
+    <ScrollViewer
+        VerticalScrollBarVisibility="Auto"
+        HorizontalScrollBarVisibility="Disabled">
+
+        <Grid Margin="26">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ====================================================== -->
+            <!-- HEADER -->
+            <!-- ====================================================== -->
+
+            <Border Grid.Row="0"
+                CornerRadius="30"
+                Padding="28"
+                Background="{DynamicResource NekoHeaderGradientBrush}"
+                BorderBrush="{DynamicResource NekoBorderBrush}"
+                BorderThickness="1"
+                Margin="0,0,0,16">
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+
+                        <TextBlock Text="{Binding ApplicationName}"
+                               Style="{DynamicResource NekoTitleText}"/>
+
+                        <TextBlock Text="Guardian Command Centre"
+                               Foreground="{DynamicResource NekoSpiritPurpleBrush}"
+                               FontSize="14"
+                               FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding Greeting}"
+                               Style="{DynamicResource NekoMutedText}"
+                               Margin="0,10,0,0"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                            <Button Content="DASHBOARD" Command="{Binding ShowDashboardCommand}" Margin="0,0,8,0"/>
+                            <Button Content="CALENDAR" Command="{Binding ShowCalendarCommand}" Margin="0,0,8,0"/>
+                            <Button Content="EMAIL" Command="{Binding ShowEmailCommand}" Margin="0,0,8,0"/>
+                            <Button Content="MEETING ANALYZER" Command="{Binding OpenGuardianPlannerCommand}" Margin="0,0,8,0" ToolTip="Turn meeting notes into reviewed tasks, projects and calendar actions"/>
+                            <Button Content="{Binding HaloWatchlistButtonLabel}" Command="{Binding ShowHaloWatchlistCommand}" Margin="0,0,8,0"/>
+                            <Button Content="{Binding AttentionButtonLabel}" Command="{Binding ShowAttentionCommand}">
+                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding HasActiveAttention}" Value="True"><Setter Property="Foreground" Value="{DynamicResource NekoWarningBrush}"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                            </Button>
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+
+                        <TextBlock Text="{Binding CurrentDateTime,
+                                             StringFormat={}{0:HH:mm}}"
+                               Foreground="{DynamicResource NekoSpiritWhiteBrush}"
+                               FontSize="42"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="{Binding CurrentDateTime,
+                                             StringFormat={}{0:dddd dd MMM}}"
+                               Style="{DynamicResource NekoMutedText}"
+                               HorizontalAlignment="Right"/>
+
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,8,0,0">
+
+                                                        <Button Content="{Binding GuardianVoiceButtonLabel}"
+                                    Command="{Binding ToggleGuardianVoiceCommand}"
+                                    Padding="10,4"
+                                    Margin="0,0,10,0"
+                                    ToolTip="Enable or mute Guardian spoken briefings"/>
+<TextBlock Text="● ONLINE"
+                                       Foreground="{DynamicResource NekoSuccessBrush}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"/>
+
+                            <Button Content="↻ REFRESH HALO"
+                                    Command="{Binding RefreshHaloTicketsCommand}"
+                                    Padding="10,4"
+                                    ToolTip="Pull the latest tickets from Halo"/>
+
+                        </StackPanel>
+
+                    </StackPanel>
+
+                </Grid>
+
+            </Border>
+
+
+            <!-- ====================================================== -->
+            <!-- GUARDIAN CONVERSATION -->
+            <!-- ====================================================== -->
+
+            <Border Grid.Row="1"
+                Margin="0,0,0,14"
+                Background="{DynamicResource NekoCardGradientBrush}"
+                BorderBrush="{DynamicResource NekoSpiritPurpleBrush}"
+                BorderThickness="1"
+                CornerRadius="18"
+                MaxHeight="460">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding GuardianPanelExpanded}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <Expander IsExpanded="{Binding GuardianPanelExpanded,
+                                           Mode=TwoWay}"
+                      Background="Transparent">
+
+                    <Expander.Header>
+
+                        <Grid Margin="14,10">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal">
+
+                                <TextBlock Text="{Binding GuardianPanelTitle}"
+                                       Style="{DynamicResource NekoSectionTitleText}"
+                                       VerticalAlignment="Center"/>
+
+                                <TextBlock Text="  ●"
+                                       Foreground="{DynamicResource NekoSuccessBrush}"
+                                       VerticalAlignment="Center"/>
+
+                            </StackPanel>
+
+                            <TextBlock Grid.Column="1"
+                                   Text="Expand / collapse"
+                                   Style="{DynamicResource NekoTinyText}"
+                                   VerticalAlignment="Center"/>
+
+                        </Grid>
+
+                    </Expander.Header>
+
+                    <Grid Margin="16,0,16,16">
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <ScrollViewer x:Name="GuardianScrollViewer"
+                                  Grid.Row="0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  MaxHeight="360">
+
+                            <ItemsControl ItemsSource="{Binding ChatHistory}">
+
+                                <ItemsControl.ItemTemplate>
+
+                                    <DataTemplate>
+
+                                        <Grid Margin="0,0,0,10">
+
+                                            <Border x:Name="MessageBubble"
+                                                Background="{DynamicResource NekoSurfaceAltBrush}"
+                                                BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="14"
+                                                Padding="14"
+                                                MaxWidth="680"
+                                                HorizontalAlignment="Left">
+
+                                                <StackPanel>
+
+                                                    <DockPanel>
+
+                                                        <TextBlock Text="{Binding DisplayRole}"
+                                                               Style="{DynamicResource NekoSectionTitleText}"
+                                                               DockPanel.Dock="Left"/>
+
+                                                        <TextBlock Text="{Binding CreatedAt,
+                                                                             StringFormat={}{0:HH:mm}}"
+                                                               Style="{DynamicResource NekoTinyText}"
+                                                               DockPanel.Dock="Right"
+                                                               HorizontalAlignment="Right"/>
+
+                                                    </DockPanel>
+
+                                                    <TextBox
+    Text="{Binding Content}"
+    IsReadOnly="True"
+    TextWrapping="Wrap"
+    BorderThickness="0"
+    Background="Transparent"
+    Foreground="{DynamicResource NekoTextBrush}"
+    CaretBrush="{DynamicResource NekoTextBrush}"
+    AcceptsReturn="True"
+    VerticalScrollBarVisibility="Disabled"
+    HorizontalScrollBarVisibility="Disabled"/>
+
+                                                </StackPanel>
+
+                                            </Border>
+
+                                        </Grid>
+
+                                        <DataTemplate.Triggers>
+
+                                            <DataTrigger Binding="{Binding IsUser}"
+                                                     Value="True">
+
+                                                <Setter TargetName="MessageBubble"
+                                                    Property="HorizontalAlignment"
+                                                    Value="Right"/>
+
+                                                <Setter TargetName="MessageBubble"
+                                                    Property="Background"
+                                                    Value="{DynamicResource NekoSpiritPurpleBrush}"/>
+
+                                                <Setter TargetName="MessageBubble"
+                                                    Property="BorderBrush"
+                                                    Value="{DynamicResource NekoSpiritPurpleBrush}"/>
+
+                                            </DataTrigger>
+
+                                        </DataTemplate.Triggers>
+
+                                    </DataTemplate>
+
+                                </ItemsControl.ItemTemplate>
+
+                            </ItemsControl>
+
+                        </ScrollViewer>
+
+                        <TextBlock Grid.Row="1"
+                               Text="Guardian is analysing your workspace..."
+                               Margin="0,8,0,0">
+
+                            <TextBlock.Style>
+
+                                <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource NekoMutedText}">
+
+                                    <Setter Property="Visibility"
+                                        Value="Collapsed"/>
+
+                                    <Style.Triggers>
+
+                                        <DataTrigger Binding="{Binding GuardianBusy}"
+                                                 Value="True">
+
+                                            <Setter Property="Visibility"
+                                                Value="Visible"/>
+
+                                        </DataTrigger>
+
+                                    </Style.Triggers>
+
+                                </Style>
+
+                            </TextBlock.Style>
+
+                        </TextBlock>
+
+                    </Grid>
+
+                </Expander>
+
+            </Border>
+            <!-- ====================================================== -->
+            <!-- GUARDIAN PROPOSAL PANEL -->
+            <!-- ====================================================== -->
+
+            <guardian:GuardianProposalPanel
+            Grid.Row="3"
+            Margin="0,0,0,14"
+            Proposal="{Binding PendingGuardianAction}"
+            ProjectName="{Binding PendingGuardianProject.Name}"
+            DismissCommand="{Binding DismissGuardianProposalCommand}"
+            RegenerateCommand="{Binding RegenerateGuardianProposalCommand}"
+            CreateTasksCommand="{Binding CreateSelectedTasksCommand}">
+
+                <guardian:GuardianProposalPanel.Style>
+
+                    <Style TargetType="guardian:GuardianProposalPanel">
+
+                        <Setter Property="Visibility"
+                            Value="Collapsed"/>
+
+                        <Style.Triggers>
+
+                            <DataTrigger Binding="{Binding GuardianProposalVisible}"
+                                     Value="True">
+
+                                <Setter Property="Visibility"
+                                    Value="Visible"/>
+
+                            </DataTrigger>
+
+                        </Style.Triggers>
+
+                    </Style>
+
+                </guardian:GuardianProposalPanel.Style>
+
+            </guardian:GuardianProposalPanel>
+
+            <!-- ====================================================== -->
+            <!-- DASHBOARD / MISSION -->
+            <!-- ====================================================== -->
+
+            <Grid Grid.Row="4"
+              Margin="0,4,0,0">
+
+                <views:DashboardView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource DashboardVisibilityConverter}}"/>
+
+                <views:MissionView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource MissionVisibilityConverter}}"/>
+
+                <views:CalendarView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource CalendarVisibilityConverter}}"/>
+                <views:EmailView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource EmailVisibilityConverter}}"/>
+                <views:AttentionView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource AttentionVisibilityConverter}}"/>
+
+                <views:HaloWatchlistView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource HaloWatchlistVisibilityConverter}}"/>
+
+                <views:BattleView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource BattleVisibilityConverter}}"/>
+
+            </Grid>
+
+        </Grid>
+    </ScrollViewer>
+
+        <Border x:Name="StartupOverlay"
+                Panel.ZIndex="1000"
+                Background="#F20A111B">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsInitialLoading}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <StackPanel Width="440"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                <Border Width="78" Height="78"
+                        CornerRadius="39"
+                        HorizontalAlignment="Center"
+                        Background="#27204A"
+                        BorderBrush="{DynamicResource NekoSpiritPurpleBrush}"
+                        BorderThickness="2">
+                    <TextBlock Text="◇"
+                               Foreground="{DynamicResource NekoSpiritPurpleBrush}"
+                               FontSize="40"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <TextBlock Text="NEKOMATA"
+                           Foreground="{DynamicResource NekoSpiritWhiteBrush}"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           Margin="0,22,0,0"/>
+                <TextBlock Text="GUARDIAN COMMAND CENTRE"
+                           Foreground="{DynamicResource NekoAccentBrush}"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
+                           Margin="0,5,0,0"/>
+
+                <ProgressBar IsIndeterminate="True"
+                             Height="5"
+                             Margin="0,30,0,0"
+                             Background="{DynamicResource NekoSurfaceAltBrush}"
+                             Foreground="{DynamicResource NekoAccentBrush}"
+                             BorderThickness="0"/>
+
+                <TextBlock Text="{Binding LoadingStatus}"
+                           Foreground="{DynamicResource NekoMutedTextBrush}"
+                           FontSize="13"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           Margin="0,16,0,0"/>
+                <TextBlock Text="Synchronising workspace, calendar and integrations"
+                           Foreground="{DynamicResource NekoBorderBrush}"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,7,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

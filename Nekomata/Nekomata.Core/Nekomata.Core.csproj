@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nekomata.AI\Nekomata.AI.csproj" />
+    <ProjectReference Include="..\Nekomata.Data\Nekomata.Data.csproj" />
+    <ProjectReference Include="..\Nekomata.Models\Nekomata.Models.csproj" />
+    <ProjectReference Include="..\Nekomata.Services\Nekomata.Services.csproj" />
+  </ItemGroup>
+
+</Project>

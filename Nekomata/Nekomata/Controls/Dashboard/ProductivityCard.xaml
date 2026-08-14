@@ -1,0 +1,244 @@
+﻿<UserControl x:Class="Nekomata.UI.Controls.Dashboard.ProductivityCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="520"
+             d:DesignHeight="390">
+
+    <Border Background="{DynamicResource NekoCardGradientBrush}"
+            BorderBrush="#34485D"
+            BorderThickness="1"
+            CornerRadius="18"
+            Padding="22">
+
+        <StackPanel>
+
+            <!-- Header -->
+            <Grid Margin="0,0,0,20">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="TODAY'S PRODUCTIVITY"
+                               Foreground="#F5F7FC"
+                               FontSize="20"
+                               FontWeight="SemiBold"/>
+
+                    <TextBlock Text="Mission performance and delivered value"
+                               Foreground="#8296AB"
+                               FontSize="12"
+                               Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Background="#20314A"
+                        BorderBrush="#7657FF"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="12,7"
+                        VerticalAlignment="Top">
+
+                    <TextBlock Text="{Binding Analytics.MissionsCompletedToday,
+                                              StringFormat={}{0} COMPLETE}"
+                               Foreground="#B9A9FF"
+                               FontSize="11"
+                               FontWeight="SemiBold"/>
+
+                </Border>
+
+            </Grid>
+
+            <!-- Primary metrics -->
+            <Grid Margin="0,0,0,14">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Focus -->
+                <Border Grid.Column="0"
+                        Background="#132235"
+                        CornerRadius="14"
+                        Padding="16">
+
+                    <StackPanel>
+                        <TextBlock Text="FOCUS TIME"
+                                   Foreground="#7890AA"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding Analytics.FocusTimeToday,
+                                                  StringFormat={}{0:hh\\:mm}}"
+                                   Foreground="#F7F9FD"
+                                   FontSize="29"
+                                   FontWeight="Bold"
+                                   Margin="0,7,0,0"/>
+
+                        <TextBlock Text="hours today"
+                                   Foreground="#647B93"
+                                   FontSize="11"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Accuracy -->
+                <Border Grid.Column="2"
+                        Background="#132235"
+                        CornerRadius="14"
+                        Padding="16">
+
+                    <StackPanel>
+                        <TextBlock Text="ESTIMATE ACCURACY"
+                                   Foreground="#7890AA"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding Analytics.EstimateAccuracyPercent,
+                                                  StringFormat={}{0:F0}%}"
+                                   Foreground="#F7F9FD"
+                                   FontSize="29"
+                                   FontWeight="Bold"
+                                   Margin="0,7,0,0"/>
+
+                        <ProgressBar Value="{Binding Analytics.EstimateAccuracyPercent}"
+                                     Maximum="100"
+                                     Height="5"
+                                     Margin="0,9,0,0"
+                                     Background="#24384D"
+                                     Foreground="#7657FF"
+                                     BorderThickness="0"/>
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+            <!-- Secondary metrics -->
+            <Grid>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Completed -->
+                <Border Grid.Column="0"
+                        Background="#101D2A"
+                        CornerRadius="12"
+                        Padding="14">
+
+                    <StackPanel>
+                        <TextBlock Text="COMPLETED"
+                                   Foreground="#7890AA"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding Analytics.MissionsCompletedToday}"
+                                   Foreground="#61D6A0"
+                                   FontSize="24"
+                                   FontWeight="Bold"
+                                   Margin="0,5,0,0"/>
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Average score -->
+                <Border Grid.Column="2"
+                        Background="#101D2A"
+                        CornerRadius="12"
+                        Padding="14">
+
+                    <StackPanel>
+                        <TextBlock Text="AVG SCORE"
+                                   Foreground="#7890AA"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding Analytics.AverageScoreToday,
+                                                  StringFormat={}{0:F0}}"
+                                   Foreground="#FFC857"
+                                   FontSize="24"
+                                   FontWeight="Bold"
+                                   Margin="0,5,0,0"/>
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Cancelled -->
+                <Border Grid.Column="4"
+                        Background="#101D2A"
+                        CornerRadius="12"
+                        Padding="14">
+
+                    <StackPanel>
+                        <TextBlock Text="CANCELLED"
+                                   Foreground="#7890AA"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding Analytics.MissionsCancelledToday}"
+                                   Foreground="#FF7388"
+                                   FontSize="24"
+                                   FontWeight="Bold"
+                                   Margin="0,5,0,0"/>
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+            <!-- Business value -->
+            <Border Background="#17283B"
+                    BorderBrush="#2D4055"
+                    BorderThickness="1"
+                    CornerRadius="13"
+                    Padding="16"
+                    Margin="0,14,0,0">
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="BUSINESS VALUE DELIVERED"
+                                   Foreground="#7890AA"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="Completed missions today"
+                                   Foreground="#647B93"
+                                   FontSize="11"
+                                   Margin="0,3,0,0"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Analytics.BusinessValueDeliveredToday,
+                                              StringFormat=£{0:N0}}"
+                               Foreground="#B9A9FF"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
+
+                </Grid>
+
+            </Border>
+
+        </StackPanel>
+
+    </Border>
+
+</UserControl>

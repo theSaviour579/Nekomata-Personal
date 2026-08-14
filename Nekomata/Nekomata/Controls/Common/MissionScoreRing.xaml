@@ -1,0 +1,50 @@
+﻿<UserControl x:Class="Nekomata.UI.Controls.Common.MissionScoreRing"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Width="120"
+          Height="120">
+
+        <!-- Outer glow -->
+        <Ellipse
+            Stroke="{DynamicResource NekoSpiritPurpleBrush}"
+            StrokeThickness="8"
+            Opacity="0.25"/>
+
+        <!-- Background ring -->
+        <Ellipse
+            Margin="8"
+            Stroke="{DynamicResource NekoSurfaceSoftBrush}"
+            StrokeThickness="10"/>
+
+        <!-- Foreground ring (placeholder for now) -->
+        <Ellipse
+            Margin="8"
+            Stroke="{DynamicResource NekoLightningBrush}"
+            StrokeThickness="10"
+            StrokeStartLineCap="Round"
+            StrokeEndLineCap="Round"/>
+
+        <StackPanel
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+
+            <TextBlock
+                Text="{Binding Score,
+                               RelativeSource={RelativeSource AncestorType=UserControl}}"
+                FontSize="34"
+                FontWeight="Bold"
+                HorizontalAlignment="Center"
+                Foreground="{DynamicResource NekoSpiritWhiteBrush}"/>
+
+            <TextBlock
+                Text="MISSION"
+                FontSize="11"
+                HorizontalAlignment="Center"
+                Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+        </StackPanel>
+
+    </Grid>
+
+</UserControl>

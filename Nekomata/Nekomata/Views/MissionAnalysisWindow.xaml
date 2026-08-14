@@ -1,0 +1,1156 @@
+<Window x:Class="Nekomata.UI.Views.MissionAnalysisWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mission Analysis"
+        Width="1080"
+        Height="820"
+        MinWidth="900"
+        MinHeight="680"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource NekoBackgroundBrush}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+
+        <Grid Margin="28">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="18"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="18"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="18"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ===================================================== -->
+            <!-- HERO HEADER                                           -->
+            <!-- ===================================================== -->
+
+            <Border Grid.Row="0"
+                    Background="{DynamicResource NekoHeaderGradientBrush}"
+                    BorderBrush="{DynamicResource NekoSpiritPurpleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="22"
+                    Padding="26">
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+
+                        <TextBlock Text="MISSION ANALYSIS"
+                                   Foreground="{DynamicResource NekoAccentBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding Workspace.CurrentMission.Title}"
+                                   Foreground="{DynamicResource NekoSpiritWhiteBrush}"
+                                   FontSize="31"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,10,0,0"/>
+
+                        <TextBlock Text="{Binding Workspace.CurrentMission.RecommendationReason}"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"
+                                   LineHeight="20"
+                                   MaxWidth="700"
+                                   Margin="0,8,0,0"/>
+
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,14,0,0">
+
+                            <Border Background="{DynamicResource NekoSurfaceAltBrush}"
+                                    BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="7"
+                                    Padding="8,4"
+                                    Margin="0,0,8,0">
+
+                                <TextBlock Text="{Binding Workspace.CurrentMission.SourceType}"
+                                           Foreground="{DynamicResource NekoAccentBrush}"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"/>
+
+                            </Border>
+
+                            <Border Background="{DynamicResource NekoSurfaceAltBrush}"
+                                    BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="7"
+                                    Padding="8,4">
+
+                                <TextBlock Text="{Binding Workspace.CurrentMission.Status}"
+                                           Foreground="{DynamicResource NekoTextBrush}"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"/>
+
+                            </Border>
+                            <Button
+    Margin="12,0,0,0"
+    Padding="12,6"
+    Content="OPEN MEETING ANALYZER"
+    Command="{Binding OpenGuardianPlannerCommand}" />
+
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <Border Grid.Column="2"
+                            Background="{DynamicResource NekoSurfaceBrush}"
+                            BorderBrush="{DynamicResource NekoBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="16"
+                            Padding="18"
+                            VerticalAlignment="Center">
+
+                        <StackPanel>
+
+                            <TextBlock Text="GUARDIAN CONFIDENCE"
+                                       Foreground="{DynamicResource NekoMutedTextBrush}"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"/>
+
+                            <TextBlock Text="{Binding Workspace.Guardian.Confidence,
+                                                      StringFormat={}{0}%}"
+                                       Foreground="{DynamicResource NekoAccentBrush}"
+                                       FontSize="32"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,6,0,0"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+            </Border>
+
+            <!-- ===================================================== -->
+            <!-- KPI SUMMARY                                           -->
+            <!-- ===================================================== -->
+
+            <UniformGrid Grid.Row="2"
+                         Columns="4">
+
+                <Border Background="{DynamicResource NekoSurfaceBrush}"
+                        BorderBrush="{DynamicResource NekoBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="15"
+                        Padding="17"
+                        Margin="0,0,10,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="GUARDIAN SCORE"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="9"/>
+
+                        <TextBlock Text="{Binding Workspace.CurrentMission.Score}"
+                                   Foreground="{DynamicResource NekoSpiritPurpleBrush}"
+                                   FontSize="27"
+                                   FontWeight="Bold"
+                                   Margin="0,7,0,0"/>
+
+                        <TextBlock Text="Overall decision score"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="10"
+                                   Margin="0,4,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Background="{DynamicResource NekoSurfaceBrush}"
+                        BorderBrush="{DynamicResource NekoBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="15"
+                        Padding="17"
+                        Margin="0,0,10,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="BUSINESS VALUE"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="9"/>
+
+                        <TextBlock Text="{Binding Workspace.CurrentMission.BusinessValue,
+                                                  StringFormat=£{0:N0}}"
+                                   Foreground="{DynamicResource NekoMoneyBrush}"
+                                   FontSize="27"
+                                   FontWeight="Bold"
+                                   Margin="0,7,0,0"/>
+
+                        <TextBlock Text="Measured commercial impact"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="10"
+                                   Margin="0,4,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Background="{DynamicResource NekoSurfaceBrush}"
+                        BorderBrush="{DynamicResource NekoBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="15"
+                        Padding="17"
+                        Margin="0,0,10,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="ESTIMATED EFFORT"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="9"/>
+
+                        <TextBlock Text="{Binding Workspace.Briefing.ObjectiveEstimatedTimeFormatted}"
+                                   Foreground="{DynamicResource NekoTextBrush}"
+                                   FontSize="25"
+                                   FontWeight="Bold"
+                                   Margin="0,7,0,0"/>
+
+                        <TextBlock Text="Expected focused work time"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="10"
+                                   Margin="0,4,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Background="{DynamicResource NekoSurfaceBrush}"
+                        BorderBrush="{DynamicResource NekoBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="15"
+                        Padding="17">
+
+                    <StackPanel>
+
+                        <TextBlock Text="THREAT LEVEL"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="9"/>
+
+                        <TextBlock Text="{Binding Workspace.CurrentMission.ThreatLevel}"
+                                   Foreground="{DynamicResource NekoWarningBrush}"
+                                   FontSize="25"
+                                   FontWeight="Bold"
+                                   Margin="0,7,0,0"/>
+
+                        <TextBlock Text="Operational exposure"
+                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                   FontSize="10"
+                                   Margin="0,4,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </UniformGrid>
+
+            <!-- ===================================================== -->
+            <!-- BODY                                                  -->
+            <!-- ===================================================== -->
+
+            <Grid Grid.Row="4">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="18"/>
+                    <ColumnDefinition Width="0.8*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ================================================= -->
+                <!-- GUARDIAN ANALYSIS                                -->
+                <!-- ================================================= -->
+
+                <Border Grid.Column="0"
+            Background="{DynamicResource NekoCardGradientBrush}"
+            BorderBrush="{DynamicResource NekoBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="18"
+            Padding="20">
+
+                    <StackPanel>
+
+                        <TextBlock Text="GUARDIAN ANALYSIS"
+                       Foreground="{DynamicResource NekoAccentBrush}"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,16"/>
+
+                        <ItemsControl
+                ItemsSource="{Binding Workspace.CurrentMission.GroupedScoreFactors}">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Border
+                            Margin="0,0,0,14"
+                            Padding="14"
+                            Background="{DynamicResource NekoSurfaceAltBrush}"
+                            BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                                        <StackPanel>
+
+                                            <!-- Header -->
+
+                                            <DockPanel Margin="0,0,0,10">
+
+                                                <TextBlock
+                                        Text="{Binding Category}"
+                                        FontWeight="Bold"
+                                        FontSize="13"
+                                        Foreground="{DynamicResource NekoAccentBrush}"
+                                        DockPanel.Dock="Left"/>
+
+                                                <Border
+                                        HorizontalAlignment="Right"
+                                        Background="{DynamicResource NekoSpiritPurpleBrush}"
+                                        CornerRadius="12"
+                                        Padding="10,2">
+
+                                                    <TextBlock
+                                            Text="{Binding TotalPoints,StringFormat=+{0}}"
+                                            Foreground="White"
+                                            FontWeight="Bold"/>
+
+                                                </Border>
+
+                                            </DockPanel>
+
+                                            <!-- Factors -->
+
+                                            <ItemsControl
+                                    ItemsSource="{Binding Factors}">
+
+                                                <ItemsControl.ItemTemplate>
+
+                                                    <DataTemplate>
+
+                                                        <Border
+                                                Margin="0,3"
+                                                Padding="8">
+
+                                                            <Grid>
+
+                                                                <Grid.ColumnDefinitions>
+
+                                                                    <ColumnDefinition Width="*"/>
+
+                                                                    <ColumnDefinition Width="Auto"/>
+
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <StackPanel>
+
+                                                                    <TextBlock
+                                                            Text="{Binding Name}"
+                                                            FontWeight="SemiBold"
+                                                            Foreground="{DynamicResource NekoTextBrush}"/>
+
+                                                                    <TextBlock
+                                                            Text="{Binding Explanation}"
+                                                            FontSize="11"
+                                                            Foreground="{DynamicResource NekoMutedTextBrush}"
+                                                            TextWrapping="Wrap"/>
+
+                                                                </StackPanel>
+
+                                                                <TextBlock
+                                                        Grid.Column="1"
+                                                        Margin="12,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        Text="{Binding Points,StringFormat=+{0}}"
+                                                        FontWeight="Bold"
+                                                        Foreground="{DynamicResource NekoAccentBrush}"/>
+
+                                                            </Grid>
+
+                                                        </Border>
+
+                                                    </DataTemplate>
+
+                                                </ItemsControl.ItemTemplate>
+
+                                            </ItemsControl>
+
+                                        </StackPanel>
+
+                                    </Border>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- ================================================= -->
+                <!-- ALTERNATIVE MISSIONS                              -->
+                <!-- ================================================= -->
+
+                <Border Grid.Column="2"
+            Background="{DynamicResource NekoCardGradientBrush}"
+            BorderBrush="{DynamicResource NekoBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="18"
+            Padding="20">
+
+                    <StackPanel>
+
+                        <TextBlock
+                Text="ALTERNATIVE MISSIONS"
+                Foreground="{DynamicResource NekoAccentBrush}"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Margin="0,0,0,16"/>
+
+                        <ItemsControl
+                ItemsSource="{Binding Workspace.CurrentMission.Decision.RejectedMissions}">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Border
+                            Margin="0,0,0,14"
+                            Padding="14"
+                            Background="{DynamicResource NekoSurfaceAltBrush}"
+                            BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                                        <StackPanel>
+
+                                            <DockPanel>
+
+                                                <Border
+                                        Background="{DynamicResource NekoAccentBrush}"
+                                        CornerRadius="8"
+                                        Padding="6,2"
+                                        DockPanel.Dock="Left">
+
+                                                    <TextBlock
+                                            Text="{Binding SourceType}"
+                                            Foreground="{DynamicResource NekoBackgroundBrush}"
+                                            FontSize="9"
+                                            FontWeight="Bold"/>
+
+                                                </Border>
+
+                                                <TextBlock
+                                        Margin="10,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Text="{Binding Rank,StringFormat=# {0}}"
+                                        Foreground="{DynamicResource NekoMutedTextBrush}"
+                                        FontWeight="SemiBold"/>
+
+                                            </DockPanel>
+
+                                            <TextBlock
+                                    Margin="0,10,0,0"
+                                    Text="{Binding Title}"
+                                    FontWeight="Bold"
+                                    FontSize="15"
+                                    Foreground="{DynamicResource NekoTextBrush}"
+                                    TextWrapping="Wrap"/>
+
+                                            <UniformGrid
+                                    Columns="2"
+                                    Margin="0,14,0,0">
+
+                                                <StackPanel>
+
+                                                    <TextBlock
+                                            Text="Score"
+                                            FontSize="9"
+                                            Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+                                                    <TextBlock
+                                            Text="{Binding Score}"
+                                            FontWeight="Bold"
+                                                        Foreground="{DynamicResource NekoAccentBrush}"/>
+
+                                                </StackPanel>
+
+                                                <StackPanel>
+
+                                                    <TextBlock
+                                            Text="Value"
+                                            FontSize="9"
+                                            Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+                                                    <TextBlock
+                                            Text="{Binding BusinessValue,StringFormat=£{0:N0}}"
+                                            FontWeight="Bold"
+                                                        Foreground="{DynamicResource NekoMoneyBrush}"/>
+
+                                                </StackPanel>
+
+                                            </UniformGrid>
+
+                                            <TextBlock
+                                    Margin="0,12,0,0"
+                                    Text="{Binding WhyNot}"
+                                    FontSize="11"
+                                    TextWrapping="Wrap"
+                                    Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+                                            <UniformGrid
+                                    Margin="0,16,0,0"
+                                    Columns="2">
+
+                                                <Button
+                                        Margin="0,0,8,0"
+                                        Content="Simulate"
+                                        Command="{Binding DataContext.SimulateMissionCommand,
+                                                  RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+
+                                                <Button
+                                        Content="Choose"
+                                        Command="{Binding DataContext.SwitchMissionCommand,
+                                                          RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+
+                                            </UniformGrid>
+
+                                        </StackPanel>
+
+                                    </Border>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+            <!-- ===================================================== -->
+            <!-- MISSION SIMULATION                                    -->
+            <!-- ===================================================== -->
+
+            <Border Grid.Row="6"
+                    Background="{DynamicResource NekoCardGradientBrush}"
+                    BorderBrush="{DynamicResource NekoAccentBrush}"
+                    BorderThickness="1"
+                    CornerRadius="18"
+                    Padding="20">
+
+                <Border.Style>
+                    <Style TargetType="Border">
+
+                        <Setter Property="Visibility"
+                                Value="Visible"/>
+
+                        <Style.Triggers>
+
+                            <DataTrigger Binding="{Binding SelectedSimulation}"
+                                         Value="{x:Null}">
+
+                                <Setter Property="Visibility"
+                                        Value="Collapsed"/>
+
+                            </DataTrigger>
+
+                        </Style.Triggers>
+
+                    </Style>
+                </Border.Style>
+
+                <StackPanel>
+
+                    <TextBlock Text="MISSION COMPARISON"
+           Foreground="{DynamicResource NekoAccentBrush}"
+           FontSize="12"
+           FontWeight="SemiBold"
+           Margin="0,0,0,18"/>
+
+                    <Grid Margin="0,0,0,20">
+
+                        <Grid.ColumnDefinitions>
+
+                            <ColumnDefinition Width="*"/>
+
+                            <ColumnDefinition Width="30"/>
+
+                            <ColumnDefinition Width="*"/>
+
+                            <ColumnDefinition Width="25"/>
+
+                            <ColumnDefinition Width="Auto"/>
+
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Current -->
+
+                        <Border Grid.Column="0"
+            Padding="16"
+            CornerRadius="12"
+            Background="{DynamicResource NekoSurfaceAltBrush}"
+            BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+            BorderThickness="1">
+
+                            <StackPanel>
+
+                                <TextBlock
+                Text="CURRENT"
+                FontSize="9"
+                Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+                                <TextBlock
+                Margin="0,8,0,0"
+                FontWeight="Bold"
+                FontSize="16"
+                TextWrapping="Wrap"
+                Text="{Binding Workspace.CurrentMission.Title}"
+                                    Foreground="{DynamicResource NekoAccentBrush}"/>
+
+                                <TextBlock
+                Margin="0,12,0,0"
+                FontSize="30"
+                FontWeight="Bold"
+                Foreground="{DynamicResource NekoSpiritWhiteBrush}"
+                Text="{Binding Workspace.CurrentMission.Score}"/>
+
+                            </StackPanel>
+
+                        </Border>
+
+                        <!-- Alternative -->
+
+                        <Border Grid.Column="2"
+            Padding="16"
+            CornerRadius="12"
+            Background="{DynamicResource NekoSurfaceAltBrush}"
+            BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+            BorderThickness="1">
+
+                            <StackPanel>
+
+                                <TextBlock
+                Text="ALTERNATIVE"
+                FontSize="9"
+                Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+                                <TextBlock
+                Margin="0,8,0,0"
+                FontWeight="Bold"
+                FontSize="16"
+                TextWrapping="Wrap"
+                                    Foreground="{DynamicResource NekoAccentBrush}"
+                Text="{Binding SelectedComparisonMission.Title}"/>
+
+                                <TextBlock
+                Margin="0,12,0,0"
+                FontSize="30"
+                FontWeight="Bold"
+                Foreground="{DynamicResource NekoSpiritPurpleBrush}"
+                Text="{Binding SelectedComparisonMission.Score}"/>
+
+                            </StackPanel>
+
+                        </Border>
+
+                        <!-- Difference -->
+
+                        <StackPanel Grid.Column="4"
+                VerticalAlignment="Center">
+
+                            <TextBlock
+            Text="DIFFERENCE"
+            FontSize="9"
+            HorizontalAlignment="Right"
+            Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+                            <TextBlock
+            Margin="0,8,0,0"
+            FontWeight="Bold"
+            FontSize="24"
+            HorizontalAlignment="Right"
+            Foreground="{DynamicResource NekoWarningBrush}"
+            Text="{Binding SelectedComparisonMission.ScoreDifference,
+                          StringFormat={}{0:+#;-#;0}}"/>
+
+                        </StackPanel>
+
+                    </Grid>
+                    <!-- ================================================= -->
+                    <!-- CATEGORY COMPARISON                               -->
+                    <!-- ================================================= -->
+
+                    <ItemsControl
+                        ItemsSource="{Binding SelectedComparisonMission.ComparisonReasons}">
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+
+                                <Border Margin="0,0,0,10"
+                                        Padding="13"
+                                        CornerRadius="10"
+                                        Background="{DynamicResource NekoSurfaceAltBrush}"
+                                        BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                                        BorderThickness="1">
+
+                                    <Grid>
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Category -->
+
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Category}"
+                                                   Foreground="{DynamicResource NekoTextBrush}"
+                                                   FontWeight="Bold"
+                                                   VerticalAlignment="Center"/>
+
+                                        <!-- Current -->
+
+                                        <StackPanel Grid.Column="1">
+
+                                            <TextBlock Text="CURRENT"
+                                                       Foreground="{DynamicResource NekoMutedTextBrush}"
+                                                       FontSize="8"
+                                                       HorizontalAlignment="Center"/>
+
+                                            <TextBlock Text="{Binding WinnerPoints,
+                                                                      StringFormat={}{0:+#;-#;0}}"
+                                                       Foreground="{DynamicResource NekoAccentBrush}"
+                                                       FontWeight="Bold"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,4,0,0"/>
+
+                                        </StackPanel>
+
+                                        <!-- Alternative -->
+
+                                        <StackPanel Grid.Column="2">
+
+                                            <TextBlock Text="ALTERNATIVE"
+                                                       Foreground="{DynamicResource NekoMutedTextBrush}"
+                                                       FontSize="8"
+                                                       HorizontalAlignment="Center"/>
+
+                                            <TextBlock Text="{Binding AlternativePoints,
+                                                                      StringFormat={}{0:+#;-#;0}}"
+                                                       Foreground="{DynamicResource NekoSpiritPurpleBrush}"
+                                                       FontWeight="Bold"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,4,0,0"/>
+
+                                        </StackPanel>
+
+                                        <!-- Difference -->
+
+                                        <StackPanel Grid.Column="3">
+
+                                            <TextBlock Text="DELTA"
+                                                       Foreground="{DynamicResource NekoMutedTextBrush}"
+                                                       FontSize="8"
+                                                       HorizontalAlignment="Center"/>
+
+                                            <TextBlock Text="{Binding Difference,
+                                                                      StringFormat={}{0:+#;-#;0}}"
+                                                       Foreground="{DynamicResource NekoWarningBrush}"
+                                                       FontWeight="Bold"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,4,0,0"/>
+
+                                        </StackPanel>
+
+                                        <!-- Explanation -->
+
+                                        <TextBlock Grid.Column="4"
+                                                   Margin="16,0,0,0"
+                                                   Text="{Binding Explanation}"
+                                                   Foreground="{DynamicResource NekoMutedTextBrush}"
+                                                   FontSize="10"
+                                                   TextWrapping="Wrap"
+                                                   VerticalAlignment="Center"/>
+
+                                    </Grid>
+
+                                </Border>
+
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+
+                    </ItemsControl>
+
+                    <!-- No comparison differences -->
+
+                    <TextBlock Text="The missions received equal points across the compared scoring categories."
+                               Foreground="{DynamicResource NekoMutedTextBrush}"
+                               FontStyle="Italic"
+                               FontSize="11"
+                               Margin="0,2,0,12">
+
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+
+                                <Setter Property="Visibility"
+                                        Value="Collapsed"/>
+
+                                <Style.Triggers>
+
+                                    <DataTrigger Binding="{Binding SelectedComparisonMission.ComparisonReasons.Count}"
+                                                 Value="0">
+
+                                        <Setter Property="Visibility"
+                                                Value="Visible"/>
+
+                                    </DataTrigger>
+
+                                </Style.Triggers>
+
+                            </Style>
+                        </TextBlock.Style>
+
+                    </TextBlock>
+
+                    <!-- ================================================= -->
+                    <!-- GUARDIAN COMPARISON SUMMARY                       -->
+                    <!-- ================================================= -->
+
+                    <Border Background="{DynamicResource NekoSurfaceAltBrush}"
+                            BorderBrush="{DynamicResource NekoBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="11"
+                            Padding="15"
+                            Margin="0,8,0,0">
+
+                        <StackPanel>
+
+                            <TextBlock Text="GUARDIAN COMPARISON"
+                                       Foreground="{DynamicResource NekoAccentBrush}"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"/>
+
+                            <TextBlock Text="{Binding SelectedComparisonMission.WhyNot}"
+                                       Foreground="{DynamicResource NekoTextBrush}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       LineHeight="18"
+                                       Margin="0,7,0,0"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- ================================================= -->
+                    <!-- BENEFITS AND CONSEQUENCES                         -->
+                    <!-- ================================================= -->
+
+                    <Grid Margin="0,20,0,0">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Benefits -->
+
+                        <Border Grid.Column="0"
+                                Background="{DynamicResource NekoSurfaceAltBrush}"
+                                BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="15">
+
+                            <StackPanel>
+
+                                <TextBlock Text="BENEFITS OF SWITCHING"
+                                           Foreground="{DynamicResource NekoSuccessBrush}"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,11"/>
+
+                                <ItemsControl ItemsSource="{Binding SelectedSimulation.Benefits}">
+
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+
+                                            <Grid Margin="0,0,0,9">
+
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="22"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="✓"
+                                                           Foreground="{DynamicResource NekoSuccessBrush}"
+                                                           FontWeight="Bold"/>
+
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding}"
+                                                           Foreground="{DynamicResource NekoTextBrush}"
+                                                           FontSize="11"
+                                                           TextWrapping="Wrap"
+                                                           LineHeight="17"/>
+
+                                            </Grid>
+
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+
+                                </ItemsControl>
+
+                                <TextBlock Text="No material advantages identified."
+                                           Foreground="{DynamicResource NekoMutedTextBrush}"
+                                           FontStyle="Italic"
+                                           FontSize="11">
+
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed"/>
+
+                                            <Style.Triggers>
+
+                                                <DataTrigger Binding="{Binding SelectedSimulation.Benefits.Count}"
+                                                             Value="0">
+
+                                                    <Setter Property="Visibility"
+                                                            Value="Visible"/>
+
+                                                </DataTrigger>
+
+                                            </Style.Triggers>
+
+                                        </Style>
+                                    </TextBlock.Style>
+
+                                </TextBlock>
+
+                            </StackPanel>
+
+                        </Border>
+
+                        <!-- Consequences -->
+
+                        <Border Grid.Column="2"
+                                Background="{DynamicResource NekoSurfaceAltBrush}"
+                                BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="15">
+
+                            <StackPanel>
+
+                                <TextBlock Text="CONSEQUENCES OF SWITCHING"
+                                           Foreground="{DynamicResource NekoWarningBrush}"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,11"/>
+
+                                <ItemsControl ItemsSource="{Binding SelectedSimulation.Consequences}">
+
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+
+                                            <Grid Margin="0,0,0,9">
+
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="22"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="⚠"
+                                                           Foreground="{DynamicResource NekoWarningBrush}"
+                                                           FontWeight="Bold"/>
+
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding}"
+                                                           Foreground="{DynamicResource NekoTextBrush}"
+                                                           FontSize="11"
+                                                           TextWrapping="Wrap"
+                                                           LineHeight="17"/>
+
+                                            </Grid>
+
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+
+                                </ItemsControl>
+
+                                <TextBlock Text="No material consequences identified."
+                                           Foreground="{DynamicResource NekoMutedTextBrush}"
+                                           FontStyle="Italic"
+                                           FontSize="11">
+
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed"/>
+
+                                            <Style.Triggers>
+
+                                                <DataTrigger Binding="{Binding SelectedSimulation.Consequences.Count}"
+                                                             Value="0">
+
+                                                    <Setter Property="Visibility"
+                                                            Value="Visible"/>
+
+                                                </DataTrigger>
+
+                                            </Style.Triggers>
+
+                                        </Style>
+                                    </TextBlock.Style>
+
+                                </TextBlock>
+
+                            </StackPanel>
+
+                        </Border>
+
+                    </Grid>
+
+                    <!-- ================================================= -->
+                    <!-- GUARDIAN DECISION                                 -->
+                    <!-- ================================================= -->
+
+                    <Border Background="{DynamicResource NekoHeaderGradientBrush}"
+        BorderBrush="{DynamicResource NekoAccentBrush}"
+        BorderThickness="1"
+        CornerRadius="14"
+        Padding="20"
+        Margin="0,20,0,0">
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="18"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Decision icon -->
+
+                            <Border Grid.Column="0"
+                Width="48"
+                Height="48"
+                CornerRadius="24"
+                Background="{DynamicResource NekoSurfaceAltBrush}"
+                BorderBrush="{DynamicResource NekoAccentBrush}"
+                BorderThickness="1"
+                VerticalAlignment="Center">
+
+                                <TextBlock Text="{Binding SelectedSimulation.DecisionIcon}"
+                       Foreground="{DynamicResource NekoSuccessBrush}"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+
+                            </Border>
+
+                            <!-- Decision content -->
+
+                            <StackPanel Grid.Column="2">
+
+                                <TextBlock Text="GUARDIAN DECISION"
+                       Foreground="{DynamicResource NekoAccentBrush}"
+                       FontSize="10"
+                       FontWeight="SemiBold"/>
+
+                                <StackPanel>
+
+                                    <TextBlock
+        Text="{Binding SelectedSimulation.DecisionTitle}"
+        FontSize="18"
+        FontWeight="Bold"
+        Foreground="{DynamicResource NekoSpiritWhiteBrush}"/>
+
+                                    <TextBlock
+        Margin="0,6,0,0"
+        Text="{Binding SelectedSimulation.DecisionSubtitle}"
+        FontSize="12"
+        Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+                                </StackPanel>
+
+                                <TextBlock Margin="0,8,0,0"
+                       Text="{Binding SelectedSimulation.Verdict}"
+                       Foreground="{DynamicResource NekoTextBrush}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       LineHeight="19"/>
+
+                            </StackPanel>
+
+                            <!-- Confidence / risk -->
+
+                            <StackPanel Grid.Column="4"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Right">
+
+                                <TextBlock Text="CONFIDENCE"
+                       Foreground="{DynamicResource NekoMutedTextBrush}"
+                       FontSize="8"
+                       HorizontalAlignment="Center"/>
+
+                                <TextBlock Text="{Binding SelectedSimulation.Confidence,
+                                      StringFormat={}{0}%}"
+                       Foreground="{DynamicResource NekoAccentBrush}"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,10"/>
+
+                                <TextBlock Text="RISK"
+                       Foreground="{DynamicResource NekoMutedTextBrush}"
+                       FontSize="8"
+                       HorizontalAlignment="Center"/>
+
+                                <TextBlock Text="{Binding SelectedSimulation.RiskLevel}"
+                       Foreground="{DynamicResource NekoWarningBrush}"
+                       FontSize="14"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,0"/>
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Border>
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
+
+    </ScrollViewer>
+
+</Window>
