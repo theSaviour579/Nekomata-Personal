@@ -10,7 +10,7 @@ public sealed record UpdateCheckResult(bool Configured, bool UpdateAvailable, Ve
 
 public sealed class UpdateCheckService
 {
-    private const string Repository = "theSaviour579/Nekomata";
+    private const string Repository = "theSaviour579/Nekomata-Personal";
 
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken ct = default)
     {
@@ -45,7 +45,7 @@ public sealed class UpdateCheckService
 
         var available = latest > current;
         return new(true, available, current, latest,
-            available ? $"Nekomata {latest} is available (installed: {current.ToString(3)})." : $"Nekomata {current.ToString(3)} is up to date.", url);
+            available ? $"Nekomata Personal {latest} is available (installed: {current.ToString(3)})." : $"Nekomata Personal {current.ToString(3)} is up to date.", url);
     }
 
     private static string? FindGitHubCli()

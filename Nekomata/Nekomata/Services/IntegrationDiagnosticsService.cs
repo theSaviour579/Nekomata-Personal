@@ -4,10 +4,8 @@ using System.Net.Http.Headers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Core.Diagnostics;
-using Nekomata.Data.Database;
+using Nekomata.Data.Local;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
-using Nekomata.Services.Halo;
-using Nekomata.Services.KnowBe4;
 
 namespace Nekomata.UI.Services;
 
@@ -33,12 +31,9 @@ public sealed class IntegrationDiagnosticsService
     {
         var checks = new List<IntegrationDiagnosticItem>
         {
-            await CheckAsync("PostgreSQL", CheckDatabaseAsync, cancellationToken),
-            await CheckAsync("Backups", CheckBackupsAsync, cancellationToken),
+            await CheckAsync("Local workspace", CheckLocalWorkspaceAsync, cancellationToken),
             await CheckAsync("OpenAI", CheckOpenAiAsync, cancellationToken),
             await CheckAsync("Microsoft 365", CheckMicrosoftGraphAsync, cancellationToken),
-            await CheckAsync("Halo", CheckHaloAsync, cancellationToken),
-            await CheckAsync("KnowBe4", CheckKnowBe4Async, cancellationToken),
             await CheckAsync("Spotify", CheckSpotifyAsync, cancellationToken)
         };
         return checks;
@@ -64,16 +59,12 @@ public sealed class IntegrationDiagnosticsService
         return string.Join(Environment.NewLine, lines);
     }
 
-    private async Task<(string Summary, string Detail)> CheckDatabaseAsync(CancellationToken ct)
+    private async Task<(string Summary, string Detail)> CheckLocalWorkspaceAsync(CancellationToken ct)
     {
-        var database = _services.GetRequiredService<NekomataDbContext>();
-        await using var connection = database.Create();
-        await connection.OpenAsync(ct);
-        await using var command = connection.CreateCommand();
-        command.CommandText =
-            "SELECT COALESCE(MAX(version), 0) FROM assistant.schema_migrations;";
-        var version = Convert.ToInt32(await command.ExecuteScalarAsync(ct));
-        return ($"Connected · schema v{version}", "PostgreSQL accepted a query successfully.");
+        ct.ThrowIfCancellationRequested();
+        var store = _services.GetRequiredService<LocalWorkspaceStore>();
+        await store.EnsureCreatedAsync();
+        return ("Ready", "Tasks and projects are stored privately on this computer.");
     }
 
     private async Task<(string Summary, string Detail)> CheckOpenAiAsync(CancellationToken ct)
@@ -91,45 +82,12 @@ public sealed class IntegrationDiagnosticsService
         return ("Connected", "Authentication succeeded with a read-only models request.");
     }
 
-    private async Task<(string Summary, string Detail)> CheckBackupsAsync(CancellationToken ct)
-    {
-        var status = await _services.GetRequiredService<DatabaseBackupService>().GetStatusAsync(ct);
-        if (!status.ToolingAvailable) throw new InvalidOperationException(status.ToolingDetail);
-        if (!status.AutomaticConfigured)
-            throw new DiagnosticNotConfiguredException("Automatic encryption password is not configured; manual encrypted backups remain available.");
-        if (status.LatestBackupAt is null)
-            throw new InvalidOperationException("Automatic backup is configured, but no backup has completed yet.");
-        if (!status.IsFresh)
-            throw new InvalidOperationException($"Latest backup is stale ({status.LatestBackupAt:g}).");
-        return ("Protected", status.FreshnessLabel + " · encrypted and verified before creation.");
-    }
-
     private async Task<(string Summary, string Detail)> CheckMicrosoftGraphAsync(CancellationToken ct)
     {
         var calendar = _services.GetRequiredService<ICalendarService>();
         var start = DateTimeOffset.Now.Date;
         var events = await calendar.GetEventsAsync(start, start.AddDays(1), ct);
         return ("Connected", $"Calendar access succeeded · {events.Count} event(s) today.");
-    }
-
-    private async Task<(string Summary, string Detail)> CheckHaloAsync(CancellationToken ct)
-    {
-        var options = _services.GetRequiredService<HaloOptions>();
-        if (string.IsNullOrWhiteSpace(options.ClientId) || string.IsNullOrWhiteSpace(options.ClientSecret))
-            throw new DiagnosticNotConfiguredException("Credentials are not configured; the fake client is active.");
-        var tickets = await _services.GetRequiredService<IHaloClient>().GetMyTicketsAsync(ct);
-        return ("Connected", $"Ticket access succeeded · {tickets.Count} assigned ticket(s).");
-    }
-
-    private async Task<(string Summary, string Detail)> CheckKnowBe4Async(CancellationToken ct)
-    {
-        var options = _services.GetRequiredService<KnowBe4Options>();
-        if (string.IsNullOrWhiteSpace(options.ApiKey))
-            throw new DiagnosticNotConfiguredException("API key is not configured.");
-        var client = _services.GetService<KnowBe4Client>() ??
-            throw new DiagnosticNotConfiguredException("The KnowBe4 client is not enabled.");
-        var failures = await client.GetRecentFailuresAsync(ct);
-        return ("Connected", $"Security API access succeeded · {failures.Count} recent failure(s).");
     }
 
     private async Task<(string Summary, string Detail)> CheckSpotifyAsync(CancellationToken ct)

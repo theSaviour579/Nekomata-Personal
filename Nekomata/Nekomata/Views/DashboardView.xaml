@@ -55,44 +55,6 @@
                         Grid.Row="2"
                         Grid.Column="0">
 
-                <Border Background="#33FF5A72" BorderBrush="{DynamicResource NekoCriticalBrush}"
-                        BorderThickness="1" CornerRadius="14" Padding="16" Margin="0,0,0,16">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasUrgentHaloTickets}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,10">
-                            <TextBlock Text="⚠ IMMEDIATE ATTENTION" Foreground="{DynamicResource NekoCriticalBrush}"
-                                       FontSize="15" FontWeight="Bold" DockPanel.Dock="Left"/>
-                            <Button Content="REFRESH" Command="{Binding RefreshIntegrationsCommand}"
-                                    HorizontalAlignment="Right" Padding="10,5"/>
-                        </DockPanel>
-                        <TextBlock Text="{Binding HaloIntegrationStatus}" Style="{DynamicResource NekoMutedText}" Margin="0,0,0,10"/>
-                        <ItemsControl ItemsSource="{Binding UrgentHaloTickets}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource NekoSurfaceBrush}" CornerRadius="9" Padding="11" Margin="0,0,0,7">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Title}" Foreground="{DynamicResource NekoTextBrush}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding RecommendationReason}" Style="{DynamicResource NekoTinyText}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding Priority}" Foreground="{DynamicResource NekoCriticalBrush}" FontWeight="Bold" Margin="12,0,0,0"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
                 <dashboard:DashboardCard Title="VIABLE PUSHBACKS"
                     StatusText="{Binding Workspace.Capacity.PushbackSuggestions.Count}" Margin="0,0,0,16">
                     <dashboard:DashboardCard.Style>

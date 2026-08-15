@@ -1,43 +1,31 @@
-# Nekomata
+# Nekomata Personal
 
-Nekomata is a Windows desktop workspace assistant built with WPF and .NET 10. It combines task and project planning, mission prioritisation, capacity analysis, Guardian recommendations, and optional Microsoft Graph, Halo, KnowBe4, OpenAI, and Spotify integrations.
+Nekomata Personal is a Windows planning assistant for everyday work and life. It combines tasks, projects, daily planning, mission focus, capacity guidance, assistant conversations, and optional Microsoft calendar, email, OpenAI, and Spotify connections.
 
-## Prerequisites
+## Personal by default
 
-- Windows 10 or later
-- .NET 10 SDK
-- PostgreSQL reachable from the desktop
+- First-run setup asks what the assistant should call you.
+- Tasks, projects, mission history, and assistant memory stay in `%LocalAppData%\Nekomata Personal`.
+- No PostgreSQL installation or database credentials are required.
+- Halo, KnowBe4, ticket queues, and IT incident modes are excluded from the Personal interface.
+- The installer has its own application identity and can be installed alongside the IT edition of Nekomata.
 
-## First-time setup
+## Microsoft account connection
 
-1. Create a PostgreSQL database named `nekomata` (or change the database settings).
-2. From `Nekomata`, run `./configure-secrets.ps1` and enter local credentials. Secrets are saved through .NET user-secrets and are not written to the repository.
-3. Build with `dotnet build Nekomata.sln --configuration Release`.
-4. Run `Nekomata/bin/Release/net10.0-windows/Nekomata.UI.exe`.
+The application supports delegated Microsoft Graph access for calendar and email. A central multi-tenant Entra application ID must be supplied in `MicrosoftGraph:ClientId` before distribution. Individual users then connect with the in-app Microsoft sign-in and do not register their own application.
 
-The application records and applies database migrations automatically. If PostgreSQL is unavailable, startup shows a warning and opens in a degraded state rather than terminating.
+The intended delegated scopes are `User.Read`, `Calendars.ReadWrite`, `Mail.ReadWrite`, and `Mail.Send`. Users see and consent to those permissions during sign-in.
 
-## Verification
+## Development
 
-Run `dotnet test Nekomata.sln --configuration Release`. Tests include planning regressions, calendar and email behavior, mission continuation, Guardian action handling, configuration validation, and database migration coverage.
+Requirements are Windows 10 or later and the .NET 10 SDK.
 
-## Windows releases
+```powershell
+dotnet restore Nekomata/Nekomata.sln
+dotnet build Nekomata/Nekomata.sln --configuration Release
+dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Release
+```
 
-The private `Windows release` GitHub Actions workflow publishes a self-contained x64 application, a conventional per-user installer, a portable ZIP, and SHA-256 checksums. Run it manually with a semantic version such as `0.2.0`, or push a matching tag such as `v0.2.0`.
+## Releases
 
-Installed releases do not require a separate .NET runtime. User secrets, Microsoft authentication tokens, PostgreSQL data, and encrypted backups live outside the installation directory and survive upgrades. Update checks use the authenticated GitHub CLI because the repository and its releases are private.
-
-## Configuration
-
-Non-secret defaults live in `Nekomata/appsettings.json`. Keep database passwords, API keys, client secrets, and integration passwords in .NET user-secrets. Integrations without valid credentials fall back to their unconfigured or fake implementation where supported.
-
-## Project structure
-
-- `Nekomata` — WPF application and view models
-- `Nekomata.Core` — planning, mission, Guardian, and workspace logic
-- `Nekomata.Data` — PostgreSQL access, repositories, and schema migrations
-- `Nekomata.Integrations` — Microsoft Graph and integration abstractions
-- `Nekomata.Services` — Halo and KnowBe4 clients
-- `Nekomata.AI` — AI provider and structured response support
-- `Nekomata.Models` — shared domain models
-- `Nekomata.Tests` — automated regression tests
+The `Windows release` GitHub Actions workflow creates a self-contained x64 portable archive, `Nekomata-Personal-Setup-<version>.exe`, and SHA-256 checksums. The release remains private until the distribution model is deliberately changed.

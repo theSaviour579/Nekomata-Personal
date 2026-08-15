@@ -17,7 +17,7 @@ public partial class MainViewModel
     private bool diagnosticsBusy;
 
     [ObservableProperty]
-    private string diagnosticsStatus = "Run checks to verify every Nekomata connection.";
+    private string diagnosticsStatus = "Check your local workspace and optional connections.";
 
     [ObservableProperty]
     private bool diagnosticsRunFailed;
@@ -65,7 +65,7 @@ public partial class MainViewModel
 
         DiagnosticsBusy = true;
         DiagnosticsRunFailed = false;
-        DiagnosticsStatus = "Checking database and external services…";
+        DiagnosticsStatus = "Checking your workspace and optional services…";
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));

@@ -8,7 +8,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="GUARDIAN ATTENTION CENTRE" Style="{DynamicResource NekoTitleText}"/>
-                    <TextBlock Text="One durable queue for management email, Halo incidents, missed plan blocks and capacity risks."
+                    <TextBlock Text="One durable queue for important email, missed plan blocks, deadlines and capacity risks."
                                Style="{DynamicResource NekoMutedText}" TextWrapping="Wrap" Margin="0,8,0,0"/>
                     <TextBlock Text="{Binding ActiveAttentionCount, StringFormat={}{0} item(s) currently need attention}"
                                Foreground="{DynamicResource NekoWarningBrush}" FontWeight="SemiBold" Margin="0,8,0,0"/>

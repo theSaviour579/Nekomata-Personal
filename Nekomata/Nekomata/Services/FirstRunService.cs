@@ -4,14 +4,17 @@ namespace Nekomata.UI.Services;
 
 public sealed class FirstRunService
 {
-    private readonly string _marker = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nekomata", "setup-complete-v1");
+    private readonly PersonalProfileService _profile;
 
-    public bool IsFirstRun => !File.Exists(_marker);
-
-    public void Complete()
+    public FirstRunService(PersonalProfileService profile)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_marker)!);
-        File.WriteAllText(_marker, DateTime.UtcNow.ToString("O"));
+        _profile = profile;
+    }
+
+    public bool IsFirstRun => !_profile.IsConfigured;
+
+    public void Complete(string displayName, bool startWithWindows)
+    {
+        _profile.Save(displayName, startWithWindows);
     }
 }

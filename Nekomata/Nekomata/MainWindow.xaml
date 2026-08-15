@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:Nekomata.UI.Views"
         xmlns:guardian="clr-namespace:Nekomata.UI.Controls.Guardian"
-        Title="Nekomata"
+        Title="Nekomata Personal"
         Width="1200"
         Height="900"
         MinWidth="900"
@@ -50,7 +50,7 @@
                         <TextBlock Text="{Binding ApplicationName}"
                                Style="{DynamicResource NekoTitleText}"/>
 
-                        <TextBlock Text="Guardian Command Centre"
+                        <TextBlock Text="Your personal planning assistant"
                                Foreground="{DynamicResource NekoSpiritPurpleBrush}"
                                FontSize="14"
                                FontWeight="SemiBold"/>
@@ -65,7 +65,6 @@
                             <Button Content="EMAIL" Command="{Binding ShowEmailCommand}" Margin="0,0,8,0"/>
                             <Button Content="MEETING ANALYZER" Command="{Binding OpenGuardianPlannerCommand}" Margin="0,0,8,0" ToolTip="Turn meeting notes into reviewed tasks, projects and calendar actions"/>
                             <Button Content="ACTIVITY" Command="{Binding OpenGuardianActivityCommand}" Margin="0,0,8,0" ToolTip="Review Guardian decisions and safely undo applied batches"/>
-                            <Button Content="{Binding HaloWatchlistButtonLabel}" Command="{Binding ShowHaloWatchlistCommand}" Margin="0,0,8,0"/>
                             <Button Content="{Binding AttentionButtonLabel}" Command="{Binding ShowAttentionCommand}">
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding HasActiveAttention}" Value="True"><Setter Property="Foreground" Value="{DynamicResource NekoWarningBrush}"/></DataTrigger></Style.Triggers></Style></Button.Style>
                             </Button>
@@ -134,11 +133,6 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-
-                            <Button Content="↻ REFRESH HALO"
-                                    Command="{Binding RefreshHaloTicketsCommand}"
-                                    Padding="10,4"
-                                    ToolTip="Pull the latest tickets from Halo"/>
 
                         </StackPanel>
 
@@ -396,14 +390,6 @@
                 Visibility="{Binding WorkspaceMode,
                                      Converter={StaticResource AttentionVisibilityConverter}}"/>
 
-                <views:HaloWatchlistView
-                Visibility="{Binding WorkspaceMode,
-                                     Converter={StaticResource HaloWatchlistVisibilityConverter}}"/>
-
-                <views:BattleView
-                Visibility="{Binding WorkspaceMode,
-                                     Converter={StaticResource BattleVisibilityConverter}}"/>
-
                 <views:SettingsView
                 Visibility="{Binding WorkspaceMode,
                                      Converter={StaticResource DiagnosticsVisibilityConverter}}"/>
@@ -450,7 +436,7 @@
                            FontWeight="Bold"
                            HorizontalAlignment="Center"
                            Margin="0,22,0,0"/>
-                <TextBlock Text="GUARDIAN COMMAND CENTRE"
+                <TextBlock Text="PERSONAL PLANNING ASSISTANT"
                            Foreground="{DynamicResource NekoAccentBrush}"
                            FontSize="12"
                            FontWeight="SemiBold"
@@ -471,7 +457,7 @@
                            TextWrapping="Wrap"
                            HorizontalAlignment="Center"
                            Margin="0,16,0,0"/>
-                <TextBlock Text="Synchronising workspace, calendar and integrations"
+                <TextBlock Text="Preparing your workspace and today's plan"
                            Foreground="{DynamicResource NekoBorderBrush}"
                            FontSize="10"
                            HorizontalAlignment="Center"
