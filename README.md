@@ -7,7 +7,6 @@ Nekomata Personal is a Windows planning assistant for everyday work and life. It
 - First-run setup asks what the assistant should call you.
 - Tasks, projects, mission history, and assistant memory stay in `%LocalAppData%\Nekomata Personal`.
 - No PostgreSQL installation or database credentials are required.
-- Halo, KnowBe4, ticket queues, and IT incident modes are excluded from the Personal interface.
 - The installer has its own application identity and can be installed alongside the IT edition of Nekomata.
 
 ## Microsoft account connection
