@@ -12,7 +12,7 @@ public class NekomataTask
     public string Status { get; set; } = "Open";
     public string Priority { get; set; } = "Normal";
 
-    public string Owner { get; set; } = "David";
+    public string Owner { get; set; } = "";
     public string? SuggestedDelegate { get; set; }
 
     public bool BusinessCritical { get; set; }

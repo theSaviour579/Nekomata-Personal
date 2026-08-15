@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
+using Nekomata.Data.Local;
 using Nekomata.UI.Services;
 using Nekomata.UI.Views;
 using System.Windows;
@@ -26,8 +27,31 @@ public partial class MainViewModel
         };
         if (window.ShowDialog() != true) return;
         ApplyPersonalProfile();
+        _ = NormalizeLegacyPersonalNamesAsync();
         OnPropertyChanged(nameof(PersonalDisplayName));
         OnPropertyChanged(nameof(OpenAiKeyStatus));
+    }
+
+    private async Task NormalizeLegacyPersonalNamesAsync()
+    {
+        var displayName = _personalProfile.Current.DisplayName.Trim();
+        if (string.IsNullOrWhiteSpace(displayName)) return;
+
+        static bool IsLegacyOwner(string? owner) =>
+            string.IsNullOrWhiteSpace(owner) ||
+            owner.Equals("David", StringComparison.OrdinalIgnoreCase) ||
+            owner.Equals("David Myers", StringComparison.OrdinalIgnoreCase);
+
+        foreach (var task in Workspace.Tasks.Where(task => IsLegacyOwner(task.Owner)))
+            task.Owner = displayName;
+
+        await _services.GetRequiredService<LocalWorkspaceStore>().UpdateAsync(data =>
+        {
+            foreach (var task in data.Tasks.Where(task => IsLegacyOwner(task.Owner)))
+                task.Owner = displayName;
+            return true;
+        });
+        OnPropertyChanged(nameof(Workspace));
     }
 
     private bool EnsurePersonalAiConfigured()
