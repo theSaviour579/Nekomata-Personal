@@ -24,7 +24,7 @@ public sealed record UpdateDownloadResult(bool Success, string Message, string? 
 
 public sealed class UpdateCheckService
 {
-    private const string Repository = "theSaviour579/Nekomata-Personal";
+    private const string Repository = "theSaviour579/Nekomata-Personal-Releases";
     private static readonly HttpClient Http = CreateHttpClient();
 
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken ct = default)
