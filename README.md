@@ -2,6 +2,10 @@
 
 Nekomata Personal is a Windows planning assistant for everyday work and life. It combines tasks, projects, daily planning, mission focus, capacity guidance, assistant conversations, and optional Microsoft calendar, email, OpenAI, and Spotify connections.
 
+## Support
+
+If Nekomata Personal is useful to you, you can support its continued development at [Buy Me a Coffee](https://buymeacoffee.com/nekomataassistant).
+
 ## Designed for you
 
 - First-run setup asks what the assistant should call you.
@@ -25,10 +29,6 @@ dotnet restore Nekomata/Nekomata.sln
 dotnet build Nekomata/Nekomata.sln --configuration Release
 dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Release
 ```
-
-## Support
-
-If Nekomata Personal is useful to you, you can support its continued development at [Buy Me a Coffee](https://buymeacoffee.com/nekomataassistant).
 
 ## Releases
 
