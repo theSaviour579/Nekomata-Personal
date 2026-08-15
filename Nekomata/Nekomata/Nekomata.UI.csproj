@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>Nekomata</AssemblyName>
     <Product>Nekomata Personal Assistant</Product>
-    <VersionPrefix>0.2.0</VersionPrefix>
+    <VersionPrefix>0.3.0</VersionPrefix>
     <Authors>David Myers</Authors>
     <UserSecretsId>2bff312d-aa43-432a-bd88-844804742564</UserSecretsId>
 	  <ApplicationIcon>Assets\Images\App.ico</ApplicationIcon>
