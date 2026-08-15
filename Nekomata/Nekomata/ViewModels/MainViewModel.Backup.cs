@@ -30,6 +30,20 @@ public partial class MainViewModel
         OnPropertyChanged(nameof(OpenAiKeyStatus));
     }
 
+    private bool EnsurePersonalAiConfigured()
+    {
+        if (_services.GetRequiredService<PersonalAIProvider>().IsConfigured) return true;
+
+        var choice = MessageBox.Show(
+            "Guardian needs an OpenAI API key to answer this request. Would you like to add one now?\n\nThe key will be stored securely in Windows Credential Manager.",
+            "Enable Guardian AI", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes);
+        if (choice == MessageBoxResult.Yes) EditPersonalSettings();
+
+        if (_services.GetRequiredService<PersonalAIProvider>().IsConfigured) return true;
+        GuardianResponse = "Guardian needs an OpenAI API key before it can answer this request. You can add one from Settings → Your Assistant.";
+        return false;
+    }
+
     [RelayCommand]
     private async Task CreatePersonalBackupAsync()
     {
