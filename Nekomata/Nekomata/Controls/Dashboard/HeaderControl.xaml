@@ -22,7 +22,7 @@
                            FontSize="34"
                            FontWeight="Bold"/>
 
-                <TextBlock Text="Guardian Command Centre"
+                <TextBlock Text="Your personal planning assistant"
                            Foreground="{DynamicResource NekoSpiritPurpleBrush}"
                            FontSize="13"
                            FontWeight="SemiBold"

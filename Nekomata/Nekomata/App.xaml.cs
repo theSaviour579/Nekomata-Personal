@@ -32,6 +32,7 @@ using Nekomata.Core.Missions.Suggestions.Rules;
 using Nekomata.Core.Planning;
 using Nekomata.Core.Workspace;
 using Nekomata.Data.Database;
+using Nekomata.Data.Local;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Planning;
 using Nekomata.Integrations.MicrosoftGraph.Authentication;
@@ -87,13 +88,14 @@ public partial class App : Application
                 services.AddSingleton<DatabaseBackupService>();
                 services.AddSingleton<StartupRegistrationService>();
                 services.AddSingleton<UpdateCheckService>();
+                services.AddSingleton<PersonalProfileService>();
+                services.AddSingleton<PersonalSecretService>();
                 services.AddSingleton<FirstRunService>();
                 services.AddTransient<FirstRunWindow>();
                 services.AddSingleton<IFocusEngine, FocusEngine>();
-                services.AddSingleton<NekomataDbContext>();
-                services.AddSingleton<DatabaseInitializer>();
+                services.AddSingleton<LocalWorkspaceStore>();
                 services.AddSingleton<IWorkspaceBuilder, WorkspaceBuilder>();
-                services.AddSingleton<ITaskRepository, TaskRepository>();
+                services.AddSingleton<ITaskRepository, LocalTaskRepository>();
                 services.AddSingleton<ICapacityEngine, CapacityEngine>();
                 services.AddSingleton<IBriefingEngine, BriefingEngine>();
                 services.AddSingleton<IDailyPlanner, DailyPlanner>();
@@ -105,23 +107,11 @@ public partial class App : Application
                 services.AddSingleton<RecommendationBuilder>();
                 services.AddSingleton<IGuardianEngine, GuardianEngine>();
                 services.AddSingleton<IWorkspaceCoordinator, WorkspaceCoordinator>();
-                var openAiConfigured =
-                    !string.IsNullOrWhiteSpace(context.Configuration["OpenAI:ApiKey"])
-                    || !string.IsNullOrWhiteSpace(
-                        Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
-
-                if (openAiConfigured)
-                {
-                    services.AddSingleton<IAIProvider, OpenAIProvider>();
-                    services.AddSingleton<IStructuredAIProvider, OpenAIStructuredProvider>();
-                }
-                else
-                {
-                    services.AddSingleton<IAIProvider, UnconfiguredAIProvider>();
-                    services.AddSingleton<IStructuredAIProvider, UnconfiguredAIProvider>();
-                }
-                services.AddSingleton<IProjectRepository, ProjectRepository>();
-                services.AddSingleton<IGuardianAuditRepository, GuardianAuditRepository>();
+                services.AddSingleton<PersonalAIProvider>();
+                services.AddSingleton<IAIProvider>(provider => provider.GetRequiredService<PersonalAIProvider>());
+                services.AddSingleton<IStructuredAIProvider>(provider => provider.GetRequiredService<PersonalAIProvider>());
+                services.AddSingleton<IProjectRepository, LocalProjectRepository>();
+                services.AddSingleton<IGuardianAuditRepository, LocalGuardianAuditRepository>();
                 services.AddSingleton<GuardianUndoService>();
                 services.AddTransient<GuardianActivityViewModel>();
                 services.AddTransient<GuardianActivityWindow>();
@@ -129,7 +119,7 @@ public partial class App : Application
                 services.AddTransient<ProjectWindow>();
                 services.AddSingleton<
     IGuardianMemoryRepository,
-    GuardianMemoryRepository>();
+    LocalGuardianMemoryRepository>();
                 services.AddSingleton<
     IGuardianRecommendationService,
     GuardianRecommendationService>();
@@ -154,7 +144,7 @@ public partial class App : Application
                 
                 services.AddSingleton<IMissionSessionService, MissionSessionService>();
 
-                services.AddSingleton<IMissionSessionRepository, MissionSessionRepository>();
+                services.AddSingleton<IMissionSessionRepository, LocalMissionSessionRepository>();
 
                 services.AddSingleton<IMissionAnalyticsService, MissionAnalyticsService>();
 
@@ -234,20 +224,7 @@ public partial class App : Application
                     services.AddSingleton<IHaloClient, FakeHaloClient>();
                 }
 
-                services.AddSingleton<IWorkspaceDataSource,
-                    HaloWorkspaceDataSource>();
-
-                if (!string.IsNullOrWhiteSpace(knowBe4Options.ApiKey) &&
-                    Uri.TryCreate(knowBe4Options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute, out var knowBe4BaseUri) &&
-                    knowBe4BaseUri.Scheme == Uri.UriSchemeHttps)
-                {
-                    services.AddHttpClient<KnowBe4Client>(client =>
-                    {
-                        client.BaseAddress = knowBe4BaseUri;
-                        client.Timeout = TimeSpan.FromSeconds(45);
-                    });
-                    services.AddSingleton<IWorkspaceDataSource, KnowBe4WorkspaceDataSource>();
-                }
+                // Personal edition intentionally excludes Halo and KnowBe4 workspace sources.
 
                 services.AddSingleton<
                     ITimelineProvider,
@@ -320,21 +297,20 @@ public partial class App : Application
         {
             await _host.StartAsync();
 
-            using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            var database = _host.Services.GetRequiredService<DatabaseInitializer>();
-            await database.InitialiseAsync(startupTimeout.Token);
+            var localStore = _host.Services.GetRequiredService<LocalWorkspaceStore>();
+            await localStore.EnsureCreatedAsync();
         }
         catch (Exception ex)
         {
             _host.Services.GetService<ILogger<App>>()?.LogError(
                 ex,
-                "Nekomata started without its database");
+                "Nekomata Personal started without its local workspace");
 
             MessageBox.Show(
-                "Nekomata could not connect to its database. The application will open, " +
-                "but workspace data will be unavailable until the database settings or service are fixed.\n\n" +
+                "Nekomata could not open its local workspace. The application will open, " +
+                "but workspace data may be unavailable until the local file issue is fixed.\n\n" +
                 ex.Message,
-                "Database unavailable",
+                "Workspace unavailable",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }

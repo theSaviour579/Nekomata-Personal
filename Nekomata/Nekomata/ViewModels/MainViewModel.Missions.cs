@@ -231,7 +231,7 @@ public partial class MainViewModel
         MissionCheckInVisible = false;
         MissionCheckInStatus = $"Blocked · {reason}";
         await RecordMissionCheckInAsync("Blocked", reason);
-        ChatInput = $"I am blocked on '{Workspace.CurrentMission.Title}'. Blocker: {reason} Replan the remainder of today around the live calendar, preserving protected meetings and urgent Halo work.";
+        ChatInput = $"I am blocked on '{Workspace.CurrentMission.Title}'. Blocker: {reason} Replan the remainder of today around the live calendar, preserving protected meetings and important commitments.";
         GuardianPanelExpanded = true;
         await SendGuardianMessageAsync();
     }

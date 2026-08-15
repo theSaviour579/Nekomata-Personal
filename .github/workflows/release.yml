@@ -60,7 +60,7 @@ jobs:
 
       - name: Create portable archive
         shell: pwsh
-        run: Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/Nekomata-${{ steps.version.outputs.value }}-win-x64.zip
+        run: Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/Nekomata-Personal-${{ steps.version.outputs.value }}-win-x64.zip
 
       - name: Build installer
         shell: pwsh
@@ -74,8 +74,8 @@ jobs:
         shell: pwsh
         run: |
           $files = @(
-            "artifacts\installer\Nekomata-Setup-${{ steps.version.outputs.value }}.exe",
-            "artifacts\Nekomata-${{ steps.version.outputs.value }}-win-x64.zip"
+            "artifacts\installer\Nekomata-Personal-Setup-${{ steps.version.outputs.value }}.exe",
+            "artifacts\Nekomata-Personal-${{ steps.version.outputs.value }}-win-x64.zip"
           )
           $lines = foreach ($file in $files) {
             $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -86,7 +86,7 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: nekomata-${{ steps.version.outputs.value }}
+          name: nekomata-personal-${{ steps.version.outputs.value }}
           path: |
             artifacts/installer/*.exe
             artifacts/*.zip
@@ -99,4 +99,4 @@ jobs:
         run: |
           $flags = @()
           if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
-          gh release create '${{ steps.version.outputs.tag }}' @flags --repo '${{ github.repository }}' --target '${{ github.sha }}' --title 'Nekomata ${{ steps.version.outputs.value }}' --generate-notes artifacts/installer/*.exe artifacts/*.zip artifacts/SHA256SUMS.txt
+          gh release create '${{ steps.version.outputs.tag }}' @flags --repo '${{ github.repository }}' --target '${{ github.sha }}' --title 'Nekomata Personal ${{ steps.version.outputs.value }}' --generate-notes artifacts/installer/*.exe artifacts/*.zip artifacts/SHA256SUMS.txt

@@ -490,10 +490,13 @@ item.DraftStatus = guardianAuthored
         {
             await PrepareMeetingAvailabilityFromContentAsync(item);
             string instruction;
+            var displayName = string.IsNullOrWhiteSpace(_personalProfile.Current.DisplayName)
+                ? "the user"
+                : _personalProfile.Current.DisplayName;
             if (guardianAuthored)
             {
-                instruction = """
-                    Write as Guardian, David Myers' personal assistant. Do not include an explanatory disclosure about triage, prioritisation, AI or drafting. Be concise and natural, do not imply that Guardian can make decisions for David, and close with the exact single-line signature "Guardian | Personal Assistant to David Myers". Do not pretend the words are directly David's.
+                instruction = $"""
+                    Write as Guardian, {displayName}'s personal assistant. Do not include an explanatory disclosure about triage, prioritisation, AI or drafting. Be concise and natural, do not imply that Guardian can make decisions for {displayName}, and close with the exact single-line signature "Guardian | Personal Assistant to {displayName}". Do not pretend the words are directly {displayName}'s.
                     """;
             }
             else
@@ -504,15 +507,15 @@ item.DraftStatus = guardianAuthored
                     ? "No recent writing samples were available. Use a concise, warm and professional British business tone."
                     : string.Join("\n\n--- WRITING SAMPLE ---\n", samples);
                 instruction = $"""
-                    Write in David's voice. Infer only stylistic traits from the samples below: greeting, sentence length, directness, warmth, vocabulary and sign-off. Do not copy names, facts, promises, dates, confidential details or subject matter from the samples. Do not mention Guardian or AI. Do not claim David reviewed or approved the draft.
+                    Write in {displayName}'s voice. Infer only stylistic traits from the samples below: greeting, sentence length, directness, warmth, vocabulary and sign-off. Do not copy names, facts, promises, dates, confidential details or subject matter from the samples. Do not mention Guardian or AI. Do not claim {displayName} reviewed or approved the draft.
 
-                    DAVID'S RECENT WRITING SAMPLES:
+                    RECENT WRITING SAMPLES:
                     {sampleText}
                     """;
             }
 
             var prompt = $"""
-                Draft a concise professional email reply for David Myers.
+                Draft a concise professional email reply for {displayName}.
                 {instruction}
                 Never invent facts, dates, promises, attachments, decisions or availability. Use [bracketed placeholders] only for genuinely missing information. Calendar availability supplied below has already been verified against Outlook: reproduce those dates and times as normal text without square brackets. Do not put any verified date or time in brackets.
                 Address the reply only to the sender. Mention or instruct another named person only when the source message explicitly identifies that person and explicitly assigns them the relevant action; otherwise omit the third-party instruction.

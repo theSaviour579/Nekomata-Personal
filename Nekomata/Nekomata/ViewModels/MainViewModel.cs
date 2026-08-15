@@ -33,6 +33,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IAIProvider _aiProvider;
     private readonly IServiceProvider _services;
     private readonly GuardianSpeechService _guardianSpeech;
+    private readonly PersonalProfileService _personalProfile;
 
     private readonly IGuardianRecommendationService
         _recommendationService;
@@ -77,10 +78,10 @@ public partial class MainViewModel : ObservableObject
     // ============================================================
 
     [ObservableProperty]
-    private string applicationName = "NEKOMATA";
+    private string applicationName = "NEKOMATA PERSONAL";
 
     [ObservableProperty]
-    private string greeting = "Good morning, David.";
+    private string greeting = "Welcome to your workspace.";
     [ObservableProperty]
     private bool isInitialLoading = true;
 
@@ -120,12 +121,14 @@ public partial class MainViewModel : ObservableObject
         IMissionOverrideService missionOverrideService,
         ITaskRepository taskRepository,
         IGuardianConversationService conversationService,
-        IGuardianApplyService guardianApplyService)
+        IGuardianApplyService guardianApplyService,
+        PersonalProfileService personalProfile)
     {
         _workspaceCoordinator = workspaceCoordinator;
         _aiProvider = aiProvider;
         _services = services;
         _guardianSpeech = guardianSpeech;
+        _personalProfile = personalProfile;
 
         _recommendationService =
             recommendationService;
@@ -182,9 +185,16 @@ public partial class MainViewModel : ObservableObject
         InitialiseAttentionCentre();
         InitialiseDiagnosticsMonitoring();
         InitialiseReleaseSettings();
+        InitialiseMicrosoftAccount();
 
         _ = LoadAsync();
         _missionSimulationEngine = missionSimulationEngine;
+    }
+
+    public void ApplyPersonalProfile()
+    {
+        ApplicationName = "NEKOMATA PERSONAL";
+        UpdateGreeting();
     }
 
     // ============================================================
@@ -252,11 +262,7 @@ public partial class MainViewModel : ObservableObject
             if (showSplash)
                 _ = InitialiseSpotifyArrivalAsync();
             if (showSplash)
-                _ = RefreshDiagnosticsAsync();
-            if (showSplash)
                 _ = CheckForUpdatesAsync();
-            if (showSplash)
-                _ = InitialiseAutomaticBackupAsync();
             if (showSplash)
                 _ = SpeakMorningBriefingAsync();
         }

@@ -8,15 +8,13 @@
             <DockPanel Margin="0,0,0,16">
                 <StackPanel DockPanel.Dock="Left">
                     <TextBlock Text="INTEGRATIONS" Foreground="{DynamicResource NekoAccentBrush}" FontSize="13" FontWeight="SemiBold"/>
-                    <TextBlock Text="MUSIC &amp; SECURITY" Foreground="{DynamicResource NekoSpiritWhiteBrush}" FontSize="23" FontWeight="Bold" Margin="0,5,0,0"/>
+                    <TextBlock Text="MUSIC" Foreground="{DynamicResource NekoSpiritWhiteBrush}" FontSize="23" FontWeight="Bold" Margin="0,5,0,0"/>
                 </StackPanel>
                 <Button Content="REFRESH" Command="{Binding RefreshIntegrationsCommand}" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="12,6"/>
             </DockPanel>
 
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="12"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
@@ -49,28 +47,6 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="2" Background="{DynamicResource NekoSurfaceAltBrush}" BorderBrush="{DynamicResource NekoBorderSoftBrush}" BorderThickness="1" CornerRadius="14" Padding="16">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <DockPanel>
-                            <Border Width="10" Height="10" CornerRadius="5" DockPanel.Dock="Left" Margin="0,0,9,0">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Background" Value="{DynamicResource NekoCriticalBrush}"/>
-                                        <Style.Triggers><DataTrigger Binding="{Binding IsKnowBe4Connected}" Value="True"><Setter Property="Background" Value="{DynamicResource NekoSuccessBrush}"/></DataTrigger></Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                            </Border>
-                            <TextBlock Text="KNOWBE4" Foreground="{DynamicResource NekoSpiritWhiteBrush}" FontSize="16" FontWeight="Bold"/>
-                            <Border Background="#332A2442" CornerRadius="8" Padding="8,3" HorizontalAlignment="Right">
-                                <TextBlock Text="{Binding KnowBe4FailureCount, StringFormat={}{0} RECENT}" Foreground="{DynamicResource NekoWarningBrush}" FontSize="10" FontWeight="Bold"/>
-                            </Border>
-                        </DockPanel>
-                        <TextBlock Grid.Row="1" Text="{Binding KnowBe4IntegrationStatus}" Foreground="{DynamicResource NekoSuccessBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,10,0,0" TextWrapping="Wrap"/>
-                        <TextBlock Grid.Row="2" Text="Monitoring simulation clicks, replies, attachments, macros, entered data and QR scans." Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="17" Margin="0,8,0,14"/>
-                        <Button Grid.Row="3" Content="VIEW SECURITY ALERTS" Command="{Binding ShowKnowBe4AttentionCommand}" Height="34"/>
-                    </Grid>
-                </Border>
             </Grid>
         </StackPanel>
     </Border>

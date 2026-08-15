@@ -128,11 +128,15 @@ public partial class MainViewModel
 
     private void UpdateGreeting()
     {
+        var name = string.IsNullOrWhiteSpace(_personalProfile.Current.DisplayName)
+            ? "there"
+            : _personalProfile.Current.DisplayName;
+
         Greeting = CurrentDateTime.Hour switch
         {
-            < 12 => "Good morning, David.",
-            < 17 => "Good afternoon, David.",
-            _ => "Good evening, David."
+            < 12 => $"Good morning, {name}.",
+            < 17 => $"Good afternoon, {name}.",
+            _ => $"Good evening, {name}."
         };
     }
     public bool HasBriefingObjective =>

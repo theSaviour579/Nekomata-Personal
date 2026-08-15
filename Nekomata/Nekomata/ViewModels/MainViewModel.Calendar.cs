@@ -558,7 +558,7 @@ public partial class MainViewModel
     [RelayCommand]
     private async Task RepairCalendarPlanAsync()
     {
-        ChatInput = $"Repair the remainder of today's calendar plan from {DateTime.Now:HH:mm}. {PlanHealthDetail} Keep protected meetings fixed, preserve completed work, and reschedule unfinished ranked tasks and Halo tickets into valid free windows.";
+        ChatInput = $"Repair the remainder of today's calendar plan from {DateTime.Now:HH:mm}. {PlanHealthDetail} Keep protected meetings fixed, preserve completed work, and reschedule unfinished ranked tasks into valid free windows.";
         GuardianPanelExpanded = true;
         ResolveAttentionByPrefix("calendar:");
         PlanAttentionVisible = false;

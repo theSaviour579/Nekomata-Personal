@@ -5,7 +5,7 @@ namespace Nekomata.UI.Services;
 public sealed class StartupRegistrationService
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "Nekomata";
+    private const string ValueName = "Nekomata Personal";
 
     public bool IsEnabled
     {
@@ -21,7 +21,7 @@ public sealed class StartupRegistrationService
         using var key = Registry.CurrentUser.CreateSubKey(RunKey, true);
         if (enabled)
         {
-            var executable = Environment.ProcessPath ?? throw new InvalidOperationException("The Nekomata executable path is unavailable.");
+            var executable = Environment.ProcessPath ?? throw new InvalidOperationException("The Nekomata Personal executable path is unavailable.");
             key.SetValue(ValueName, $"\"{executable}\"");
         }
         else key.DeleteValue(ValueName, false);

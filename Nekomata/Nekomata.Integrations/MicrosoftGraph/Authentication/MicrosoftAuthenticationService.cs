@@ -68,7 +68,7 @@ public sealed class MicrosoftAuthenticationService : IMicrosoftAuthenticationSer
         {
             var cacheDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Nekomata",
+                "Nekomata Personal",
                 "Authentication");
 
             var storageProperties = new StorageCreationPropertiesBuilder(CacheFileName, cacheDirectory)

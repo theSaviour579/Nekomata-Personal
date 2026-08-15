@@ -37,7 +37,7 @@ public sealed class SpotifyPlaybackService
         _clientId = configuration["Spotify:ClientId"] ?? string.Empty;
         _playlistUri = configuration["Spotify:ArrivalPlaylistUri"] ?? DefaultPlaylist;
         _redirectUri = configuration["Spotify:RedirectUri"] ?? DefaultRedirect;
-        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nekomata");
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nekomata Personal");
         Directory.CreateDirectory(folder);
         _tokenPath = Path.Combine(folder, "spotify-token.json");
         LoadToken();
