@@ -28,4 +28,4 @@ dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Releas
 
 ## Releases
 
-The `Windows release` GitHub Actions workflow creates a self-contained x64 portable archive, `Nekomata-Personal-Setup-<version>.exe`, and SHA-256 checksums. The release remains private until the distribution model is deliberately changed.
+Merging a versioned pull request into `master` runs the `Windows release` workflow. It creates a self-contained x64 portable archive, `Nekomata-Personal-Setup-<version>.exe`, and SHA-256 checksums. Nekomata checks the private release feed at startup and offers the newer installer when one is available. The release remains private until the distribution model is deliberately changed.

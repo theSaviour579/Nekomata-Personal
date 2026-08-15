@@ -21,6 +21,7 @@ public partial class MainViewModel
     private void InitialiseReleaseSettings()
     {
         StartWithWindows = _services.GetRequiredService<StartupRegistrationService>().IsEnabled;
+        _ = CheckForUpdatesAsync();
     }
 
     partial void OnStartWithWindowsChanged(bool value)
