@@ -30,6 +30,7 @@ using Nekomata.Core.Missions.Scoring;
 using Nekomata.Core.Missions.Suggestions;
 using Nekomata.Core.Missions.Suggestions.Rules;
 using Nekomata.Core.Planning;
+using Nekomata.Core.Personalization;
 using Nekomata.Core.Workspace;
 using Nekomata.Data.Database;
 using Nekomata.Data.Local;
@@ -89,6 +90,7 @@ public partial class App : Application
                 services.AddSingleton<StartupRegistrationService>();
                 services.AddSingleton<UpdateCheckService>();
                 services.AddSingleton<PersonalProfileService>();
+                services.AddSingleton<IUserIdentity, PersonalUserIdentity>();
                 services.AddSingleton<PersonalSecretService>();
                 services.AddSingleton<PersonalBackupService>();
                 services.AddSingleton<FirstRunService>();

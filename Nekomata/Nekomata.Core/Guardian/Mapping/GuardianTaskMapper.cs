@@ -1,9 +1,10 @@
 ﻿using Nekomata.AI.Models.Actions;
 using Nekomata.Models.Tasks;
+using Nekomata.Core.Personalization;
 
 namespace Nekomata.Core.Guardian.Mapping;
 
-public class GuardianTaskMapper
+public class GuardianTaskMapper(IUserIdentity userIdentity)
     : IGuardianTaskMapper
 {
     public NekomataTask Map(
@@ -42,7 +43,7 @@ public class GuardianTaskMapper
 
             Status = "Open",
 
-            Owner = "David",
+            Owner = userIdentity.DisplayName,
 
             BusinessCritical = false,
             AccuracySensitive = false,

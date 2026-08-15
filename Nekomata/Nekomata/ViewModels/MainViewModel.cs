@@ -242,6 +242,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             Workspace = await _workspaceCoordinator.RefreshAsync();
+            await NormalizeLegacyPersonalNamesAsync();
             OnPropertyChanged(nameof(GuardianSuggestedTasks));
             UpdateGreeting();
 
@@ -421,7 +422,7 @@ public partial class MainViewModel : ObservableObject
                     mission.Priority,
 
                 Owner =
-                    "David",
+                    _personalProfile.Current.DisplayName,
 
                 EstimatedMinutes =
                     mission.EstimatedMinutes,

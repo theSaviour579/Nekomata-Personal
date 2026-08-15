@@ -138,6 +138,8 @@ public partial class MainViewModel
             < 17 => $"Good afternoon, {name}.",
             _ => $"Good evening, {name}."
         };
+        Workspace.Briefing.Greeting = Greeting;
+        OnPropertyChanged(nameof(Workspace));
     }
     public bool HasBriefingObjective =>
     !string.IsNullOrWhiteSpace(

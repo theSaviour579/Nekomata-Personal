@@ -8,6 +8,7 @@ using Nekomata.Models.Guardian;
 using Nekomata.Models.Missions;
 using Nekomata.Models.Tasks;
 using Nekomata.Models.Workspace;
+using Nekomata.Core.Personalization;
 namespace Nekomata.Core.Engines;
 
 public class BriefingEngine : IBriefingEngine
@@ -20,14 +21,18 @@ public class BriefingEngine : IBriefingEngine
     private readonly IDailyCapacityCalculator
     _capacityCalculator;
 
+    private readonly IUserIdentity _userIdentity;
+
     public BriefingEngine(
         IMissionSessionRepository missionSessionRepository,
         IGuardianDecisionEngine decisionEngine,
-        IDailyCapacityCalculator capacityCalculator)
+        IDailyCapacityCalculator capacityCalculator,
+        IUserIdentity userIdentity)
     {
         _missionSessionRepository = missionSessionRepository;
         _decisionEngine = decisionEngine;
         _capacityCalculator = capacityCalculator;
+        _userIdentity = userIdentity;
     }
 
     public async Task<NekomataWorkspace> GenerateAsync(
@@ -307,14 +312,14 @@ public class BriefingEngine : IBriefingEngine
             $"BRIEFING SUMMARY: {workspace.Briefing.CapacitySummary}");
     }
 
-    private static void PopulateGuidance(
+    private void PopulateGuidance(
      NekomataWorkspace workspace,
      GuardianDecision decision)
     {
         var briefing = workspace.Briefing;
         
         briefing.Greeting =
-            BuildGreeting(DateTime.Now);
+            BuildGreeting(DateTime.Now, _userIdentity.DisplayName);
 
         briefing.Headline =
             decision.Headline;
@@ -368,13 +373,15 @@ public class BriefingEngine : IBriefingEngine
     }
 
     private static string BuildGreeting(
-        DateTime now)
+        DateTime now,
+        string displayName)
     {
+        var name = string.IsNullOrWhiteSpace(displayName) ? "there" : displayName.Trim();
         return now.Hour switch
         {
-            < 12 => "Good morning, David.",
-            < 17 => "Good afternoon, David.",
-            _ => "Good evening, David."
+            < 12 => $"Good morning, {name}.",
+            < 17 => $"Good afternoon, {name}.",
+            _ => $"Good evening, {name}."
         };
     }
 
