@@ -90,6 +90,7 @@ public partial class App : Application
                 services.AddSingleton<UpdateCheckService>();
                 services.AddSingleton<PersonalProfileService>();
                 services.AddSingleton<PersonalSecretService>();
+                services.AddSingleton<PersonalBackupService>();
                 services.AddSingleton<FirstRunService>();
                 services.AddTransient<FirstRunWindow>();
                 services.AddSingleton<IFocusEngine, FocusEngine>();

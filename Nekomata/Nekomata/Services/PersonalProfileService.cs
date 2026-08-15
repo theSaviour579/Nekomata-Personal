@@ -19,6 +19,7 @@ public sealed class PersonalProfileService
         "profile.json");
 
     public PersonalProfile Current { get; private set; }
+    public string FilePath => _profilePath;
 
     public PersonalProfileService()
     {
@@ -26,6 +27,8 @@ public sealed class PersonalProfileService
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(Current.DisplayName);
+
+    public void Reload() => Current = Load();
 
     public void Save(string displayName, bool startWithWindows)
     {

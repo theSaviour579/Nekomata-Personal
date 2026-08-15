@@ -16,6 +16,11 @@ public partial class MainViewModel
     [ObservableProperty]
     private bool microsoftAccountAvailable;
 
+    [ObservableProperty]
+    private bool microsoftAccountConnected;
+
+    public string MicrosoftConnectLabel => MicrosoftAccountConnected ? "CHANGE ACCOUNT" : "CONNECT MICROSOFT";
+
     [RelayCommand(CanExecute = nameof(CanConnectMicrosoftAccount))]
     private async Task ConnectMicrosoftAccountAsync()
     {
@@ -24,10 +29,17 @@ public partial class MainViewModel
         MicrosoftAccountStatus = "Opening Microsoft sign-in…";
         try
         {
-            var token = await _services.GetRequiredService<IMicrosoftAuthenticationService>().GetTokenAsync();
+            var authentication = _services.GetRequiredService<IMicrosoftAuthenticationService>();
+            if (MicrosoftAccountConnected)
+            {
+                await authentication.DisconnectAsync();
+                MicrosoftAccountConnected = false;
+            }
+            var token = await authentication.GetTokenAsync();
             MicrosoftAccountStatus = string.IsNullOrWhiteSpace(token.AccountName)
                 ? "Connected"
                 : $"Connected as {token.AccountName}";
+            MicrosoftAccountConnected = true;
             await RefreshDailyBriefingContextAsync();
         }
         catch (Exception ex)
@@ -42,6 +54,23 @@ public partial class MainViewModel
 
     private bool CanConnectMicrosoftAccount() => MicrosoftAccountAvailable && !MicrosoftAccountBusy;
 
+    [RelayCommand(CanExecute = nameof(CanDisconnectMicrosoftAccount))]
+    private async Task DisconnectMicrosoftAccountAsync()
+    {
+        if (MicrosoftAccountBusy) return;
+        MicrosoftAccountBusy = true;
+        try
+        {
+            await _services.GetRequiredService<IMicrosoftAuthenticationService>().DisconnectAsync();
+            MicrosoftAccountConnected = false;
+            MicrosoftAccountStatus = "Not connected";
+        }
+        catch (Exception ex) { MicrosoftAccountStatus = "Could not disconnect: " + ex.GetBaseException().Message; }
+        finally { MicrosoftAccountBusy = false; }
+    }
+
+    private bool CanDisconnectMicrosoftAccount() => MicrosoftAccountAvailable && MicrosoftAccountConnected && !MicrosoftAccountBusy;
+
     private void InitialiseMicrosoftAccount()
     {
         var options = _services.GetRequiredService<MicrosoftGraphOptions>();
@@ -49,8 +78,33 @@ public partial class MainViewModel
         MicrosoftAccountStatus = MicrosoftAccountAvailable
             ? "Not connected"
             : "Microsoft sign-in will be enabled when the application registration is connected.";
+        if (MicrosoftAccountAvailable) _ = RefreshMicrosoftAccountStatusAsync();
     }
 
-    partial void OnMicrosoftAccountBusyChanged(bool value) => ConnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
-    partial void OnMicrosoftAccountAvailableChanged(bool value) => ConnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
+    private async Task RefreshMicrosoftAccountStatusAsync()
+    {
+        try
+        {
+            var account = await _services.GetRequiredService<IMicrosoftAuthenticationService>().GetConnectedAccountAsync();
+            MicrosoftAccountConnected = !string.IsNullOrWhiteSpace(account);
+            MicrosoftAccountStatus = MicrosoftAccountConnected ? $"Connected as {account}" : "Not connected";
+        }
+        catch { MicrosoftAccountConnected = false; }
+    }
+
+    partial void OnMicrosoftAccountBusyChanged(bool value)
+    {
+        ConnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
+        DisconnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
+    }
+    partial void OnMicrosoftAccountAvailableChanged(bool value)
+    {
+        ConnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
+        DisconnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
+    }
+    partial void OnMicrosoftAccountConnectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(MicrosoftConnectLabel));
+        DisconnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
+    }
 }

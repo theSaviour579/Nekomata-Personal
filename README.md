@@ -2,12 +2,13 @@
 
 Nekomata Personal is a Windows planning assistant for everyday work and life. It combines tasks, projects, daily planning, mission focus, capacity guidance, assistant conversations, and optional Microsoft calendar, email, OpenAI, and Spotify connections.
 
-## Personal by default
+## Designed for you
 
 - First-run setup asks what the assistant should call you.
 - Tasks, projects, mission history, and assistant memory stay in `%LocalAppData%\Nekomata Personal`.
-- No PostgreSQL installation or database credentials are required.
-- The installer has its own application identity and can be installed alongside the IT edition of Nekomata.
+- Your workspace is ready after installation, with no separate data service to configure.
+- Your OpenAI key is optional and is stored in Windows Credential Manager.
+- Portable encrypted backups let you move your workspace to another Windows computer.
 
 ## Microsoft account connection
 
@@ -27,4 +28,4 @@ dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Releas
 
 ## Releases
 
-The `Windows release` GitHub Actions workflow creates a self-contained x64 portable archive, `Nekomata-Personal-Setup-<version>.exe`, and SHA-256 checksums. The release remains private until the distribution model is deliberately changed.
+Merging a versioned pull request into `master` runs the `Windows release` workflow. It creates a self-contained x64 portable archive, `Nekomata-Personal-Setup-<version>.exe`, and SHA-256 checksums. Nekomata checks the private release feed at startup and offers the newer installer when one is available. The release remains private until the distribution model is deliberately changed.

@@ -96,6 +96,12 @@ public partial class MainViewModel
             var response = await TryBuildDeterministicCalendarPlanAsync(userMessage);
             if (response is null)
             {
+                if (!EnsurePersonalAiConfigured())
+                {
+                    ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
+                    GuardianPanelTitle = $"GUARDIAN · {ChatHistory.Count} MESSAGES";
+                    return;
+                }
                 var request = new GuardianConversationRequest
                 {
                     UserMessage = await AddCalendarContextAsync(userMessage),
@@ -487,6 +493,12 @@ public partial class MainViewModel
     {
         if (project is null || GuardianBusy)
             return;
+
+        if (!EnsurePersonalAiConfigured())
+        {
+            GuardianPanelExpanded = true;
+            return;
+        }
 
         GuardianBusy = true;
         GuardianPanelExpanded = true;

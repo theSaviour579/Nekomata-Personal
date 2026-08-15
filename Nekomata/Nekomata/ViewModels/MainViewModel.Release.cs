@@ -21,11 +21,17 @@ public partial class MainViewModel
     private void InitialiseReleaseSettings()
     {
         StartWithWindows = _services.GetRequiredService<StartupRegistrationService>().IsEnabled;
+        _ = CheckForUpdatesAsync();
     }
 
     partial void OnStartWithWindowsChanged(bool value)
     {
-        try { _services.GetRequiredService<StartupRegistrationService>().SetEnabled(value); }
+        try
+        {
+            _services.GetRequiredService<StartupRegistrationService>().SetEnabled(value);
+            if (_personalProfile.IsConfigured)
+                _personalProfile.Save(_personalProfile.Current.DisplayName, value);
+        }
         catch (Exception ex) { UpdateStatus = "Startup preference could not be saved: " + ex.Message; }
     }
 

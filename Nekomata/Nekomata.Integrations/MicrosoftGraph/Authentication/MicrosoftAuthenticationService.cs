@@ -62,6 +62,24 @@ public sealed class MicrosoftAuthenticationService : IMicrosoftAuthenticationSer
         }
     }
 
+    public async Task<string?> GetConnectedAccountAsync(CancellationToken cancellationToken = default)
+    {
+        await _tokenLock.WaitAsync(cancellationToken);
+        try { return (await _application.GetAccountsAsync()).FirstOrDefault()?.Username; }
+        finally { _tokenLock.Release(); }
+    }
+
+    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
+    {
+        await _tokenLock.WaitAsync(cancellationToken);
+        try
+        {
+            foreach (var account in await _application.GetAccountsAsync())
+                await _application.RemoveAsync(account);
+        }
+        finally { _tokenLock.Release(); }
+    }
+
     private static MsalCacheHelper? ConfigurePersistentCache(IPublicClientApplication application)
     {
         try

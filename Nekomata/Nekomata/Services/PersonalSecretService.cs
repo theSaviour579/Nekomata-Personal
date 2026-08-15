@@ -6,7 +6,13 @@ public sealed class PersonalSecretService
 {
     private const string OpenAiTarget = "Nekomata Personal/OpenAI API Key";
     public string? OpenAiApiKey => Read(OpenAiTarget);
+    public bool HasOpenAiApiKey => !string.IsNullOrWhiteSpace(OpenAiApiKey);
     public void SaveOpenAiApiKey(string apiKey) { if (!string.IsNullOrWhiteSpace(apiKey)) Write(OpenAiTarget, apiKey.Trim()); }
+    public void DeleteOpenAiApiKey()
+    {
+        if (!CredDelete(OpenAiTarget, 1, 0) && Marshal.GetLastWin32Error() != 1168)
+            throw new InvalidOperationException($"Windows Credential Manager could not remove the API key (error {Marshal.GetLastWin32Error()}).");
+    }
 
     private static string? Read(string target)
     {
@@ -41,5 +47,6 @@ public sealed class PersonalSecretService
     }
     [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool CredRead(string target, uint type, uint flags, out IntPtr credential);
     [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool CredWrite(ref NativeCredential credential, uint flags);
+    [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool CredDelete(string target, uint type, uint flags);
     [DllImport("advapi32.dll")] private static extern void CredFree(IntPtr buffer);
 }
