@@ -55,9 +55,6 @@ public partial class MainViewModel
                 awareness.Add($"{Workspace.Capacity.ExpectedOvertimeMinutes} minutes currently extend beyond capacity");
             if (Workspace.Capacity.BurnoutRisk is "High" or "Critical")
                 awareness.Add($"burnout exposure is {Workspace.Capacity.BurnoutRisk.ToLowerInvariant()}");
-            var immediate = Workspace.IntegrationMissionCandidates.Count(item => item.RequiresImmediateAttention);
-            if (immediate > 0)
-                awareness.Add($"{immediate} assigned Halo item{Plural(immediate)} require immediate attention");
             if (meetings.Count > 0 && next is not null && meetings.Contains(next))
                 awareness.Add($"prepare for {next.Subject} with {string.Join(", ", GetOtherParticipants(next))}");
 
@@ -77,17 +74,18 @@ public partial class MainViewModel
         }
     }
 
-    private static IReadOnlyList<string> GetOtherParticipants(CalendarEvent item)
+    private IReadOnlyList<string> GetOtherParticipants(CalendarEvent item)
     {
+        var displayName = _personalProfile.Current.DisplayName;
         return item.Attendees
             .Append(item.Organiser)
             .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Where(name => !name.Contains("David Myers", StringComparison.OrdinalIgnoreCase))
+            .Where(name => string.IsNullOrWhiteSpace(displayName) || !name.Contains(displayName, StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
-    private static string DescribeEvent(CalendarEvent item)
+    private string DescribeEvent(CalendarEvent item)
     {
         var participants = GetOtherParticipants(item);
         var with = participants.Count == 0 ? string.Empty : $" with {string.Join(", ", participants)}";

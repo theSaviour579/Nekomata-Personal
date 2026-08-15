@@ -10,9 +10,16 @@ public sealed class LocalWorkspaceStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly string _path = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Nekomata Personal", "workspace.json");
+    private readonly string _path;
+
+    public LocalWorkspaceStore() : this(null) { }
+
+    public LocalWorkspaceStore(string? filePath)
+    {
+        _path = filePath ?? System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Nekomata Personal", "workspace.json");
+    }
 
     public string FilePath => _path;
 

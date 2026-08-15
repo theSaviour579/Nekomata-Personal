@@ -89,6 +89,7 @@ public partial class App : Application
                 services.AddSingleton<StartupRegistrationService>();
                 services.AddSingleton<UpdateCheckService>();
                 services.AddSingleton<PersonalProfileService>();
+                services.AddSingleton<PersonalSecretService>();
                 services.AddSingleton<FirstRunService>();
                 services.AddTransient<FirstRunWindow>();
                 services.AddSingleton<IFocusEngine, FocusEngine>();
@@ -106,21 +107,9 @@ public partial class App : Application
                 services.AddSingleton<RecommendationBuilder>();
                 services.AddSingleton<IGuardianEngine, GuardianEngine>();
                 services.AddSingleton<IWorkspaceCoordinator, WorkspaceCoordinator>();
-                var openAiConfigured =
-                    !string.IsNullOrWhiteSpace(context.Configuration["OpenAI:ApiKey"])
-                    || !string.IsNullOrWhiteSpace(
-                        Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
-
-                if (openAiConfigured)
-                {
-                    services.AddSingleton<IAIProvider, OpenAIProvider>();
-                    services.AddSingleton<IStructuredAIProvider, OpenAIStructuredProvider>();
-                }
-                else
-                {
-                    services.AddSingleton<IAIProvider, UnconfiguredAIProvider>();
-                    services.AddSingleton<IStructuredAIProvider, UnconfiguredAIProvider>();
-                }
+                services.AddSingleton<PersonalAIProvider>();
+                services.AddSingleton<IAIProvider>(provider => provider.GetRequiredService<PersonalAIProvider>());
+                services.AddSingleton<IStructuredAIProvider>(provider => provider.GetRequiredService<PersonalAIProvider>());
                 services.AddSingleton<IProjectRepository, LocalProjectRepository>();
                 services.AddSingleton<IGuardianAuditRepository, LocalGuardianAuditRepository>();
                 services.AddSingleton<GuardianUndoService>();

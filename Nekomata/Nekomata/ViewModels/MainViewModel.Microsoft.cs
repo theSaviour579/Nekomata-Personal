@@ -13,7 +13,10 @@ public partial class MainViewModel
     [ObservableProperty]
     private bool microsoftAccountBusy;
 
-    [RelayCommand]
+    [ObservableProperty]
+    private bool microsoftAccountAvailable;
+
+    [RelayCommand(CanExecute = nameof(CanConnectMicrosoftAccount))]
     private async Task ConnectMicrosoftAccountAsync()
     {
         if (MicrosoftAccountBusy) return;
@@ -36,4 +39,18 @@ public partial class MainViewModel
             MicrosoftAccountBusy = false;
         }
     }
+
+    private bool CanConnectMicrosoftAccount() => MicrosoftAccountAvailable && !MicrosoftAccountBusy;
+
+    private void InitialiseMicrosoftAccount()
+    {
+        var options = _services.GetRequiredService<MicrosoftGraphOptions>();
+        MicrosoftAccountAvailable = !string.IsNullOrWhiteSpace(options.ClientId);
+        MicrosoftAccountStatus = MicrosoftAccountAvailable
+            ? "Not connected"
+            : "Microsoft sign-in will be enabled when the application registration is connected.";
+    }
+
+    partial void OnMicrosoftAccountBusyChanged(bool value) => ConnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
+    partial void OnMicrosoftAccountAvailableChanged(bool value) => ConnectMicrosoftAccountCommand.NotifyCanExecuteChanged();
 }

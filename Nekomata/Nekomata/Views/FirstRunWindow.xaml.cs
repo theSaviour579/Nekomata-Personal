@@ -9,11 +9,13 @@ public partial class FirstRunWindow : Window
     private readonly FirstRunService _firstRun;
     private readonly StartupRegistrationService _startup;
     private readonly MainViewModel _main;
-    public FirstRunWindow(FirstRunService firstRun, StartupRegistrationService startup, MainViewModel main, PersonalProfileService profile)
+    private readonly PersonalSecretService _secrets;
+    public FirstRunWindow(FirstRunService firstRun, StartupRegistrationService startup, MainViewModel main, PersonalProfileService profile, PersonalSecretService secrets)
     {
         _firstRun = firstRun;
         _startup = startup;
         _main = main;
+        _secrets = secrets;
         InitializeComponent();
         StartupChoice.IsChecked = startup.IsEnabled;
         NameInput.Text = profile.Current.DisplayName;
@@ -40,6 +42,7 @@ public partial class FirstRunWindow : Window
         _startup.SetEnabled(StartupChoice.IsChecked == true);
         _main.StartWithWindows = StartupChoice.IsChecked == true;
         _firstRun.Complete(NameInput.Text, StartupChoice.IsChecked == true);
+        _secrets.SaveOpenAiApiKey(OpenAiKeyInput.Password);
         _main.ApplyPersonalProfile();
         return true;
     }

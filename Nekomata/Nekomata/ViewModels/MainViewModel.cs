@@ -185,6 +185,7 @@ public partial class MainViewModel : ObservableObject
         InitialiseAttentionCentre();
         InitialiseDiagnosticsMonitoring();
         InitialiseReleaseSettings();
+        InitialiseMicrosoftAccount();
 
         _ = LoadAsync();
         _missionSimulationEngine = missionSimulationEngine;

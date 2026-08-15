@@ -55,7 +55,6 @@
                 </StackPanel>
                 <Button Grid.Column="1" Content="CONNECT MICROSOFT"
                         Command="{Binding ConnectMicrosoftAccountCommand}"
-                        IsEnabled="{Binding MicrosoftAccountBusy, Converter={StaticResource InverseBooleanConverter}}"
                         Background="{DynamicResource NekoSpiritPurpleBrush}"
                         VerticalAlignment="Center" Margin="18,0,0,0"/>
             </Grid>

@@ -15,7 +15,11 @@
             <TextBlock Text="WHAT SHOULD I CALL YOU?" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,8,0,6"/>
             <TextBox x:Name="NameInput" FontSize="18" Padding="12,8" MaxLength="80"/>
 
-            <Border Background="{DynamicResource NekoCardGradientBrush}" CornerRadius="14" Padding="18" BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1" Margin="0,18,0,0">
+            <TextBlock Text="OPENAI API KEY (OPTIONAL)" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
+            <PasswordBox x:Name="OpenAiKeyInput" FontSize="16" Padding="12,8"/>
+            <TextBlock Text="Enables assistant conversations and drafting. Stored securely in Windows Credential Manager; you can leave this blank and add it later." TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
+
+            <Border Background="{DynamicResource NekoCardGradientBrush}" CornerRadius="14" Padding="18" BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1" Margin="0,14,0,0">
                 <StackPanel>
                     <TextBlock Text="YOUR PERSONAL WORKSPACE" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/>
                     <TextBlock Text="Tasks, projects and planning will be kept privately on this computer. No database setup will be required." TextWrapping="Wrap" Margin="0,5,0,14" Foreground="{DynamicResource NekoMutedTextBrush}"/>
