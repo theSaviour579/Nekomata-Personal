@@ -88,6 +88,11 @@ public sealed class EmailServiceReplyAllTests
 
     private sealed class FakeAuthenticationService : IMicrosoftAuthenticationService
     {
+        public Task<string?> GetConnectedAccountAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>("test@example.com");
+
+        public Task DisconnectAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task<TokenResult> GetTokenAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult(new TokenResult

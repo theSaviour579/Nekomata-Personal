@@ -10,62 +10,79 @@ namespace Nekomata.UI.ViewModels;
 
 public partial class MainViewModel
 {
-    [ObservableProperty] private string backupStatus = "Checking backup protection…";
+    [ObservableProperty] private string backupStatus = "Create an encrypted copy to protect or move your workspace.";
     [ObservableProperty] private bool backupBusy;
+    public string PersonalDisplayName => _personalProfile.Current.DisplayName;
+    public string OpenAiKeyStatus => _services.GetRequiredService<PersonalSecretService>().HasOpenAiApiKey
+        ? "OpenAI key saved securely"
+        : "OpenAI key not configured";
 
-    private async Task InitialiseAutomaticBackupAsync()
+    [RelayCommand]
+    private void EditPersonalSettings()
     {
-        try
+        var window = new PersonalSettingsWindow(_personalProfile, _services.GetRequiredService<PersonalSecretService>())
         {
-            var service = _services.GetRequiredService<DatabaseBackupService>();
-            var result = await service.EnsureDailyBackupAsync();
-            BackupStatus = result.Message;
-        }
-        catch (Exception ex) { BackupStatus = "Automatic backup check failed: " + ex.Message; }
+            Owner = Application.Current.MainWindow
+        };
+        if (window.ShowDialog() != true) return;
+        ApplyPersonalProfile();
+        OnPropertyChanged(nameof(PersonalDisplayName));
+        OnPropertyChanged(nameof(OpenAiKeyStatus));
     }
 
     [RelayCommand]
-    private async Task CreateEncryptedBackupAsync()
+    private async Task CreatePersonalBackupAsync()
     {
         var passphrase = RequestBackupPassword();
         if (passphrase is null) return;
         var dialog = new SaveFileDialog
         {
-            Title = "Save encrypted Nekomata backup",
-            Filter = "Nekomata encrypted backup (*.nkb)|*.nkb",
-            DefaultExt = ".nkb",
+            Title = "Save encrypted Nekomata Personal backup",
+            Filter = "Nekomata Personal backup (*.nkp)|*.nkp",
+            DefaultExt = ".nkp",
             AddExtension = true,
-            FileName = $"nekomata-{DateTime.Now:yyyyMMdd-HHmmss}.nkb"
+            FileName = $"nekomata-personal-{DateTime.Now:yyyyMMdd-HHmmss}.nkp"
         };
         if (dialog.ShowDialog(Application.Current.MainWindow) != true) return;
         BackupBusy = true;
         try
         {
-            var result = await _services.GetRequiredService<DatabaseBackupService>().CreateBackupAsync(dialog.FileName, passphrase);
+            var result = await _services.GetRequiredService<PersonalBackupService>().CreateAsync(dialog.FileName, passphrase);
             BackupStatus = result.Message;
-            MessageBox.Show(result.Message, "Nekomata Backup", MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
-            await RefreshDiagnosticsAsync();
+            MessageBox.Show(result.Message, "Nekomata Personal Backup", MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
         finally { BackupBusy = false; }
     }
 
     [RelayCommand]
-    private async Task RestoreEncryptedBackupAsync()
+    private async Task RestorePersonalBackupAsync()
     {
-        var dialog = new OpenFileDialog { Title = "Select a Nekomata backup", Filter = "Nekomata encrypted backup (*.nkb)|*.nkb", CheckFileExists = true };
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select a Nekomata Personal backup",
+            Filter = "Nekomata Personal backup (*.nkp)|*.nkp",
+            CheckFileExists = true
+        };
         if (dialog.ShowDialog(Application.Current.MainWindow) != true) return;
         var passphrase = RequestBackupPassword();
         if (passphrase is null) return;
         var confirm = MessageBox.Show(
-            "Restore will replace the current Nekomata workspace database with this backup.\n\nAny newer tasks, projects, Guardian history and mission data will be lost. Continue?",
-            "Confirm Database Restore", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            "Restore will replace the tasks, projects, planning history and profile currently stored on this computer.\n\nOpenAI and Microsoft credentials are not changed. Continue?",
+            "Restore Personal Workspace", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         if (confirm != MessageBoxResult.Yes) return;
+
         BackupBusy = true;
         try
         {
-            var result = await _services.GetRequiredService<DatabaseBackupService>().RestoreAsync(dialog.FileName, passphrase);
+            var result = await _services.GetRequiredService<PersonalBackupService>().RestoreAsync(dialog.FileName, passphrase);
             BackupStatus = result.Message;
-            MessageBox.Show(result.Message, "Nekomata Restore", MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
+            if (result.Success)
+            {
+                ApplyPersonalProfile();
+                OnPropertyChanged(nameof(PersonalDisplayName));
+                Workspace = await _workspaceCoordinator.RefreshAsync();
+            }
+            MessageBox.Show(result.Message, "Nekomata Personal Restore", MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
         }
         finally { BackupBusy = false; }
     }
