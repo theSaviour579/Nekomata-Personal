@@ -29,9 +29,9 @@ public class FakeHaloWorkspaceDataSource
              Description =
                  "One of the overnight backup jobs failed.",
 
-             Customer = "Trycare",
+             Customer = "Example",
 
-             AssignedTo = "David",
+             AssignedTo = "User",
 
              Status = "In Progress",
 

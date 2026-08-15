@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.UI.Services;
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
 
@@ -82,4 +83,8 @@ public partial class MainViewModel
         }
         finally { UpdateCheckBusy = false; }
     }
+
+    [RelayCommand]
+    private static void OpenSupportPage() =>
+        Process.Start(new ProcessStartInfo("https://buymeacoffee.com/nekomataassistant") { UseShellExecute = true });
 }

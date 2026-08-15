@@ -38,9 +38,7 @@ public partial class MainViewModel
         if (string.IsNullOrWhiteSpace(displayName)) return;
 
         static bool IsLegacyOwner(string? owner) =>
-            string.IsNullOrWhiteSpace(owner) ||
-            owner.Equals("David", StringComparison.OrdinalIgnoreCase) ||
-            owner.Equals("David Myers", StringComparison.OrdinalIgnoreCase);
+            string.IsNullOrWhiteSpace(owner);
 
         foreach (var task in Workspace.Tasks.Where(task => IsLegacyOwner(task.Owner)))
             task.Owner = displayName;

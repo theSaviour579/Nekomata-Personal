@@ -40,9 +40,10 @@
                             <Button Grid.Column="4" Content="VOL +" Command="{Binding SpotifyVolumeUpCommand}"/>
                         </Grid>
                         <Grid Grid.Row="4">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <Button Grid.Column="0" Content="{Binding SpotifyConnectLabel}" Command="{Binding ConnectSpotifyCommand}" Height="34"/>
-                            <Button Grid.Column="2" Content="{Binding SpotifyShuffleLabel}" Command="{Binding ToggleSpotifyShuffleCommand}" MinWidth="105" Height="34"/>
+                            <Button Grid.Column="2" Content="SET ARRIVAL MIX" Command="{Binding ChangeSpotifyArrivalMixCommand}" Height="34"/>
+                            <Button Grid.Column="4" Content="{Binding SpotifyShuffleLabel}" Command="{Binding ToggleSpotifyShuffleCommand}" MinWidth="105" Height="34"/>
                         </Grid>
                     </Grid>
                 </Border>

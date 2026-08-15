@@ -1,5 +1,5 @@
 #ifndef MyAppVersion
-  #define MyAppVersion "0.3.1"
+  #define MyAppVersion "0.4.0"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish"
@@ -12,7 +12,7 @@
 AppId={{5F882F30-5168-4F37-BBAA-2C67C03E7CF8}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppPublisher=David Myers
+AppPublisher=Nekomata Assistant
 DefaultDirName={localappdata}\Programs\Nekomata Personal
 DefaultGroupName=Nekomata Personal
 DisableProgramGroupPage=yes
