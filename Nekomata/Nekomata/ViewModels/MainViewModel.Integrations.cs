@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Nekomata.UI.Services;
+using Nekomata.UI.Views;
 
 namespace Nekomata.UI.ViewModels;
 
@@ -79,6 +80,7 @@ public partial class MainViewModel
     private async Task ConnectSpotifyAsync()
     {
         var spotify = _services.GetRequiredService<SpotifyPlaybackService>();
+        if (!spotify.HasArrivalPlaylist && !ConfigureSpotifyArrivalMix()) return;
         try
         {
             SpotifyBusy = true;
@@ -92,6 +94,22 @@ public partial class MainViewModel
         }
         catch (Exception ex) { SpotifyIntegrationStatus = $"Spotify connection issue - {ex.Message}"; }
         finally { SpotifyBusy = false; OnPropertyChanged(nameof(SpotifyConnectLabel)); await RefreshSpotifyStateAsync(); }
+    }
+
+    [RelayCommand]
+    private void ChangeSpotifyArrivalMix()
+    {
+        if (ConfigureSpotifyArrivalMix())
+            SpotifyIntegrationStatus = "Arrival Mix saved · use Play Arrival Mix when ready";
+    }
+
+    private bool ConfigureSpotifyArrivalMix()
+    {
+        var window = new SpotifyArrivalMixWindow(_services.GetRequiredService<SpotifyPlaybackService>())
+        {
+            Owner = Application.Current.MainWindow
+        };
+        return window.ShowDialog() == true;
     }
 
     [RelayCommand]

@@ -7,6 +7,7 @@ public sealed record PersonalProfile
 {
     public string DisplayName { get; init; } = string.Empty;
     public bool StartWithWindows { get; init; } = true;
+    public string SpotifyArrivalPlaylistUri { get; init; } = string.Empty;
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
@@ -40,9 +41,17 @@ public sealed class PersonalProfileService
         {
             DisplayName = cleanName,
             StartWithWindows = startWithWindows,
+            SpotifyArrivalPlaylistUri = Current.SpotifyArrivalPlaylistUri,
             CreatedAt = Current.CreatedAt
         };
 
+        Directory.CreateDirectory(Path.GetDirectoryName(_profilePath)!);
+        File.WriteAllText(_profilePath, JsonSerializer.Serialize(Current, JsonOptions));
+    }
+
+    public void SaveSpotifyArrivalPlaylist(string playlistUri)
+    {
+        Current = Current with { SpotifyArrivalPlaylistUri = playlistUri.Trim() };
         Directory.CreateDirectory(Path.GetDirectoryName(_profilePath)!);
         File.WriteAllText(_profilePath, JsonSerializer.Serialize(Current, JsonOptions));
     }

@@ -26,6 +26,10 @@ dotnet build Nekomata/Nekomata.sln --configuration Release
 dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Release
 ```
 
+## Support
+
+If Nekomata Personal is useful to you, you can support its continued development at [Buy Me a Coffee](https://buymeacoffee.com/nekomataassistant).
+
 ## Releases
 
 Merging a versioned pull request into `master` runs the `Windows release` workflow. It creates a self-contained x64 portable archive, `Nekomata-Personal-Setup-<version>.exe`, and SHA-256 checksums. Nekomata checks for releases at startup, downloads the matching installer with confirmation, verifies its published SHA-256 digest, and hands off to the Windows installer. Anonymous updates work when the release feed is public; while this repository remains private, update access uses the user's authenticated GitHub CLI session.

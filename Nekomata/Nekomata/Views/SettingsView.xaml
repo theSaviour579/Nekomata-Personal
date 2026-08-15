@@ -122,6 +122,21 @@
             </Grid>
         </Border>
 
+        <Border Background="{DynamicResource NekoCardGradientBrush}"
+                BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1"
+                CornerRadius="14" Padding="16" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="SUPPORT NEKOMATA" Style="{DynamicResource NekoSectionTitleText}"/>
+                    <TextBlock Text="Enjoying your personal assistant? You can help support its development."
+                               Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="BUY ME A COFFEE" Command="{Binding OpenSupportPageCommand}"
+                        Background="{DynamicResource NekoSpiritPurpleBrush}" VerticalAlignment="Center" Margin="18,0,0,0"/>
+            </Grid>
+        </Border>
+
         <ItemsControl ItemsSource="{Binding Diagnostics}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

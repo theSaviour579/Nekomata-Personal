@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Nekomata.Integrations.Spotify;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -22,20 +23,19 @@ public sealed record SpotifyPlaybackState(
 
 public sealed class SpotifyPlaybackService
 {
-    private const string DefaultPlaylist = "spotify:playlist:0S78UVuLW857NQ2FaUYwTD";
     private const string DefaultRedirect = "http://127.0.0.1:43821/callback/";
     private const string Scopes = "user-read-playback-state user-modify-playback-state";
     private readonly HttpClient _http = new();
     private readonly string _clientId;
-    private readonly string _playlistUri;
+    private readonly PersonalProfileService _profile;
     private readonly string _redirectUri;
     private readonly string _tokenPath;
     private SpotifyToken? _token;
 
-    public SpotifyPlaybackService(IConfiguration configuration)
+    public SpotifyPlaybackService(IConfiguration configuration, PersonalProfileService profile)
     {
+        _profile = profile;
         _clientId = configuration["Spotify:ClientId"] ?? string.Empty;
-        _playlistUri = configuration["Spotify:ArrivalPlaylistUri"] ?? DefaultPlaylist;
         _redirectUri = configuration["Spotify:RedirectUri"] ?? DefaultRedirect;
         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nekomata Personal");
         Directory.CreateDirectory(folder);
@@ -45,6 +45,11 @@ public sealed class SpotifyPlaybackService
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_clientId);
     public bool HasSavedConnection => _token is not null;
+    public bool HasArrivalPlaylist => !string.IsNullOrWhiteSpace(_profile.Current.SpotifyArrivalPlaylistUri);
+    public string ArrivalPlaylistUri => _profile.Current.SpotifyArrivalPlaylistUri;
+
+    public void SetArrivalPlaylist(string value) =>
+        _profile.SaveSpotifyArrivalPlaylist(SpotifyPlaylistReference.Normalize(value));
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
@@ -91,6 +96,7 @@ public sealed class SpotifyPlaybackService
 
     public async Task StartArrivalAsync(CancellationToken cancellationToken = default)
     {
+        if (!HasArrivalPlaylist) throw new InvalidOperationException("Choose an Arrival Mix before starting playback.");
         await EnsureTokenAsync(cancellationToken);
         var deviceId = await FindAvailableDeviceAsync(cancellationToken);
 
@@ -112,7 +118,7 @@ public sealed class SpotifyPlaybackService
 
         await SendAsync(HttpMethod.Put, $"me/player/shuffle?state=true{DeviceQuery(deviceId)}", null, cancellationToken);
         await SendAsync(HttpMethod.Put, $"me/player/play{DeviceQuery(deviceId, first: true)}",
-            JsonSerializer.Serialize(new { context_uri = _playlistUri }), cancellationToken);
+            JsonSerializer.Serialize(new { context_uri = ArrivalPlaylistUri }), cancellationToken);
     }
 
     public Task PauseAsync(CancellationToken ct = default) => SendAsync(HttpMethod.Put, "me/player/pause", null, ct);

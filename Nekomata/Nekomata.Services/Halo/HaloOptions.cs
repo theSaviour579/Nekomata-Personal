@@ -2,13 +2,13 @@ namespace Nekomata.Services.Halo;
 
 public sealed class HaloOptions
 {
-    public string BaseUrl { get; set; } = "https://trycare.haloitsm.com";
-    public string Tenant { get; set; } = "Trycare";
+    public string BaseUrl { get; set; } = string.Empty;
+    public string Tenant { get; set; } = string.Empty;
     public string ClientId { get; set; } = string.Empty;
     public string ClientSecret { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public string AssignedAgentName { get; set; } = "David Myers";
+    public string AssignedAgentName { get; set; } = string.Empty;
     public int RefreshIntervalMinutes { get; set; } = 5;
     public int PageSize { get; set; } = 50;
     public Dictionary<int, string> PriorityMappings { get; set; } = new()

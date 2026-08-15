@@ -17,7 +17,7 @@ public class FakeHaloClient
                     "Investigate failed backup",
 
                 Customer =
-                    "Trycare",
+                    "Example",
 
                 Priority =
                     "High",
