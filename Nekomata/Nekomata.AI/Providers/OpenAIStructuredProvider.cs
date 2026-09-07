@@ -102,6 +102,7 @@ public class OpenAIStructuredProvider
     private static (string Name, string Json)
       GetSchema<T>()
     {
+        if (typeof(T) == typeof(Nekomata.AI.Models.Actions.ChaseConversationAdvice)) return (ChaseConversationAdviceSchema.Name, ChaseConversationAdviceSchema.Json);
         if (typeof(T) == typeof(MeetingAnalysisResponse))
         {
             return (

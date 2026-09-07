@@ -17,11 +17,12 @@ public partial class MainViewModel
     public string OpenAiKeyStatus => _services.GetRequiredService<PersonalSecretService>().HasOpenAiApiKey
         ? "OpenAI key saved securely"
         : "OpenAI key not configured";
+    public string AiProviderStatus => $"Active provider: {_services.GetRequiredService<PersonalAIProvider>().ActiveProviderName}";
 
     [RelayCommand]
     private void EditPersonalSettings()
     {
-        var window = new PersonalSettingsWindow(_personalProfile, _services.GetRequiredService<PersonalSecretService>())
+        var window = new PersonalSettingsWindow(_personalProfile, _services.GetRequiredService<PersonalSecretService>(), _services.GetRequiredService<Nekomata.Integrations.MicrosoftGraph.Copilot.CopilotChatService>())
         {
             Owner = Application.Current.MainWindow
         };
@@ -30,6 +31,7 @@ public partial class MainViewModel
         _ = NormalizeLegacyPersonalNamesAsync();
         OnPropertyChanged(nameof(PersonalDisplayName));
         OnPropertyChanged(nameof(OpenAiKeyStatus));
+        OnPropertyChanged(nameof(AiProviderStatus));
     }
 
     private async Task NormalizeLegacyPersonalNamesAsync()
@@ -57,12 +59,12 @@ public partial class MainViewModel
         if (_services.GetRequiredService<PersonalAIProvider>().IsConfigured) return true;
 
         var choice = MessageBox.Show(
-            "Guardian needs an OpenAI API key to answer this request. Would you like to add one now?\n\nThe key will be stored securely in Windows Credential Manager.",
+            "Guardian needs Microsoft 365 Copilot, a configured Microsoft AI deployment, or an OpenAI API key. Would you like to open assistant settings?",
             "Enable Guardian AI", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes);
         if (choice == MessageBoxResult.Yes) EditPersonalSettings();
 
         if (_services.GetRequiredService<PersonalAIProvider>().IsConfigured) return true;
-        GuardianResponse = "Guardian needs an OpenAI API key before it can answer this request. You can add one from Settings → Your Assistant.";
+        GuardianResponse = "Guardian AI is not configured. Choose Microsoft 365 Copilot, ask your administrator about Microsoft AI, or add an OpenAI key from Settings → Your Assistant.";
         return false;
     }
 

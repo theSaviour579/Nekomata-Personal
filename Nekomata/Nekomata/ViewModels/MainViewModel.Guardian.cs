@@ -104,12 +104,13 @@ public partial class MainViewModel
                 }
                 var request = new GuardianConversationRequest
                 {
-                    UserMessage = await AddCalendarContextAsync(userMessage),
+                    UserMessage = WithPersonalAttachment(await AddCalendarContextAsync(userMessage)),
                     Workspace = Workspace,
                     CurrentTime = DateTime.Now,
                     Conversation = ChatHistory.ToList()
                 };
                 response = await _guardianConversationService.AskAsync(request);
+                ClearPersonalAttachment();
             }
 
             GuardianResponse =

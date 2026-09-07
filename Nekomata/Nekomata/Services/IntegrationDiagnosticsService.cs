@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Core.Diagnostics;
 using Nekomata.Data.Local;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
+using Nekomata.Integrations.MicrosoftGraph.Tasks;
 
 namespace Nekomata.UI.Services;
 
@@ -34,6 +35,7 @@ public sealed class IntegrationDiagnosticsService
             await CheckAsync("Local workspace", CheckLocalWorkspaceAsync, cancellationToken),
             await CheckAsync("OpenAI", CheckOpenAiAsync, cancellationToken),
             await CheckAsync("Microsoft 365", CheckMicrosoftGraphAsync, cancellationToken),
+            await CheckAsync("Microsoft To Do and Planner", CheckMicrosoftTasksAsync, cancellationToken),
             await CheckAsync("Spotify", CheckSpotifyAsync, cancellationToken)
         };
         return checks;
@@ -88,6 +90,16 @@ public sealed class IntegrationDiagnosticsService
         var start = DateTimeOffset.Now.Date;
         var events = await calendar.GetEventsAsync(start, start.AddDays(1), ct);
         return ("Connected", $"Calendar access succeeded · {events.Count} event(s) today.");
+    }
+
+    private async Task<(string Summary, string Detail)> CheckMicrosoftTasksAsync(CancellationToken ct)
+    {
+        var account = await _services.GetRequiredService<Nekomata.Integrations.MicrosoftGraph.Authentication.IMicrosoftAuthenticationService>()
+            .GetConnectedAccountAsync(ct);
+        if (string.IsNullOrWhiteSpace(account))
+            throw new DiagnosticNotConfiguredException("Connect a Microsoft account to import tasks.");
+        var snapshot = await _services.GetRequiredService<IMicrosoftTaskService>().GetOpenTasksAsync(ct);
+        return ("Connected", $"{snapshot.ToDoTasks.Count} open To Do · {snapshot.PlannerTasks.Count} assigned Planner.");
     }
 
     private async Task<(string Summary, string Detail)> CheckSpotifyAsync(CancellationToken ct)

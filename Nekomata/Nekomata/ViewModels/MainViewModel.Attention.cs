@@ -35,7 +35,7 @@ public partial class MainViewModel
     private void InitialiseAttentionCentre()
     {
         LoadAttentionItems();
-        _attentionTimer.Tick += (_, _) => WakeSnoozedAttentionItems();
+        _attentionTimer.Tick += (_, _) => { WakeSnoozedAttentionItems(); _ = CheckPersonalAutonomyAsync(); };
         _attentionTimer.Start();
     }
 
@@ -48,6 +48,9 @@ public partial class MainViewModel
         if (item is null) return;
         switch (item.ActionKind)
         {
+            case "personal_followup":
+                OpenPersonalFollowups(item.ContextId);
+                break;
             case "open_email":
                 if (!string.IsNullOrWhiteSpace(item.WebLink))
                     Process.Start(new ProcessStartInfo(item.WebLink) { UseShellExecute = true });
@@ -206,6 +209,8 @@ public partial class MainViewModel
 
     private void NotifyAttention()
     {
+        if (!VisibleAttentionItems.Any(x => x.Severity is "High" or "Critical") &&
+            !CanPresentRoutinePrompt(Nekomata.Core.Guardian.Anticipation.GuardianPromptKind.Chases)) return;
         System.Media.SystemSounds.Exclamation.Play();
         var window = Application.Current?.MainWindow;
         if (window is null || window.WindowState != WindowState.Minimized) return;

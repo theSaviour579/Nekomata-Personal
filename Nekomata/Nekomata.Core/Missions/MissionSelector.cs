@@ -73,24 +73,6 @@ public class MissionSelector : IMissionSelector
         {
             _scorer.Score(candidate);
 
-            if (candidate.Title.Contains(
-        "DRP for Station Road",
-        StringComparison.OrdinalIgnoreCase))
-            {
-                System.Diagnostics.Debug.WriteLine(
-      $"{candidate.SourceType} | " +
-      $"{candidate.Title} | " +
-      $"Project={candidate.ProjectId} | " +
-      $"Task={candidate.TaskId}");
-
-                foreach (var factor in candidate.ScoreFactors)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"  Factor: {factor.Category} = " +
-                        $"{factor.Points} | {factor.Explanation}");
-                }
-            }
-
             candidate.GuardianReasons.Clear();
 
             candidate.GuardianReasons.AddRange(

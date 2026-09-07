@@ -1,6 +1,6 @@
 # Nekomata Personal
 
-Nekomata Personal is a Windows planning assistant for everyday work and life. It combines tasks, projects, daily planning, mission focus, capacity guidance, assistant conversations, and optional Microsoft calendar, email, OpenAI, and Spotify connections.
+Nekomata Personal is a Windows planning assistant for everyday work and life. It combines tasks, projects, daily planning, mission focus, capacity guidance, assistant conversations, and optional Microsoft calendar, email, OpenAI and music connections.
 
 ## Support
 
@@ -11,14 +11,19 @@ If Nekomata Personal is useful to you, you can support its continued development
 - First-run setup asks what the assistant should call you.
 - Tasks, projects, mission history, and assistant memory stay in `%LocalAppData%\Nekomata Personal`.
 - Your workspace is ready after installation, with no separate data service to configure.
-- Your OpenAI key is optional and is stored in Windows Credential Manager.
+- Guardian can use an organisation's Azure OpenAI/Foundry deployment through each user's Microsoft Entra identity, with an optional OpenAI key stored in Windows Credential Manager as fallback.
+- Licensed work/school users can select the preview Microsoft 365 Copilot Chat API for Guardian conversation. Its additional delegated permissions are requested separately, web grounding is opt-in, and it never silently falls back to a chargeable provider.
+- Spotify uses OAuth PKCE. Configure the organisation's public Spotify app Client ID and register `http://127.0.0.1:43821/callback/` as its redirect URI.
+- Personal settings let each user choose Spotify, a YouTube Music page, or a favourite radio station link. Browser-based sources open only when the user chooses to open them.
 - Portable encrypted backups let you move your workspace to another Windows computer.
 
 ## Microsoft account connection
 
-The application supports delegated Microsoft Graph access for calendar and email. A central multi-tenant Entra application ID must be supplied in `MicrosoftGraph:ClientId` before distribution. Individual users then connect with the in-app Microsoft sign-in and do not register their own application.
+The application supports delegated Microsoft Graph access for calendar, email, Microsoft To Do and assigned Planner tasks. A central multi-tenant Entra application ID must be supplied in `MicrosoftGraph:ClientId` before distribution. Individual users then connect with the in-app Microsoft sign-in and do not register their own application.
 
-The intended delegated scopes are `User.Read`, `Calendars.ReadWrite`, `Mail.ReadWrite`, and `Mail.Send`. Users see and consent to those permissions during sign-in.
+The intended delegated scopes are `User.Read`, `Calendars.ReadWrite`, `Mail.ReadWrite`, `Mail.Send`, and read-only `Tasks.Read`. Users see and consent to those permissions during sign-in. Planner is available only to supported work or school accounts; its basic assigned tasks are imported read-only. Duplicate items exposed by both Planner and To Do are collapsed in favour of the Planner record.
+
+Microsoft 365 Copilot conversation is an optional preview connection for licensed work/school accounts. Add the following delegated Microsoft Graph permissions to the Entra app registration and grant administrator consent before using **Test Microsoft 365 Copilot access** in Personal settings: `Sites.Read.All`, `Mail.Read`, `People.Read.All`, `OnlineMeetingTranscript.Read.All`, `Chat.Read`, `ChannelMessage.Read.All`, and `ExternalItem.Read.All`. These permissions are requested only when the user tests or uses Copilot; ordinary calendar and email sign-in continues to use its existing scope set.
 
 ## Development
 

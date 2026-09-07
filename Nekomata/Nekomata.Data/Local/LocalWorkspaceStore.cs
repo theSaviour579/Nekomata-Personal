@@ -64,4 +64,5 @@ public sealed class LocalWorkspaceData
     public List<MissionSession> MissionSessions { get; set; } = [];
     public List<GuardianMemory> GuardianMemories { get; set; } = [];
     public List<GuardianAuditEntry> GuardianAudit { get; set; } = [];
+    public List<WorkdayEvent> WorkdayEvents { get; set; } = [];
 }

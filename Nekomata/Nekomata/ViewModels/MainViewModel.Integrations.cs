@@ -16,6 +16,29 @@ namespace Nekomata.UI.ViewModels;
 
 public partial class MainViewModel
 {
+    public int MicrosoftToDoCount => Workspace.IntegrationMissionCandidates
+        .Count(item => item.SourceType.Equals("Microsoft To Do", StringComparison.OrdinalIgnoreCase));
+
+    public int MicrosoftPlannerCount => Workspace.IntegrationMissionCandidates
+        .Count(item => item.SourceType.Equals("Microsoft Planner", StringComparison.OrdinalIgnoreCase));
+
+    public bool IsMicrosoftTasksConnected => Workspace.Integrations
+        .Any(item => item.Name.Equals("Microsoft Tasks", StringComparison.OrdinalIgnoreCase) && item.Connected);
+
+    public string MicrosoftTasksIntegrationStatus
+    {
+        get
+        {
+            var status = Workspace.Integrations
+                .FirstOrDefault(item => item.Name.Equals("Microsoft Tasks", StringComparison.OrdinalIgnoreCase));
+            if (status is null) return "Connect Microsoft 365 to import To Do and Planner";
+            if (!status.Connected) return status.Status == "Not connected"
+                ? "Connect Microsoft 365 to import To Do and Planner"
+                : $"Connection issue · {status.ErrorMessage}";
+            return $"{MicrosoftToDoCount} To Do · {MicrosoftPlannerCount} Planner · synced {status.LastRefresh:HH:mm}";
+        }
+    }
+
     public bool IsKnowBe4Connected => Workspace.Integrations
         .Any(item => item.Name.Equals("KnowBe4", StringComparison.OrdinalIgnoreCase) && item.Connected);
 
@@ -36,8 +59,12 @@ public partial class MainViewModel
         }
     }
 
-    public bool IsSpotifyConfigured =>
-        !string.IsNullOrWhiteSpace(_services.GetService<IConfiguration>()?["Spotify:ClientId"]);
+    public bool IsSpotifyConfigured => _services.GetRequiredService<SpotifyPlaybackService>().IsConfigured;
+    public string PreferredMediaProvider => string.IsNullOrWhiteSpace(_personalProfile.Current.PreferredMediaProvider)
+        ? "Spotify" : _personalProfile.Current.PreferredMediaProvider;
+    public string PreferredMediaTitle => PreferredMediaProvider.ToUpperInvariant();
+    public Visibility SpotifyControlsVisibility => PreferredMediaProvider == "Spotify" ? Visibility.Visible : Visibility.Collapsed;
+    public string PreferredMediaActionLabel => PreferredMediaProvider == "Spotify" ? "OPEN SPOTIFY" : $"OPEN {PreferredMediaProvider.ToUpperInvariant()}";
 
     [ObservableProperty] private string spotifyIntegrationStatus = "Preparing Arrival Mode...";
     [ObservableProperty] private string spotifyTrack = "Nothing playing";
@@ -54,6 +81,43 @@ public partial class MainViewModel
         ? "PLAY ARRIVAL MIX"
         : "CONNECT SPOTIFY";
     private DispatcherTimer? _spotifyStateTimer;
+
+    private async Task InitialisePreferredMediaAsync()
+    {
+        if (PreferredMediaProvider == "Spotify")
+        {
+            await InitialiseSpotifyArrivalAsync();
+            return;
+        }
+        _spotifyStateTimer?.Stop();
+        SpotifyIntegrationStatus = PreferredMediaProvider == "YouTube Music"
+            ? "YouTube Music selected · ready to open your saved page"
+            : "Radio selected · ready to open your saved station";
+        SpotifyTrack = PreferredMediaProvider == "YouTube Music"
+            ? DisplayMediaAddress(_personalProfile.Current.YouTubeMusicUrl)
+            : DisplayMediaAddress(_personalProfile.Current.RadioStationUrl);
+        SpotifyArtist = "Browser playback · controls remain with the selected service";
+        SpotifyDevice = string.Empty;
+    }
+
+    [RelayCommand]
+    private void OpenPreferredMedia()
+    {
+        try
+        {
+            if (PreferredMediaProvider == "Spotify") { OpenSpotify(); return; }
+            var value = PreferredMediaProvider == "YouTube Music"
+                ? _personalProfile.Current.YouTubeMusicUrl
+                : _personalProfile.Current.RadioStationUrl;
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
+                throw new InvalidOperationException("Add a valid link in Personal settings first.");
+            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch (Exception ex) { SpotifyIntegrationStatus = $"Could not open {PreferredMediaProvider} · {ex.Message}"; }
+    }
+
+    private static string DisplayMediaAddress(string value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) ? uri.Host + uri.AbsolutePath.TrimEnd('/') : "No link configured";
 
     private async Task InitialiseSpotifyArrivalAsync()
     {
@@ -80,7 +144,6 @@ public partial class MainViewModel
     private async Task ConnectSpotifyAsync()
     {
         var spotify = _services.GetRequiredService<SpotifyPlaybackService>();
-        if (!spotify.HasArrivalPlaylist && !ConfigureSpotifyArrivalMix()) return;
         try
         {
             SpotifyBusy = true;
@@ -88,7 +151,20 @@ public partial class MainViewModel
             {
                 SpotifyIntegrationStatus = "Complete the Spotify consent in your browser...";
                 await spotify.ConnectAsync();
+                OnPropertyChanged(nameof(SpotifyConnectLabel));
             }
+
+            // Connecting an account and choosing an Arrival Mix are separate jobs.
+            // OAuth must always happen first so CONNECT SPOTIFY never looks like a
+            // playlist-setting button.
+            if (!spotify.HasArrivalPlaylist)
+            {
+                SpotifyBusy = false;
+                SpotifyIntegrationStatus = "Spotify connected · choose an Arrival Mix to start playback";
+                if (!ConfigureSpotifyArrivalMix()) return;
+                SpotifyBusy = true;
+            }
+
             SpotifyIntegrationStatus = "Starting the Arrival Mix on shuffle...";
             await spotify.StartArrivalAsync();
         }

@@ -2,6 +2,7 @@ namespace Nekomata.Integrations.MicrosoftGraph.Mail;
 
 public sealed class EmailMessage
 {
+    public string ChaseSearchLabel => $"{Subject}\n{ReceivedAt.LocalDateTime:dd MMM yyyy HH:mm} · From: {SenderAddress} · To: {string.Join(", ", ToRecipientAddresses)}";
     public string Id { get; init; } = "";
     public string Subject { get; init; } = "(No subject)";
     public string SenderName { get; init; } = "Unknown sender";
@@ -15,6 +16,8 @@ public sealed class EmailMessage
     public string WebLink { get; init; } = "";
     public string ConversationId { get; init; } = "";
     public IReadOnlyList<string> CcRecipients { get; init; } = [];
+    public IReadOnlyList<string> ToRecipients { get; init; } = [];
+    public IReadOnlyList<string> ToRecipientAddresses { get; init; } = [];
     public IReadOnlyList<string> Categories { get; init; } = [];
 }
 

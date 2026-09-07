@@ -7,6 +7,7 @@
         Foreground="{DynamicResource NekoTextBrush}">
     <Grid Margin="30">
         <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
         <StackPanel>
             <TextBlock Text="WELCOME TO NEKOMATA" Style="{DynamicResource NekoTitleText}"/>
             <TextBlock Text="Your personal planning assistant" Foreground="{DynamicResource NekoSpiritPurpleBrush}" FontSize="16" FontWeight="SemiBold"/>
@@ -15,22 +16,26 @@
             <TextBlock Text="WHAT SHOULD I CALL YOU?" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,8,0,6"/>
             <TextBox x:Name="NameInput" FontSize="18" Padding="12,8" MaxLength="80"/>
 
-            <TextBlock Text="OPENAI API KEY (OPTIONAL)" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
+            <TextBlock Text="OPENAI API KEY (OPTIONAL FALLBACK)" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
             <PasswordBox x:Name="OpenAiKeyInput" FontSize="16" Padding="12,8"/>
-            <TextBlock Text="Enables assistant conversations and drafting. Stored securely in Windows Credential Manager; you can leave this blank and add it later." TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
+            <TextBlock Text="Leave this blank if you plan to use Microsoft 365 Copilot or an organisation-provided Microsoft AI deployment. Any OpenAI key you enter is stored securely in Windows Credential Manager." TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
 
             <Border Background="{DynamicResource NekoCardGradientBrush}" CornerRadius="14" Padding="18" BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1" Margin="0,14,0,0">
                 <StackPanel>
                     <TextBlock Text="YOUR PERSONAL WORKSPACE" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/>
                     <TextBlock Text="Tasks, projects and planning will be kept privately on this computer. No database setup will be required." TextWrapping="Wrap" Margin="0,5,0,14" Foreground="{DynamicResource NekoMutedTextBrush}"/>
                     <TextBlock Text="MICROSOFT ACCOUNT (OPTIONAL)" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/>
-                    <TextBlock Text="After setup, you can connect a personal, work or school Microsoft account to use your calendar and email." TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
+                    <TextBlock Text="After setup, you can connect a Microsoft account to use calendar, email and Microsoft To Do. Work or school accounts can also import assigned Planner tasks and, with an eligible licence and administrator consent, use Microsoft 365 Copilot. Task import begins read-only." TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
                 </StackPanel>
             </Border>
 
             <CheckBox x:Name="StartupChoice" Content="Start Nekomata when I sign in to Windows" Margin="0,18,0,0"
                       Foreground="{DynamicResource NekoTextBrush}"/>
+            <TextBlock Text="PRIVACY &amp; CONTROL" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,16,0,6"/>
+            <TextBlock Text="Microsoft access is delegated to the account you choose. Nekomata reads your calendar, mail and tasks to build your workspace; calendar and mail changes remain explicit actions. Copilot and web grounding are optional and configured later. You can disconnect Microsoft access from Settings at any time."
+                       TextWrapping="Wrap" Foreground="{DynamicResource NekoMutedTextBrush}"/>
         </StackPanel>
+        </ScrollViewer>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="START USING NEKOMATA" Click="OpenSetup_Click" Background="{DynamicResource NekoSpiritPurpleBrush}"/>
         </StackPanel>

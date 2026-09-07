@@ -29,6 +29,11 @@ public sealed class MicrosoftAuthenticationService : IMicrosoftAuthenticationSer
     }
 
     public async Task<TokenResult> GetTokenAsync(CancellationToken cancellationToken = default)
+        => await GetTokenForScopesAsync(_options.Scopes, cancellationToken);
+
+    public async Task<TokenResult> GetTokenForScopesAsync(
+        IReadOnlyCollection<string> scopes,
+        CancellationToken cancellationToken = default)
     {
         await _tokenLock.WaitAsync(cancellationToken);
         try
@@ -40,12 +45,12 @@ public sealed class MicrosoftAuthenticationService : IMicrosoftAuthenticationSer
             {
                 result = account is null
                     ? throw new MsalUiRequiredException("no_account", "No cached Microsoft account is available.")
-                    : await _application.AcquireTokenSilent(_options.Scopes, account).ExecuteAsync(cancellationToken);
+                    : await _application.AcquireTokenSilent(scopes, account).ExecuteAsync(cancellationToken);
             }
             catch (MsalUiRequiredException)
             {
                 result = await _application
-                    .AcquireTokenInteractive(_options.Scopes)
+                    .AcquireTokenInteractive(scopes)
                     .ExecuteAsync(cancellationToken);
             }
 

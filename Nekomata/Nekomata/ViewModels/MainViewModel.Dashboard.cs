@@ -88,6 +88,14 @@ public partial class MainViewModel
         OnPropertyChanged(nameof(KnowBe4IntegrationStatus));
         OnPropertyChanged(nameof(IsSpotifyConfigured));
         OnPropertyChanged(nameof(SpotifyIntegrationStatus));
+        OnPropertyChanged(nameof(PreferredMediaProvider));
+        OnPropertyChanged(nameof(PreferredMediaTitle));
+        OnPropertyChanged(nameof(PreferredMediaActionLabel));
+        OnPropertyChanged(nameof(SpotifyControlsVisibility));
+        OnPropertyChanged(nameof(MicrosoftToDoCount));
+        OnPropertyChanged(nameof(MicrosoftPlannerCount));
+        OnPropertyChanged(nameof(MicrosoftTasksIntegrationStatus));
+        OnPropertyChanged(nameof(IsMicrosoftTasksConnected));
         OnPropertyChanged(nameof(HaloWatchlistTickets));
         OnPropertyChanged(nameof(HaloWatchlistCount));
         OnPropertyChanged(nameof(HaloWatchlistChaseCount));

@@ -38,6 +38,7 @@ using Nekomata.Data.Repositories;
 using Nekomata.Models.Planning;
 using Nekomata.Integrations.MicrosoftGraph.Authentication;
 using Nekomata.Integrations.MicrosoftGraph.DependencyInjection;
+using Nekomata.Integrations.MicrosoftGraph.Copilot;
 using Nekomata.Services.Halo;
 using Nekomata.Services.KnowBe4;
 using Nekomata.UI.ViewModels;
@@ -80,6 +81,11 @@ public partial class App : Application
                     context.Configuration.GetSection("MicrosoftGraph").Get<MicrosoftGraphOptions>()
                     ?? new MicrosoftGraphOptions();
                 services.AddMicrosoftGraph(microsoftGraphOptions);
+                services.AddHttpClient<CopilotChatService>(client =>
+                {
+                    client.BaseAddress = new Uri("https://graph.microsoft.com/beta/");
+                    client.Timeout = TimeSpan.FromMinutes(2);
+                });
 
                 services.AddSingleton<MainWindow>();
                 services.AddSingleton<MainViewModel>();
@@ -148,6 +154,8 @@ public partial class App : Application
                 services.AddSingleton<IMissionSessionService, MissionSessionService>();
 
                 services.AddSingleton<IMissionSessionRepository, LocalMissionSessionRepository>();
+                services.AddSingleton<IWorkdayEventRepository, LocalWorkdayEventRepository>();
+                services.AddSingleton<Nekomata.Core.Guardian.Outcomes.WorkdayJournalService>();
 
                 services.AddSingleton<IMissionAnalyticsService, MissionAnalyticsService>();
 
@@ -175,6 +183,7 @@ public partial class App : Application
     GuardianLearningService>();
 
                 services.AddSingleton<IntegrationCoordinator>();
+                services.AddSingleton<IWorkspaceDataSource, MicrosoftTasksWorkspaceDataSource>();
 
                 services.AddSingleton<
     IMissionCandidateProvider,

@@ -51,6 +51,7 @@
                     <TextBlock Text="YOUR ASSISTANT" Style="{DynamicResource NekoSectionTitleText}"/>
                     <TextBlock Text="{Binding PersonalDisplayName}" FontSize="17" FontWeight="SemiBold" Margin="0,5,0,0"/>
                     <TextBlock Text="{Binding OpenAiKeyStatus}" Foreground="{DynamicResource NekoMutedTextBrush}" Margin="0,5,0,0"/>
+                    <TextBlock Text="{Binding AiProviderStatus}" Foreground="{DynamicResource NekoSuccessBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
                 <Button Grid.Column="1" Content="EDIT PERSONAL SETTINGS"
                         Command="{Binding EditPersonalSettingsCommand}"
@@ -66,9 +67,9 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="MICROSOFT ACCOUNT" Style="{DynamicResource NekoSectionTitleText}"/>
-                    <TextBlock Text="Calendar and email" FontSize="17" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                    <TextBlock Text="Calendar, email, To Do and Planner" FontSize="17" FontWeight="SemiBold" Margin="0,5,0,0"/>
                     <TextBlock Text="{Binding MicrosoftAccountStatus}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
-                    <TextBlock Text="Works with personal Microsoft accounts and supported work or school accounts. You choose whether to grant calendar and email access." Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    <TextBlock Text="Uses delegated access for the signed-in user. Tasks are imported read-only; calendar and email actions remain reviewable. Planner requires a work or school account, and Copilot requires an eligible licence plus administrator consent." Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
                     <Button Content="DISCONNECT" Command="{Binding DisconnectMicrosoftAccountCommand}" Margin="0,0,8,0"/>

@@ -14,6 +14,8 @@
                                Foreground="{DynamicResource NekoWarningBrush}" FontWeight="SemiBold" Margin="0,8,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="PAUSE PROMPTS · 15 MIN" Command="{Binding PauseRoutinePromptsCommand}" Margin="0,0,8,0"/>
+                    <Button Content="RESUME PROMPTS" Command="{Binding ResumeRoutinePromptsCommand}" Margin="0,0,8,0"/>
                     <Button Content="CLEAR RESOLVED" Command="{Binding ClearResolvedAttentionCommand}" Margin="0,0,8,0"/>
                     <Button Content="BACK TO DASHBOARD" Command="{Binding ShowDashboardCommand}"/>
                 </StackPanel>
