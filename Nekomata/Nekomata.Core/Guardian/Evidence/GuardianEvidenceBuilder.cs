@@ -142,37 +142,9 @@ public class GuardianEvidenceBuilder
                 "Today's workload exceeds available capacity.");
         }
 
-        if (!evidence.CalendarConnected)
-        {
-            health -= 5;
-
-            evidence.HealthWarnings.Add(
-                "Calendar integration is unavailable.");
-        }
-
-        if (!evidence.HaloConnected)
-        {
-            health -= 5;
-
-            evidence.HealthWarnings.Add(
-                "Halo integration is unavailable.");
-        }
-
-        if (!evidence.SqlConnected)
-        {
-            health -= 5;
-
-            evidence.HealthWarnings.Add(
-                "SQL integration is unavailable.");
-        }
-
-        if (!evidence.EmailConnected)
-        {
-            health -= 5;
-
-            evidence.HealthWarnings.Add(
-                "Email integration is unavailable.");
-        }
+        // External connections are optional in Personal. Their health is shown
+        // by Integration Diagnostics and must not reduce workspace health or
+        // surface work-edition warnings such as Halo or SQL being unavailable.
 
         evidence.WorkspaceHealthScore =
             Math.Clamp(

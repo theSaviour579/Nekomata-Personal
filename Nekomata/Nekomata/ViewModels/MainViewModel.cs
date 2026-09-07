@@ -195,6 +195,11 @@ public partial class MainViewModel : ObservableObject
     {
         ApplicationName = "NEKOMATA PERSONAL";
         UpdateGreeting();
+        OnPropertyChanged(nameof(PreferredMediaProvider));
+        OnPropertyChanged(nameof(PreferredMediaTitle));
+        OnPropertyChanged(nameof(PreferredMediaActionLabel));
+        OnPropertyChanged(nameof(SpotifyControlsVisibility));
+        _ = InitialisePreferredMediaAsync();
     }
 
     // ============================================================
@@ -261,7 +266,7 @@ public partial class MainViewModel : ObservableObject
             if (showSplash)
                 LoadingStatus = "Guardian is ready.";
             if (showSplash)
-                _ = InitialiseSpotifyArrivalAsync();
+                _ = InitialisePreferredMediaAsync();
             if (showSplash)
                 _ = CheckForUpdatesAsync();
             if (showSplash)

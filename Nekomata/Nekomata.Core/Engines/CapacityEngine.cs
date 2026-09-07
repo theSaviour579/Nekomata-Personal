@@ -31,13 +31,13 @@ public sealed class CapacityEngine : ICapacityEngine
         var missionAlreadyCounted = workspace.CurrentMission.TaskId.HasValue &&
             committedTasks.Any(task => task.Id == workspace.CurrentMission.TaskId.Value);
         var missionMinutes = missionAlreadyCounted ? 0 : Math.Max(0, (int)workspace.CurrentMission.EstimatedDuration.TotalMinutes);
-        var urgentHaloMinutes = workspace.IntegrationMissionCandidates
+        var urgentIntegrationMinutes = workspace.IntegrationMissionCandidates
             .Where(candidate => candidate.RequiresImmediateAttention)
             .Where(candidate => !string.Equals(candidate.Title, workspace.CurrentMission.Title, StringComparison.OrdinalIgnoreCase))
             .Sum(candidate => Math.Max(0, candidate.EstimatedMinutes));
         // Nekomata-managed calendar focus already occupies capacity. Remove that time
         // from the unscheduled work bucket so a planned task is not counted twice.
-        var committedWorkMinutes = taskMinutes + missionMinutes + urgentHaloMinutes;
+        var committedWorkMinutes = taskMinutes + missionMinutes + urgentIntegrationMinutes;
         var plannedMinutes = Math.Max(0, committedWorkMinutes - workspace.Capacity.ScheduledFocusMinutesToday);
 
         var capacity = workspace.Capacity;

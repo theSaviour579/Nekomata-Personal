@@ -14,6 +14,7 @@ public class MicrosoftGraphOptions
         "User.Read",
         "Calendars.ReadWrite",
         "Mail.ReadWrite",
-        "Mail.Send"
+        "Mail.Send",
+        "Tasks.Read"
     ];
 }

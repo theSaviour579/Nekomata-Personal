@@ -154,6 +154,11 @@
                                 Margin="10,0,0,0"
                                 Height="42"/>
                     </Grid>
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Content="ATTACH TEXT / DATA" Command="{Binding AttachPersonalFileCommand}" Margin="0,0,8,0"/>
+                        <Button Content="CLEAR ATTACHMENT" Command="{Binding ClearPersonalAttachmentCommand}" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding PersonalAttachmentLabel}" TextWrapping="Wrap" Foreground="{DynamicResource NekoMutedTextBrush}" VerticalAlignment="Center"/>
+                    </WrapPanel>
 
                 </StackPanel>
 

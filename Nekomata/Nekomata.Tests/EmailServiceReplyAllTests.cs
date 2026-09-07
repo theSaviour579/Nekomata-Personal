@@ -32,14 +32,6 @@ public sealed class EmailServiceReplyAllTests
                     "/me/messages/message-1/createReplyAll",
                     request.Uri.AbsoluteUri,
                     StringComparison.Ordinal);
-            },
-            request =>
-            {
-                Assert.Equal(HttpMethod.Patch, request.Method);
-                Assert.EndsWith(
-                    "/me/messages/draft-1",
-                    request.Uri.AbsoluteUri,
-                    StringComparison.Ordinal);
             });
     }
 

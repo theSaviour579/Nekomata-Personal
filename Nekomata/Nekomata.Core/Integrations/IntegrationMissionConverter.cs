@@ -36,6 +36,8 @@ public class IntegrationMissionConverter
 
             SourceRecordId = mission.SourceRecordId,
 
+            ExternalUrl = mission.ExternalUrl,
+
             Title = mission.Title,
 
             Description = mission.Description,

@@ -26,7 +26,7 @@ public sealed class SpotifyPlaybackService
     private const string DefaultRedirect = "http://127.0.0.1:43821/callback/";
     private const string Scopes = "user-read-playback-state user-modify-playback-state";
     private readonly HttpClient _http = new();
-    private readonly string _clientId;
+    private readonly IConfiguration _configuration;
     private readonly PersonalProfileService _profile;
     private readonly string _redirectUri;
     private readonly string _tokenPath;
@@ -35,7 +35,7 @@ public sealed class SpotifyPlaybackService
     public SpotifyPlaybackService(IConfiguration configuration, PersonalProfileService profile)
     {
         _profile = profile;
-        _clientId = configuration["Spotify:ClientId"] ?? string.Empty;
+        _configuration = configuration;
         _redirectUri = configuration["Spotify:RedirectUri"] ?? DefaultRedirect;
         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nekomata Personal");
         Directory.CreateDirectory(folder);
@@ -43,7 +43,10 @@ public sealed class SpotifyPlaybackService
         LoadToken();
     }
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(_clientId);
+    private string ClientId => !string.IsNullOrWhiteSpace(_profile.Current.SpotifyClientId)
+        ? _profile.Current.SpotifyClientId
+        : _configuration["Spotify:ClientId"] ?? string.Empty;
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(ClientId);
     public bool HasSavedConnection => _token is not null;
     public bool HasArrivalPlaylist => !string.IsNullOrWhiteSpace(_profile.Current.SpotifyArrivalPlaylistUri);
     public string ArrivalPlaylistUri => _profile.Current.SpotifyArrivalPlaylistUri;
@@ -64,7 +67,7 @@ public sealed class SpotifyPlaybackService
 
         var auth = "https://accounts.spotify.com/authorize?" + BuildQuery(new Dictionary<string, string>
         {
-            ["client_id"] = _clientId, ["response_type"] = "code", ["redirect_uri"] = _redirectUri,
+            ["client_id"] = ClientId, ["response_type"] = "code", ["redirect_uri"] = _redirectUri,
             ["scope"] = Scopes, ["code_challenge_method"] = "S256", ["code_challenge"] = challenge,
             ["state"] = state, ["show_dialog"] = "true"
         });
@@ -88,7 +91,7 @@ public sealed class SpotifyPlaybackService
         using var response = await _http.PostAsync("https://accounts.spotify.com/api/token",
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = _clientId, ["grant_type"] = "authorization_code", ["code"] = code,
+                ["client_id"] = ClientId, ["grant_type"] = "authorization_code", ["code"] = code,
                 ["redirect_uri"] = _redirectUri, ["code_verifier"] = verifier
             }), cancellationToken);
         await SetTokenFromResponseAsync(response, preserveRefreshToken: null, cancellationToken);
@@ -209,7 +212,7 @@ public sealed class SpotifyPlaybackService
         using var response = await _http.PostAsync("https://accounts.spotify.com/api/token",
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = _clientId, ["grant_type"] = "refresh_token", ["refresh_token"] = _token.RefreshToken
+                ["client_id"] = ClientId, ["grant_type"] = "refresh_token", ["refresh_token"] = _token.RefreshToken
             }), ct);
         await SetTokenFromResponseAsync(response, _token.RefreshToken, ct);
     }
