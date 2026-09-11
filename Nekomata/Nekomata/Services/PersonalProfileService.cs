@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using Nekomata.Models.Analytics;
+using Nekomata.Models.Planning;
 
 namespace Nekomata.UI.Services;
 
@@ -21,6 +22,14 @@ public sealed record PersonalProfile
     public string JobTitle { get; init; } = string.Empty;
     public string JobTitleSource { get; init; } = "Manual";
     public PersonalRoleProfile? RoleProfile { get; init; }
+    public bool WorkScheduleConfigured { get; init; }
+    public TimeSpan WorkdayStart { get; init; }
+    public TimeSpan WorkdayEnd { get; init; }
+    public bool IncludeLunchBreak { get; init; } = true;
+    public TimeSpan LunchStart { get; init; }
+    public TimeSpan LunchEnd { get; init; }
+    public TimeSpan WrapUpTime { get; init; }
+    public bool EmailBriefingEnabled { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
@@ -67,6 +76,14 @@ public sealed class PersonalProfileService
             JobTitle = Current.JobTitle,
             JobTitleSource = Current.JobTitleSource,
             RoleProfile = Current.RoleProfile,
+            WorkScheduleConfigured = Current.WorkScheduleConfigured,
+            WorkdayStart = Current.WorkdayStart,
+            WorkdayEnd = Current.WorkdayEnd,
+            IncludeLunchBreak = Current.IncludeLunchBreak,
+            LunchStart = Current.LunchStart,
+            LunchEnd = Current.LunchEnd,
+            WrapUpTime = Current.WrapUpTime,
+            EmailBriefingEnabled = Current.EmailBriefingEnabled,
             CreatedAt = Current.CreatedAt
         };
 
@@ -86,6 +103,65 @@ public sealed class PersonalProfileService
     {
         Current = Current with { JobTitle = roleProfile.JobTitle, JobTitleSource = roleProfile.Source, RoleProfile = roleProfile };
         Persist();
+    }
+
+    public WorkingDaySettings CreateWorkingDaySettings()
+    {
+        var profile = Current;
+        return profile.WorkScheduleConfigured
+            ? new WorkingDaySettings
+            {
+                StartTime = profile.WorkdayStart,
+                EndTime = profile.WorkdayEnd,
+                IncludeLunchBreak = profile.IncludeLunchBreak,
+                LunchStartTime = profile.LunchStart,
+                LunchDurationMinutes = profile.IncludeLunchBreak
+                    ? Math.Max(0, (int)(profile.LunchEnd - profile.LunchStart).TotalMinutes)
+                    : 0
+            }
+            : new WorkingDaySettings();
+    }
+
+    public void SaveWorkSchedule(
+        TimeSpan workdayStart,
+        TimeSpan workdayEnd,
+        bool includeLunchBreak,
+        TimeSpan lunchStart,
+        TimeSpan lunchEnd,
+        TimeSpan wrapUpTime,
+        bool emailBriefingEnabled)
+    {
+        if (workdayStart < TimeSpan.Zero || workdayStart >= TimeSpan.FromDays(1) ||
+            workdayEnd <= workdayStart || workdayEnd > TimeSpan.FromDays(1))
+            throw new ArgumentException("Working hours must have a valid start and a later finish time.");
+        if (includeLunchBreak &&
+            (lunchStart < workdayStart || lunchEnd <= lunchStart || lunchEnd > workdayEnd))
+            throw new ArgumentException("Lunch must start and finish within your working hours.");
+        if (wrapUpTime < workdayStart || wrapUpTime > workdayEnd)
+            throw new ArgumentException("Choose a wrap-up time within your working hours.");
+
+        Current = Current with
+        {
+            WorkScheduleConfigured = true,
+            WorkdayStart = workdayStart,
+            WorkdayEnd = workdayEnd,
+            IncludeLunchBreak = includeLunchBreak,
+            LunchStart = includeLunchBreak ? lunchStart : TimeSpan.Zero,
+            LunchEnd = includeLunchBreak ? lunchEnd : TimeSpan.Zero,
+            WrapUpTime = wrapUpTime,
+            EmailBriefingEnabled = emailBriefingEnabled
+        };
+        Persist();
+    }
+
+    public void ApplyWorkSchedule(WorkingDaySettings settings)
+    {
+        var configured = CreateWorkingDaySettings();
+        settings.StartTime = configured.StartTime;
+        settings.EndTime = configured.EndTime;
+        settings.IncludeLunchBreak = configured.IncludeLunchBreak;
+        settings.LunchStartTime = configured.LunchStartTime;
+        settings.LunchDurationMinutes = configured.LunchDurationMinutes;
     }
 
     public void SaveSpotifyArrivalPlaylist(string playlistUri)

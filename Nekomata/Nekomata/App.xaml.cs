@@ -202,8 +202,9 @@ public partial class App : Application
 
                 services.AddSingleton<MissionTimelinePlanner>();
 
-                services.AddSingleton(
-    new WorkingDaySettings());
+                services.AddSingleton(serviceProvider =>
+                    serviceProvider.GetRequiredService<PersonalProfileService>()
+                        .CreateWorkingDaySettings());
 
                 services.AddSingleton<
     ITimelineProvider,

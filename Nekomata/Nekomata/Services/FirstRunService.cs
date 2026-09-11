@@ -11,10 +11,22 @@ public sealed class FirstRunService
         _profile = profile;
     }
 
-    public bool IsFirstRun => !_profile.IsConfigured;
+    public bool IsFirstRun => !_profile.IsConfigured || !_profile.Current.WorkScheduleConfigured;
 
-    public void Complete(string displayName, bool startWithWindows)
+    public void Complete(
+        string displayName,
+        bool startWithWindows,
+        TimeSpan workdayStart,
+        TimeSpan workdayEnd,
+        bool includeLunchBreak,
+        TimeSpan lunchStart,
+        TimeSpan lunchEnd,
+        TimeSpan wrapUpTime,
+        bool emailBriefingEnabled)
     {
+        _profile.SaveWorkSchedule(
+            workdayStart, workdayEnd, includeLunchBreak, lunchStart, lunchEnd,
+            wrapUpTime, emailBriefingEnabled);
         _profile.Save(displayName, startWithWindows);
     }
 }

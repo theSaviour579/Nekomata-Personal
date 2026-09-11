@@ -1,7 +1,7 @@
 <Window x:Class="Nekomata.UI.Views.FirstRunWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Welcome to Nekomata Personal" Width="650" Height="620" ResizeMode="NoResize"
+        Title="Welcome to Nekomata Personal" Width="700" Height="820" ResizeMode="CanResize"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource NekoBackgroundBrush}"
         Foreground="{DynamicResource NekoTextBrush}">
@@ -15,6 +15,26 @@
 
             <TextBlock Text="WHAT SHOULD I CALL YOU?" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,8,0,6"/>
             <TextBox x:Name="NameInput" FontSize="18" Padding="12,8" MaxLength="80"/>
+
+            <TextBlock Text="YOUR WORKING DAY" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
+            <TextBlock Text="Enter times as HH:mm. Nekomata uses these hours for capacity, free-time and workload calculations."
+                       TextWrapping="Wrap" Margin="0,0,0,8" Foreground="{DynamicResource NekoMutedTextBrush}"/>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="START"/><TextBox x:Name="WorkStartInput" Padding="10,7" MaxLength="5"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="FINISH"/><TextBox x:Name="WorkEndInput" Padding="10,7" MaxLength="5"/></StackPanel>
+            </Grid>
+            <CheckBox x:Name="LunchChoice" Content="Protect a lunch break" Margin="0,14,0,7" Checked="LunchChoice_Changed" Unchecked="LunchChoice_Changed"/>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="LUNCH START"/><TextBox x:Name="LunchStartInput" Padding="10,7" MaxLength="5"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="LUNCH FINISH"/><TextBox x:Name="LunchEndInput" Padding="10,7" MaxLength="5"/></StackPanel>
+            </Grid>
+            <TextBlock Text="DAILY WRAP-UP POP-UP" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
+            <TextBox x:Name="WrapUpTimeInput" Padding="10,7" MaxLength="5" Width="150" HorizontalAlignment="Left"/>
+            <CheckBox x:Name="EmailBriefingChoice" Content="Email my daily briefing to my signed-in Microsoft mailbox" Margin="0,14,0,0"/>
+            <TextBlock Text="When enabled, Nekomata sends one briefing on each working day after your configured start time while the app is running."
+                       TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
 
             <TextBlock Text="OPENAI API KEY (OPTIONAL FALLBACK)" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
             <PasswordBox x:Name="OpenAiKeyInput" FontSize="16" Padding="12,8"/>
