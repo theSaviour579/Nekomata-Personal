@@ -8,7 +8,10 @@ public interface IMicrosoftTaskService
 public sealed record MicrosoftTaskSnapshot(
     bool AccountConnected,
     IReadOnlyList<MicrosoftTaskItem> ToDoTasks,
-    IReadOnlyList<MicrosoftTaskItem> PlannerTasks);
+    IReadOnlyList<MicrosoftTaskItem> PlannerTasks)
+{
+    public int ExcludedSharedLists { get; init; }
+}
 
 public sealed record MicrosoftTaskItem(
     string Source,

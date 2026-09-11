@@ -35,7 +35,7 @@ public partial class MainViewModel
             if (!status.Connected) return status.Status == "Not connected"
                 ? "Connect Microsoft 365 to import To Do and Planner"
                 : $"Connection issue · {status.ErrorMessage}";
-            return $"{MicrosoftToDoCount} To Do · {MicrosoftPlannerCount} Planner · synced {status.LastRefresh:HH:mm}";
+            return $"{status.Status} · synced {status.LastRefresh:HH:mm}";
         }
     }
 

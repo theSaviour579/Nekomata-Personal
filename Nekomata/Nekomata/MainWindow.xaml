@@ -80,6 +80,7 @@
                     <StackPanel Grid.Column="1"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
+                        <Button Content="QUICK MENU · Ctrl+K" Click="QuickMenu_Click" Margin="0,0,0,8"/>
 
                         <TextBlock Text="{Binding CurrentDateTime,
                                              StringFormat={}{0:HH:mm}}"

@@ -8,7 +8,7 @@ namespace Nekomata.Integrations.MicrosoftGraph.Tasks;
 public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticationService authentication)
     : IMicrosoftTaskService
 {
-    private static readonly string[] Scopes = ["Tasks.Read"];
+    private static readonly string[] Scopes = ["Tasks.Read", "User.Read"];
 
     public async Task<MicrosoftTaskSnapshot> GetOpenTasksAsync(CancellationToken cancellationToken = default)
     {
@@ -18,15 +18,16 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
         var token = await authentication.GetTokenForScopesAsync(Scopes, cancellationToken);
         var todo = await GetToDoTasksAsync(token.AccessToken, cancellationToken);
         var planner = await GetPlannerTasksAsync(token.AccessToken, cancellationToken);
-        return new MicrosoftTaskSnapshot(true, todo, planner);
+        return new MicrosoftTaskSnapshot(true, todo.Tasks, planner) { ExcludedSharedLists = todo.ExcludedLists };
     }
 
-    private async Task<IReadOnlyList<MicrosoftTaskItem>> GetToDoTasksAsync(string token, CancellationToken ct)
+    private async Task<(IReadOnlyList<MicrosoftTaskItem> Tasks, int ExcludedLists)> GetToDoTasksAsync(string token, CancellationToken ct)
     {
         var lists = await GetCollectionAsync<GraphToDoList>(
             "me/todo/lists", token, ct);
         var result = new List<MicrosoftTaskItem>();
-        foreach (var list in lists.Value.Where(item => !string.IsNullOrWhiteSpace(item.Id)))
+        // Graph v1.0 exposes list sharing but no To Do task assignee. Never treat shared work as personal ownership.
+        foreach (var list in lists.Value.Where(item => item.IsShared == false && item.IsOwner == true && !string.IsNullOrWhiteSpace(item.Id)))
         {
             var path = $"me/todo/lists/{Uri.EscapeDataString(list.Id!)}/tasks";
             var tasks = await GetCollectionAsync<GraphToDoTask>(path, token, ct);
@@ -40,7 +41,7 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
                     item.LinkedResources.FirstOrDefault(link => Uri.TryCreate(link.WebUrl, UriKind.Absolute, out _))?.WebUrl
                         ?? "https://to-do.office.com/tasks/")));
         }
-        return result;
+        return (result, lists.Value.Count(item => item.IsShared != false || item.IsOwner != true));
     }
 
     private async Task<IReadOnlyList<MicrosoftTaskItem>> GetPlannerTasksAsync(string token, CancellationToken ct)
@@ -57,7 +58,10 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
             // also be unavailable when the work account has no Planner service.
             return [];
         }
+        var user = await GetAsync<GraphUser>("me?$select=id", token, ct);
+        if (string.IsNullOrWhiteSpace(user.Id)) throw new InvalidOperationException("Cannot verify Microsoft Planner task assignments without the signed-in user ID.");
         return tasks.Value
+            .Where(item => item.Assignments?.Any(assignment => string.Equals(assignment.Key, user.Id, StringComparison.OrdinalIgnoreCase) && assignment.Value.ValueKind == System.Text.Json.JsonValueKind.Object) == true)
             .Where(item => item.PercentComplete < 100)
             .Where(item => !string.IsNullOrWhiteSpace(item.Id) && !string.IsNullOrWhiteSpace(item.Title))
             .Select(item => new MicrosoftTaskItem(
@@ -106,7 +110,7 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
         value is not null && DateTime.TryParse(value.DateTime, out var parsed) ? parsed : null;
 
     private sealed class GraphCollection<T> { [JsonPropertyName("value")] public List<T> Value { get; init; } = []; [JsonPropertyName("@odata.nextLink")] public string? NextLink { get; init; } }
-    private sealed class GraphToDoList { public string? Id { get; init; } public string? DisplayName { get; init; } public string? WellknownListName { get; init; } }
+    private sealed class GraphToDoList { public string? Id { get; init; } public string? DisplayName { get; init; } public string? WellknownListName { get; init; } public bool? IsShared { get; init; } public bool? IsOwner { get; init; } }
     private sealed class GraphToDoTask
     {
         public string? Id { get; init; }
@@ -124,11 +128,13 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
         public string? Id { get; init; }
         public string? Title { get; init; }
         public string? PlanId { get; init; }
+        public Dictionary<string, System.Text.Json.JsonElement> Assignments { get; init; } = [];
         public int PercentComplete { get; init; }
         public int Priority { get; init; } = 5;
         public DateTimeOffset? DueDateTime { get; init; }
         public DateTimeOffset? CreatedDateTime { get; init; }
     }
+    private sealed class GraphUser { public string? Id { get; init; } }
     private sealed class GraphBody { public string? Content { get; init; } }
     private sealed class GraphDateTimeZone { public string? DateTime { get; init; } }
     private sealed class GraphLinkedResource { public string? WebUrl { get; init; } }

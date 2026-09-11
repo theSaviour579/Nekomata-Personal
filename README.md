@@ -38,3 +38,9 @@ dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Releas
 ## Releases
 
 Merging a versioned pull request into `master` runs the `Windows release` workflow. It creates a self-contained x64 portable archive, `Nekomata-Personal-Setup-<version>.exe`, and SHA-256 checksums. Packages are published to the public [Nekomata Personal Releases](https://github.com/theSaviour579/Nekomata-Personal-Releases) repository while the source remains private. Nekomata checks that public feed at startup, downloads the matching installer with confirmation, verifies its published SHA-256 digest, and hands off to the Windows installer without requiring a GitHub account.
+
+## Quick menu and task ownership
+
+Press Ctrl+K while the main window is active, or click Quick Menu, to search navigation and actions. Use the arrow keys and Enter to select, or Escape to close.
+
+Planner imports require an active assignment to the connected Microsoft user. To Do imports include only owned, unshared lists. Shared To Do lists are excluded, including their tasks assigned to you, because the Microsoft Graph v1.0 To Do API does not expose task assignees. The sync status reports excluded lists; personal list tasks do not require an explicit assignment.
