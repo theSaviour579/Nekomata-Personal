@@ -17,6 +17,7 @@ public partial class PersonalSettingsWindow : Window
         _copilot = copilot;
         InitializeComponent();
         NameInput.Text = profile.Current.DisplayName;
+        JobTitleInput.Text = profile.Current.JobTitle;
         MicrosoftAiEndpointInput.Text = profile.Current.AzureOpenAIEndpoint;
         MicrosoftAiDeploymentInput.Text = profile.Current.AzureOpenAIDeployment;
         SpotifyClientIdInput.Text = profile.Current.SpotifyClientId;
@@ -52,6 +53,7 @@ public partial class PersonalSettingsWindow : Window
         try
         {
             _profile.Save(NameInput.Text, _profile.Current.StartWithWindows);
+            _profile.SaveJobTitle(JobTitleInput.Text);
             _profile.SaveAzureOpenAI(MicrosoftAiEndpointInput.Text, MicrosoftAiDeploymentInput.Text);
             _profile.SaveSpotifyClientId(SpotifyClientIdInput.Text);
             var mediaProvider = (MediaProviderInput.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Spotify";

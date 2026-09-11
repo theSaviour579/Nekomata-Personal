@@ -14,6 +14,10 @@
                        TextWrapping="Wrap" Margin="0,6,0,20" Foreground="{DynamicResource NekoMutedTextBrush}"/>
             <TextBlock Text="YOUR NAME" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,0,0,6"/>
             <TextBox x:Name="NameInput" FontSize="17" Padding="12,8" MaxLength="80"/>
+            <TextBlock Text="JOB TITLE" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
+            <TextBox x:Name="JobTitleInput" FontSize="17" Padding="12,8" MaxLength="120"/>
+            <TextBlock Text="Used to tailor Value goals to your own role. Leave blank to use the job title from your connected Microsoft 365 profile."
+                       TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
             <TextBlock Text="OPENAI API KEY" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
             <PasswordBox x:Name="OpenAiKeyInput" FontSize="16" Padding="12,8"/>
             <TextBlock Text="Leave blank to keep the current key. A new key replaces it securely in Windows Credential Manager."

@@ -48,8 +48,9 @@ public sealed class MicrosoftTasksWorkspaceDataSource(IMicrosoftTaskService task
         {
             Connected = true,
             LastSuccessfulSync = DateTime.Now,
-            Status = $"Connected · {imported.ToDoTasks.Count} To Do · {imported.PlannerTasks.Count} Planner" +
-                (imported.ExcludedSharedLists > 0 ? $" · {imported.ExcludedSharedLists} To Do lists excluded: personal ownership cannot be verified" : ""),
+            Status = $"Connected · {imported.ToDoTasks.Count} personal To Do · {imported.PlannerTasks.Count} assigned Planner" +
+                (imported.ExcludedSharedLists > 0 ? $" · {imported.ExcludedSharedLists} shared/unverifiable To Do lists excluded" : "") +
+                (imported.ExcludedFlaggedEmailLists > 0 ? " · Flagged email tasks excluded" : ""),
             RecordsLoaded = snapshot.IntegrationMissions.Count
         };
         return snapshot;

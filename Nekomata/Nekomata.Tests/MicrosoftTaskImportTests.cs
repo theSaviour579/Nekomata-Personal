@@ -28,7 +28,7 @@ public sealed class MicrosoftTaskImportTests
     }
 
     [Fact]
-    public async Task Import_FollowsPlannerPagesAndExcludesCompletedItems()
+    public async Task Import_TrustsAssignedPlannerEndpointAndExcludesCompletedItems()
     {
         using var http = new HttpClient(new PagedHandler())
         { BaseAddress = new Uri("https://graph.microsoft.com/v1.0/") };
@@ -41,17 +41,17 @@ public sealed class MicrosoftTaskImportTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var json = request.RequestUri!.AbsolutePath.EndsWith("/me") ? """{"id":"self"}""" : request.RequestUri!.AbsolutePath.EndsWith("todo/lists") ? "{\"value\":[]}" :
+            var json = request.RequestUri!.AbsolutePath.EndsWith("todo/lists") ? "{\"value\":[]}" :
                 request.RequestUri.Query.Length == 0
-                    ? """{"value":[{"id":"1","title":"First","assignments":{"self":{}}}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/planner/tasks?page=2"}"""
-                    : """{"value":[{"id":"2","title":"Second","assignments":{"self":{},"other":{}}},{"id":"unassigned","title":"Unassigned","assignments":{}},{"id":"other","title":"Other","assignments":{"other":{}}},{"id":"missing","title":"Missing"},{"id":"removed","title":"Removed","assignments":{"self":null}},{"id":"3","title":"Done","percentComplete":100,"assignments":{"self":{}}}]}""";
+                    ? """{"value":[{"id":"1","title":"First"}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/planner/tasks?page=2"}"""
+                    : """{"value":[{"id":"2","title":"Second","assignments":{}},{"id":"3","title":"Done","percentComplete":100}]}""";
             return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
             { Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") });
         }
     }
 
     [Fact]
-    public async Task Import_ExcludesSharedListsEvenWhenOwnedByUser()
+    public async Task Import_ExcludesSharedAndFlaggedEmailLists()
     {
         using var http = new HttpClient(new SharedListsHandler())
         { BaseAddress = new Uri("https://graph.microsoft.com/v1.0/") };
@@ -59,6 +59,7 @@ public sealed class MicrosoftTaskImportTests
             .GetOpenTasksAsync(TestContext.Current.CancellationToken);
         Assert.Equal("Personal", Assert.Single(snapshot.ToDoTasks).Title);
         Assert.Equal(4, snapshot.ExcludedSharedLists);
+        Assert.Equal(1, snapshot.ExcludedFlaggedEmailLists);
     }
 
     private sealed class SharedListsHandler : HttpMessageHandler
@@ -67,10 +68,10 @@ public sealed class MicrosoftTaskImportTests
         {
             var json = request.RequestUri!.AbsolutePath switch
             {
-                "/v1.0/me" => """{"id":"self"}""",
                 "/v1.0/me/todo/lists" => """
                     {"value":[
                         {"id":"personal","isOwner":true,"isShared":false},
+                        {"id":"flagged","isOwner":true,"isShared":false,"wellknownListName":"flaggedEmails"},
                         {"id":"shared-owned","isOwner":true,"isShared":true},
                         {"id":"shared-other","isOwner":false,"isShared":true},
                         {"id":"other","isOwner":false,"isShared":false},

@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using Nekomata.Models.Analytics;
 
 namespace Nekomata.UI.Services;
 
@@ -16,6 +17,9 @@ public sealed record PersonalProfile
     public string AzureOpenAIDeployment { get; init; } = string.Empty;
     public string ConversationProvider { get; init; } = "Automatic";
     public bool CopilotWebSearchEnabled { get; init; }
+    public string JobTitle { get; init; } = string.Empty;
+    public string JobTitleSource { get; init; } = "Manual";
+    public PersonalRoleProfile? RoleProfile { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
@@ -58,11 +62,28 @@ public sealed class PersonalProfileService
             AzureOpenAIDeployment = Current.AzureOpenAIDeployment,
             ConversationProvider = Current.ConversationProvider,
             CopilotWebSearchEnabled = Current.CopilotWebSearchEnabled,
+            JobTitle = Current.JobTitle,
+            JobTitleSource = Current.JobTitleSource,
+            RoleProfile = Current.RoleProfile,
             CreatedAt = Current.CreatedAt
         };
 
         Directory.CreateDirectory(Path.GetDirectoryName(_profilePath)!);
         File.WriteAllText(_profilePath, JsonSerializer.Serialize(Current, JsonOptions));
+    }
+
+    public void SaveJobTitle(string jobTitle)
+    {
+        jobTitle = jobTitle.Trim();
+        var keepGoals = string.Equals(jobTitle, Current.JobTitle, StringComparison.OrdinalIgnoreCase);
+        Current = Current with { JobTitle = jobTitle, JobTitleSource = "Manual", RoleProfile = keepGoals ? Current.RoleProfile : null };
+        Persist();
+    }
+
+    public void SaveRoleProfile(PersonalRoleProfile roleProfile)
+    {
+        Current = Current with { JobTitle = roleProfile.JobTitle, JobTitleSource = roleProfile.Source, RoleProfile = roleProfile };
+        Persist();
     }
 
     public void SaveSpotifyArrivalPlaylist(string playlistUri)

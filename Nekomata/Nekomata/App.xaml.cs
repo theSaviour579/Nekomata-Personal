@@ -96,6 +96,8 @@ public partial class App : Application
                 services.AddSingleton<StartupRegistrationService>();
                 services.AddSingleton<UpdateCheckService>();
                 services.AddSingleton<PersonalProfileService>();
+                services.AddSingleton<PersonalRoleProfileService>();
+                services.AddSingleton<PersonalValueService>();
                 services.AddSingleton<IUserIdentity, PersonalUserIdentity>();
                 services.AddSingleton<PersonalSecretService>();
                 services.AddSingleton<PersonalBackupService>();
@@ -175,6 +177,7 @@ public partial class App : Application
                 services.AddSingleton<GuardianMissionDecisionBuilder>();
 
                 services.AddSingleton<MissionSimulationEngine>();
+                services.AddSingleton<GuardianDayScenarioEngine>();
                 services.AddSingleton<IMissionOverrideService,
     MissionOverrideService>();
 

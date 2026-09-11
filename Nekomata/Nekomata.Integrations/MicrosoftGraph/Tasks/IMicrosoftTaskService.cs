@@ -11,6 +11,7 @@ public sealed record MicrosoftTaskSnapshot(
     IReadOnlyList<MicrosoftTaskItem> PlannerTasks)
 {
     public int ExcludedSharedLists { get; init; }
+    public int ExcludedFlaggedEmailLists { get; init; }
 }
 
 public sealed record MicrosoftTaskItem(
