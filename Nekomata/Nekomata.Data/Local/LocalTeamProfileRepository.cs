@@ -17,6 +17,9 @@ public sealed class LocalTeamProfileRepository(LocalWorkspaceStore store) : ITea
         return profile.Id;
     });
 
+    public async Task DeleteAsync(long id) =>
+        _ = await store.UpdateAsync(data => data.TeamMembers.RemoveAll(x => x.Id == id));
+
     private static TeamMemberProfile Clone(TeamMemberProfile value) => new()
     {
         Id = value.Id, ExternalId = value.ExternalId, Name = value.Name, Email = value.Email, Role = value.Role,

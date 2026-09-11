@@ -15,7 +15,7 @@ public partial class TeamSkillsViewModel(ITeamProfileRepository repository, IMic
     public string[] AvailabilityOptions { get; } = ["Available", "Limited", "Unavailable", "Leave"];
     [ObservableProperty] private TeamMemberProfile? selectedMember;
     [ObservableProperty] private TeamMemberSkill? selectedSkill;
-    [ObservableProperty] private string status = "Sync relevant colleagues from Microsoft 365 or add a profile manually.";
+    [ObservableProperty] private string status = "Sync your direct reports from Microsoft 365 or add a profile manually.";
     [ObservableProperty] private bool busy;
 
     public async Task LoadAsync()
@@ -45,10 +45,10 @@ public partial class TeamSkillsViewModel(ITeamProfileRepository repository, IMic
     private async Task SyncMicrosoft365Async()
     {
         if (Busy) return;
-        Busy = true; Status = "Reading relevant colleagues and job titles from Microsoft 365…";
+        Busy = true; Status = "Reading your direct reports and their job titles from Microsoft 365…";
         try
         {
-            var discovered = await people.GetRelevantPeopleAsync();
+            var discovered = await people.GetDirectReportsAsync();
             var saved = (await repository.GetAllAsync()).ToList();
             var now = DateTimeOffset.Now;
             var added = 0;
@@ -62,8 +62,15 @@ public partial class TeamSkillsViewModel(ITeamProfileRepository repository, IMic
                 member.Source = "Microsoft 365"; member.LastSyncedAt = now;
                 await repository.SaveAsync(member);
             }
+            var directReportKeys = discovered.Select(x => x.Id).Where(x => x.Length > 0).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var directReportEmails = discovered.Select(x => x.Email).Where(x => x.Length > 0).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var stale in saved.Where(x => x.Source == "Microsoft 365" &&
+                         !directReportKeys.Contains(x.ExternalId) && !directReportEmails.Contains(x.Email)).ToList())
+                await repository.DeleteAsync(stale.Id);
             await LoadAsync();
-            Status = $"Microsoft 365 sync complete · {discovered.Count} relevant colleague(s) · {added} new profile(s). Skills and availability remain editable.";
+            Status = discovered.Count == 0
+                ? "Microsoft 365 returned no direct reports. Previously imported people were removed; manual profiles remain."
+                : $"Microsoft 365 sync complete · {discovered.Count} direct report(s) · {added} new profile(s). Skills and availability remain editable.";
         }
         catch (Exception ex) { Status = "Microsoft 365 team sync could not complete: " + ex.Message; }
         finally { Busy = false; }

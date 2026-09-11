@@ -4,5 +4,5 @@ public sealed record MicrosoftPerson(string Id, string DisplayName, string Email
 
 public interface IMicrosoftPeopleService
 {
-    Task<IReadOnlyList<MicrosoftPerson>> GetRelevantPeopleAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MicrosoftPerson>> GetDirectReportsAsync(CancellationToken cancellationToken = default);
 }

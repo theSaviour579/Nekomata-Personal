@@ -59,6 +59,19 @@ public sealed class LocalWorkspaceRepositoryTests : IDisposable
         Assert.Equal("Planning", Assert.Single(restored.Skills).Name);
     }
 
+    [Fact]
+    public async Task Team_repository_can_remove_people_no_longer_returned_by_Microsoft()
+    {
+        var repository = new LocalTeamProfileRepository(new LocalWorkspaceStore(Path.Combine(_directory, "team-cleanup.json")));
+        var oldId = await repository.SaveAsync(new TeamMemberProfile { ExternalId = "old", Name = "Old colleague", Source = "Microsoft 365" });
+        await repository.SaveAsync(new TeamMemberProfile { Name = "Manual colleague", Source = "Manual" });
+
+        await repository.DeleteAsync(oldId);
+
+        var remaining = Assert.Single(await repository.GetAllAsync());
+        Assert.Equal("Manual colleague", remaining.Name);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
