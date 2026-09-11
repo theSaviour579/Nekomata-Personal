@@ -50,7 +50,7 @@ public class BriefingEngine : IBriefingEngine
                 today);
 
         var openTasks =
-            workspace.Tasks
+            Nekomata.Core.Workspace.WorkspaceTaskSummary.GetTasks(workspace)
                 .Where(IsOpen)
                 .ToList();
 
