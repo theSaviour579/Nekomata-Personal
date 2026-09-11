@@ -41,10 +41,46 @@ public sealed class MicrosoftTaskImportTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var json = request.RequestUri!.AbsolutePath.EndsWith("todo/lists") ? "{\"value\":[]}" :
+            var json = request.RequestUri!.AbsolutePath.EndsWith("/me") ? """{"id":"self"}""" : request.RequestUri!.AbsolutePath.EndsWith("todo/lists") ? "{\"value\":[]}" :
                 request.RequestUri.Query.Length == 0
-                    ? """{"value":[{"id":"1","title":"First"}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/planner/tasks?page=2"}"""
-                    : """{"value":[{"id":"2","title":"Second"},{"id":"3","title":"Done","percentComplete":100}]}""";
+                    ? """{"value":[{"id":"1","title":"First","assignments":{"self":{}}}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/planner/tasks?page=2"}"""
+                    : """{"value":[{"id":"2","title":"Second","assignments":{"self":{},"other":{}}},{"id":"unassigned","title":"Unassigned","assignments":{}},{"id":"other","title":"Other","assignments":{"other":{}}},{"id":"missing","title":"Missing"},{"id":"removed","title":"Removed","assignments":{"self":null}},{"id":"3","title":"Done","percentComplete":100,"assignments":{"self":{}}}]}""";
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            { Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") });
+        }
+    }
+
+    [Fact]
+    public async Task Import_ExcludesSharedListsEvenWhenOwnedByUser()
+    {
+        using var http = new HttpClient(new SharedListsHandler())
+        { BaseAddress = new Uri("https://graph.microsoft.com/v1.0/") };
+        var snapshot = await new MicrosoftTaskService(http, new TestAuthentication())
+            .GetOpenTasksAsync(TestContext.Current.CancellationToken);
+        Assert.Equal("Personal", Assert.Single(snapshot.ToDoTasks).Title);
+        Assert.Equal(4, snapshot.ExcludedSharedLists);
+    }
+
+    private sealed class SharedListsHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var json = request.RequestUri!.AbsolutePath switch
+            {
+                "/v1.0/me" => """{"id":"self"}""",
+                "/v1.0/me/todo/lists" => """
+                    {"value":[
+                        {"id":"personal","isOwner":true,"isShared":false},
+                        {"id":"shared-owned","isOwner":true,"isShared":true},
+                        {"id":"shared-other","isOwner":false,"isShared":true},
+                        {"id":"other","isOwner":false,"isShared":false},
+                        {"id":"unknown"}
+                    ]}
+                    """,
+                "/v1.0/me/todo/lists/personal/tasks" => """{"value":[{"id":"1","title":"Personal"}]}""",
+                "/v1.0/me/planner/tasks" => """{"value":[]}""",
+                _ => throw new InvalidOperationException("Must not fetch tasks from shared or unverifiable lists.")
+            };
             return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
             { Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") });
         }
