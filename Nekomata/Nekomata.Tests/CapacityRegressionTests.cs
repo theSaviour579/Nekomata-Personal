@@ -9,6 +9,26 @@ namespace Nekomata.Tests;
 public sealed class CapacityRegressionTests
 {
     [Fact]
+    public void User_working_hours_and_lunch_define_daily_working_minutes()
+    {
+        var settings = new WorkingDaySettings
+        {
+            StartTime = new TimeSpan(8, 30, 0),
+            EndTime = new TimeSpan(17, 0, 0),
+            IncludeLunchBreak = true,
+            LunchStartTime = new TimeSpan(12, 15, 0),
+            LunchDurationMinutes = 45
+        };
+        var workspace = new NekomataWorkspace();
+
+        new CapacityEngine(settings).Calculate(workspace);
+
+        Assert.Equal(465, workspace.Capacity.WorkingMinutesToday);
+        Assert.Equal(DateTime.Today.AddHours(8.5), workspace.Capacity.WorkdayStart);
+        Assert.Equal(DateTime.Today.AddHours(17), workspace.Capacity.WorkdayEnd);
+    }
+
+    [Fact]
     public void Utilisation_includes_calendar_bookings()
     {
         var capacity = new CapacitySummary

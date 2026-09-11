@@ -11,6 +11,18 @@ public class GuardianRecommendationService
     public GuardianDashboardRecommendation? GetTopRecommendation(
         NekomataWorkspace workspace)
     {
+        // Ranked candidates already combine local work with connected sources.
+        // Use that authoritative list so assigned Microsoft tasks can appear on
+        // the dashboard even when the user has no locally-created tasks.
+        var rankedRecommendation = workspace.RankedMissionCandidates
+            .Where(candidate => candidate.IsActionable && !candidate.IsOnHold)
+            .OrderBy(candidate => candidate.Rank <= 0 ? int.MaxValue : candidate.Rank)
+            .ThenByDescending(candidate => candidate.Score)
+            .Select(BuildMissionRecommendation)
+            .FirstOrDefault();
+        if (rankedRecommendation is not null)
+            return rankedRecommendation;
+
         var projectRecommendations = workspace.Projects
             .Where(project =>
                 !string.Equals(
@@ -33,6 +45,22 @@ public class GuardianRecommendationService
             .ThenByDescending(item => item.BusinessValue)
             .FirstOrDefault();
     }
+
+    private static GuardianDashboardRecommendation BuildMissionRecommendation(Nekomata.Models.Missions.MissionCandidate candidate) => new()
+    {
+        ProjectId = candidate.ProjectId,
+        TaskId = candidate.TaskId,
+        Title = candidate.Title,
+        Reason = candidate.RecommendationReason,
+        RecommendationType = candidate.SourceType,
+        Score = candidate.Score,
+        BusinessValue = candidate.BusinessValue,
+        EstimatedMinutes = candidate.EstimatedMinutes,
+        Priority = candidate.Priority,
+        DueAt = candidate.DueAt,
+        AtRisk = candidate.AtRisk,
+        ProgressPercent = (int)Math.Round(Math.Clamp(candidate.Progress, 0, 1) * 100)
+    };
 
     private static GuardianDashboardRecommendation BuildProjectRecommendation(
         NekomataProject project)

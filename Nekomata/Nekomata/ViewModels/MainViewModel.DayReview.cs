@@ -55,8 +55,12 @@ public partial class MainViewModel
             if (_dayReviewLoading || DayReviewVisible || IsInitialLoading || MissionActive ||
                 DateTime.Today.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ||
                 CalendarEvents.Any(x => x.Start <= DateTimeOffset.Now && x.End > DateTimeOffset.Now)) return;
-            var end = _services.GetRequiredService<WorkingDaySettings>().GetEnd(DateTime.Today);
-            if (DateTime.Now < end.AddMinutes(-15) || File.Exists(DayReviewDismissedPath)) return;
+            var profile = _personalProfile.Current;
+            var settings = _services.GetRequiredService<WorkingDaySettings>();
+            var wrapUpAt = profile.WorkScheduleConfigured
+                ? DateTime.Today.Add(profile.WrapUpTime)
+                : settings.GetEnd(DateTime.Today).AddMinutes(-15);
+            if (DateTime.Now < wrapUpAt || File.Exists(DayReviewDismissedPath)) return;
             if (CanPresentRoutinePrompt(Nekomata.Core.Guardian.Anticipation.GuardianPromptKind.WrapUp)) _ = ShowDayReviewSafelyAsync();
         }
         catch (Exception ex)

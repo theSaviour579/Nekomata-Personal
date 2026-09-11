@@ -9,5 +9,6 @@ public enum WorkspaceMode
     Attention,
     HaloWatchlist,
     Battle,
-    Diagnostics
+    Diagnostics,
+    ValueLeverage
 }

@@ -89,9 +89,12 @@ public partial class MainViewModel
             await ReconcilePersonalWorkAsync();
             await CheckPersonalMeetingBriefAsync();
             var now=DateTime.Now; var hours=_services.GetRequiredService<WorkingDaySettings>();
-            if(now.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday || now<hours.GetStart(now) || now>=hours.GetEnd(now)) return;
-            if(!_checklist!.Presented && now.Hour<12 && CanPresentRoutinePrompt(GuardianPromptKind.Preflight)) ShowMorningPreflight();
+            if(now.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) return;
+            if(now>=hours.GetStart(now)) await TrySendDailyBriefingEmailAsync();
+            if(now<hours.GetStart(now)) return;
             EvaluateEndOfDayReview();
+            if(now>=hours.GetEnd(now)) return;
+            if(!_checklist!.Presented && now.Hour<12 && CanPresentRoutinePrompt(GuardianPromptKind.Preflight)) ShowMorningPreflight();
             CheckNextAction();
             await CheckPersonalFollowupsAsync();
         }catch(Exception ex){System.Diagnostics.Debug.WriteLine("Personal autonomy unavailable: "+ex);}

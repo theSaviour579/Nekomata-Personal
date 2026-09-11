@@ -22,12 +22,18 @@ public partial class MainViewModel
     [RelayCommand]
     private void EditPersonalSettings()
     {
-        var window = new PersonalSettingsWindow(_personalProfile, _services.GetRequiredService<PersonalSecretService>(), _services.GetRequiredService<Nekomata.Integrations.MicrosoftGraph.Copilot.CopilotChatService>())
+        var window = new PersonalSettingsWindow(
+            _personalProfile,
+            _services.GetRequiredService<PersonalSecretService>(),
+            _services.GetRequiredService<Nekomata.Integrations.MicrosoftGraph.Copilot.CopilotChatService>(),
+            _services.GetRequiredService<Nekomata.Models.Planning.WorkingDaySettings>())
         {
             Owner = Application.Current.MainWindow
         };
         if (window.ShowDialog() != true) return;
         ApplyPersonalProfile();
+        RefreshTimeAwareCapacity();
+        _ = RefreshCalendarAwareObjectiveAsync();
         _ = NormalizeLegacyPersonalNamesAsync();
         OnPropertyChanged(nameof(PersonalDisplayName));
         OnPropertyChanged(nameof(OpenAiKeyStatus));

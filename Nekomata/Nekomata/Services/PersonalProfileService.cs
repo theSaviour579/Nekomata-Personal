@@ -1,5 +1,7 @@
 using System.IO;
 using System.Text.Json;
+using Nekomata.Models.Analytics;
+using Nekomata.Models.Planning;
 
 namespace Nekomata.UI.Services;
 
@@ -11,11 +13,23 @@ public sealed record PersonalProfile
     public string SpotifyClientId { get; init; } = string.Empty;
     public string PreferredMediaProvider { get; init; } = "Spotify";
     public string YouTubeMusicUrl { get; init; } = "https://music.youtube.com";
+    public string AppleMusicUrl { get; init; } = "https://music.apple.com";
     public string RadioStationUrl { get; init; } = string.Empty;
     public string AzureOpenAIEndpoint { get; init; } = string.Empty;
     public string AzureOpenAIDeployment { get; init; } = string.Empty;
     public string ConversationProvider { get; init; } = "Automatic";
     public bool CopilotWebSearchEnabled { get; init; }
+    public string JobTitle { get; init; } = string.Empty;
+    public string JobTitleSource { get; init; } = "Manual";
+    public PersonalRoleProfile? RoleProfile { get; init; }
+    public bool WorkScheduleConfigured { get; init; }
+    public TimeSpan WorkdayStart { get; init; }
+    public TimeSpan WorkdayEnd { get; init; }
+    public bool IncludeLunchBreak { get; init; } = true;
+    public TimeSpan LunchStart { get; init; }
+    public TimeSpan LunchEnd { get; init; }
+    public TimeSpan WrapUpTime { get; init; }
+    public bool EmailBriefingEnabled { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
@@ -53,16 +67,101 @@ public sealed class PersonalProfileService
             SpotifyClientId = Current.SpotifyClientId,
             PreferredMediaProvider = Current.PreferredMediaProvider,
             YouTubeMusicUrl = Current.YouTubeMusicUrl,
+            AppleMusicUrl = Current.AppleMusicUrl,
             RadioStationUrl = Current.RadioStationUrl,
             AzureOpenAIEndpoint = Current.AzureOpenAIEndpoint,
             AzureOpenAIDeployment = Current.AzureOpenAIDeployment,
             ConversationProvider = Current.ConversationProvider,
             CopilotWebSearchEnabled = Current.CopilotWebSearchEnabled,
+            JobTitle = Current.JobTitle,
+            JobTitleSource = Current.JobTitleSource,
+            RoleProfile = Current.RoleProfile,
+            WorkScheduleConfigured = Current.WorkScheduleConfigured,
+            WorkdayStart = Current.WorkdayStart,
+            WorkdayEnd = Current.WorkdayEnd,
+            IncludeLunchBreak = Current.IncludeLunchBreak,
+            LunchStart = Current.LunchStart,
+            LunchEnd = Current.LunchEnd,
+            WrapUpTime = Current.WrapUpTime,
+            EmailBriefingEnabled = Current.EmailBriefingEnabled,
             CreatedAt = Current.CreatedAt
         };
 
         Directory.CreateDirectory(Path.GetDirectoryName(_profilePath)!);
         File.WriteAllText(_profilePath, JsonSerializer.Serialize(Current, JsonOptions));
+    }
+
+    public void SaveJobTitle(string jobTitle)
+    {
+        jobTitle = jobTitle.Trim();
+        var keepGoals = string.Equals(jobTitle, Current.JobTitle, StringComparison.OrdinalIgnoreCase);
+        Current = Current with { JobTitle = jobTitle, JobTitleSource = "Manual", RoleProfile = keepGoals ? Current.RoleProfile : null };
+        Persist();
+    }
+
+    public void SaveRoleProfile(PersonalRoleProfile roleProfile)
+    {
+        Current = Current with { JobTitle = roleProfile.JobTitle, JobTitleSource = roleProfile.Source, RoleProfile = roleProfile };
+        Persist();
+    }
+
+    public WorkingDaySettings CreateWorkingDaySettings()
+    {
+        var profile = Current;
+        return profile.WorkScheduleConfigured
+            ? new WorkingDaySettings
+            {
+                StartTime = profile.WorkdayStart,
+                EndTime = profile.WorkdayEnd,
+                IncludeLunchBreak = profile.IncludeLunchBreak,
+                LunchStartTime = profile.LunchStart,
+                LunchDurationMinutes = profile.IncludeLunchBreak
+                    ? Math.Max(0, (int)(profile.LunchEnd - profile.LunchStart).TotalMinutes)
+                    : 0
+            }
+            : new WorkingDaySettings();
+    }
+
+    public void SaveWorkSchedule(
+        TimeSpan workdayStart,
+        TimeSpan workdayEnd,
+        bool includeLunchBreak,
+        TimeSpan lunchStart,
+        TimeSpan lunchEnd,
+        TimeSpan wrapUpTime,
+        bool emailBriefingEnabled)
+    {
+        if (workdayStart < TimeSpan.Zero || workdayStart >= TimeSpan.FromDays(1) ||
+            workdayEnd <= workdayStart || workdayEnd > TimeSpan.FromDays(1))
+            throw new ArgumentException("Working hours must have a valid start and a later finish time.");
+        if (includeLunchBreak &&
+            (lunchStart < workdayStart || lunchEnd <= lunchStart || lunchEnd > workdayEnd))
+            throw new ArgumentException("Lunch must start and finish within your working hours.");
+        if (wrapUpTime < workdayStart || wrapUpTime > workdayEnd)
+            throw new ArgumentException("Choose a wrap-up time within your working hours.");
+
+        Current = Current with
+        {
+            WorkScheduleConfigured = true,
+            WorkdayStart = workdayStart,
+            WorkdayEnd = workdayEnd,
+            IncludeLunchBreak = includeLunchBreak,
+            LunchStart = includeLunchBreak ? lunchStart : TimeSpan.Zero,
+            LunchEnd = includeLunchBreak ? lunchEnd : TimeSpan.Zero,
+            WrapUpTime = wrapUpTime,
+            EmailBriefingEnabled = emailBriefingEnabled
+        };
+        Persist();
+    }
+
+    public void ApplyWorkSchedule(WorkingDaySettings settings)
+    {
+        var configured = CreateWorkingDaySettings();
+        settings.StartTime = configured.StartTime;
+        settings.EndTime = configured.EndTime;
+        settings.IncludeLunchBreak = configured.IncludeLunchBreak;
+        settings.LunchStartTime = configured.LunchStartTime;
+        settings.LunchDurationMinutes = configured.LunchDurationMinutes;
     }
 
     public void SaveSpotifyArrivalPlaylist(string playlistUri)
@@ -79,19 +178,23 @@ public sealed class PersonalProfileService
         File.WriteAllText(_profilePath, JsonSerializer.Serialize(Current, JsonOptions));
     }
 
-    public void SaveMediaPreference(string provider, string youtubeMusicUrl, string radioStationUrl)
+    public void SaveMediaPreference(string provider, string youtubeMusicUrl, string appleMusicUrl, string radioStationUrl)
     {
         provider = provider.Trim();
-        if (provider is not ("Spotify" or "YouTube Music" or "Radio"))
-            throw new ArgumentException("Choose Spotify, YouTube Music or Radio.");
+        if (provider is not ("Spotify" or "Apple Music" or "YouTube Music" or "Radio"))
+            throw new ArgumentException("Choose Spotify, Apple Music, YouTube Music or Radio.");
         youtubeMusicUrl = ValidateMediaUrl(youtubeMusicUrl, "YouTube Music", required: provider == "YouTube Music");
+        appleMusicUrl = ValidateMediaUrl(appleMusicUrl, "Apple Music", required: provider == "Apple Music");
         radioStationUrl = ValidateMediaUrl(radioStationUrl, "radio station", required: provider == "Radio");
         if (youtubeMusicUrl.Length > 0 && !new Uri(youtubeMusicUrl).Host.Equals("music.youtube.com", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("The YouTube Music link must use music.youtube.com.");
+        if (appleMusicUrl.Length > 0 && !new Uri(appleMusicUrl).Host.Equals("music.apple.com", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("The Apple Music link must use music.apple.com.");
         Current = Current with
         {
             PreferredMediaProvider = provider,
             YouTubeMusicUrl = youtubeMusicUrl,
+            AppleMusicUrl = appleMusicUrl,
             RadioStationUrl = radioStationUrl
         };
         Persist();

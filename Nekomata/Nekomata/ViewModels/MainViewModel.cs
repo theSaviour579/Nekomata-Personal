@@ -217,10 +217,10 @@ public partial class MainViewModel : ObservableObject
 
         Workspace = updatedWorkspace;
 
-        // A rebuilt workspace contains its ranked default mission. Hide that
-        // default until the live calendar has confirmed it is actionable.
+        // Show the ranked default immediately. The calendar refresh can then
+        // promote it into the current free window or explain when it can run.
         if (!MissionActive)
-            ClearCalendarObjective();
+            ShowTopRankedObjective("Guardian is checking the live calendar before suggesting when to start it.");
 
         HandleUrgentHaloAlerts(updatedWorkspace);
         HandleKnowBe4Alerts(updatedWorkspace);

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Nekomata.Core.Analytics.Capacity;
+using Nekomata.Core.Missions;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
@@ -102,7 +103,7 @@ public partial class MainViewModel
             if (now < workStart || now >= workEnd ||
                 now.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
             {
-                ClearCalendarObjective();
+                ShowTopRankedObjective("This is your highest-ranked available task. It is ready for the next working window.");
                 return;
             }
 
@@ -155,6 +156,7 @@ public partial class MainViewModel
                     TaskId = candidate.TaskId,
                     ProjectId = candidate.ProjectId,
                     SourceType = candidate.SourceType,
+                    SourceRecordId = candidate.SourceRecordId,
                     Title = IsPlannedFocusBlock(activeEvent)
                         ? CleanCalendarObjectiveTitle(activeEvent!.Subject)
                         : candidate.Title,
@@ -187,7 +189,7 @@ public partial class MainViewModel
                 }
                 else
                 {
-                    ClearCalendarObjective();
+                    ShowTopRankedObjective("This is your highest-ranked available task, but it does not fit the current free calendar window.");
                 }
                 return;
             }
@@ -198,7 +200,7 @@ public partial class MainViewModel
         }
         catch (Exception ex)
         {
-            ClearCalendarObjective();
+            ShowTopRankedObjective("This is your highest-ranked available task. Calendar availability could not be checked just now.");
             System.Diagnostics.Debug.WriteLine($"Calendar-aware objective refresh failed: {ex}");
         }
     }
@@ -225,14 +227,44 @@ public partial class MainViewModel
 
     private void SetActiveMeetingContext(CalendarEvent activeMeeting, CalendarEvent? nextEvent)
     {
-        ClearCalendarObjective();
+        var hasRankedObjective = ShowTopRankedObjective(
+            "This is your highest-ranked available task for after the current meeting.");
         var meetingTitle = CleanCalendarObjectiveTitle(activeMeeting.Subject);
         Workspace.Briefing.Headline = $"You are currently in {meetingTitle}.";
-        Workspace.Briefing.GuardianComment = nextEvent is null
+        var calendarComment = nextEvent is null
             ? $"You are currently in {meetingTitle} until {activeMeeting.End:HH:mm}. No further block is scheduled today."
             : $"You are currently in {meetingTitle} until {activeMeeting.End:HH:mm}. " +
               $"Your next block is for {CleanCalendarObjectiveTitle(nextEvent.Subject)} at {nextEvent.Start:HH:mm}.";
+        Workspace.Briefing.GuardianComment = hasRankedObjective
+            ? $"{calendarComment} Your next ranked objective is '{Workspace.Briefing.ObjectiveTitle}'."
+            : calendarComment;
         OnPropertyChanged(nameof(Workspace));
+    }
+
+    private bool ShowTopRankedObjective(string availabilityMessage)
+    {
+        var candidate = Workspace.RankedMissionCandidates
+            .Where(item => item.IsActionable && !item.IsOnHold && !item.IsAwaitingExternalResponse)
+            .OrderByDescending(item => item.RequiresImmediateAttention)
+            .ThenBy(item => item.Rank)
+            .ThenByDescending(item => item.Score)
+            .FirstOrDefault();
+
+        if (candidate is null)
+        {
+            ClearCalendarObjective();
+            return false;
+        }
+
+        var mission = _services.GetRequiredService<IMissionFactory>().Create(candidate);
+        mission.Status = "RANKED";
+        Workspace.CurrentMission = mission;
+        SyncBriefingObjective(mission);
+        CalendarObjectiveAvailable = false;
+        Workspace.Briefing.Headline = $"Next ranked objective: {mission.Title}.";
+        Workspace.Briefing.GuardianComment = availabilityMessage;
+        OnPropertyChanged(nameof(Workspace));
+        return true;
     }
 
     private void ClearCalendarObjective()
@@ -257,8 +289,13 @@ public partial class MainViewModel
         briefing.ObjectiveStartBefore = null;
         briefing.ObjectiveTaskId = null;
         briefing.ObjectiveProjectId = null;
-        briefing.Headline = "No objective is currently available in the calendar plan.";
-        briefing.GuardianComment = "Guardian will show the next task when an applicable free window begins.";
+        var available = Workspace.RankedMissionCandidates.Count(candidate => candidate.IsActionable && !candidate.IsOnHold);
+        briefing.Headline = available > 0
+            ? "No objective is scheduled in the current calendar window."
+            : "No objective is currently available in the calendar plan.";
+        briefing.GuardianComment = available > 0
+            ? $"{available} ranked work item{(available == 1 ? " is" : "s are")} available. Open What If or Plan to schedule the next block."
+            : "Guardian will show the next task when an applicable free window begins.";
         OnPropertyChanged(nameof(HasBriefingObjective));
         OnPropertyChanged(nameof(Workspace));
     }

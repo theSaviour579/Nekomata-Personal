@@ -1,12 +1,25 @@
-﻿<UserControl x:Class="Nekomata.UI.Views.AnalyticsView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Nekomata.UI.Views"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
-    </Grid>
+<UserControl x:Class="Nekomata.UI.Views.AnalyticsView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <StackPanel>
+  <Grid Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <StackPanel><TextBlock Text="VALUE" Style="{DynamicResource NekoTitleText}"/><TextBlock Text="See whether your recorded work supports the outcomes expected in your role." Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel>
+   <StackPanel Grid.Column="1" Orientation="Horizontal"><Button Content="REFRESH" Command="{Binding RefreshValueLeverageCommand}" Margin="0,0,8,0"/><Button Content="REBUILD ROLE GOALS" Command="{Binding RegenerateRoleGoalsCommand}" Background="{DynamicResource NekoSpiritPurpleBrush}"/></StackPanel>
+  </Grid>
+  <Border Background="{DynamicResource NekoCardGradientBrush}" BorderBrush="{DynamicResource NekoSpiritPurpleBrush}" BorderThickness="1" CornerRadius="18" Padding="20">
+   <StackPanel><DockPanel><StackPanel><TextBlock Text="ROLE SCOPE" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" FontSize="11"/><TextBlock Text="{Binding ValueLeverage.JobTitle, FallbackValue=Your role}" FontSize="25" FontWeight="SemiBold"/><TextBlock Text="{Binding ValueLeverage.PeriodLabel}" Foreground="{DynamicResource NekoMutedTextBrush}"/></StackPanel><TextBlock Text="{Binding ValueLeverageStatus}" MaxWidth="520" TextAlignment="Right" TextWrapping="Wrap" Foreground="{DynamicResource NekoMutedTextBrush}" HorizontalAlignment="Right"/></DockPanel>
+    <UniformGrid Columns="3" Margin="0,20,0,0">
+     <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="16" Margin="0,0,8,0"><StackPanel><TextBlock Text="RECORDED FOCUS" Foreground="{DynamicResource NekoMutedTextBrush}"/><TextBlock Text="{Binding ValueLeverage.FocusLabel, FallbackValue=0h 0m}" FontSize="27" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}"/></StackPanel></Border>
+     <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="16" Margin="4,0"><StackPanel><TextBlock Text="DELIVERED VALUE" Foreground="{DynamicResource NekoMutedTextBrush}"/><TextBlock Text="{Binding ValueLeverage.ValueLabel, FallbackValue=£0}" FontSize="27" FontWeight="Bold" Foreground="{DynamicResource NekoSuccessBrush}"/></StackPanel></Border>
+     <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="16" Margin="8,0,0,0"><StackPanel><TextBlock Text="ROLE ALIGNMENT" Foreground="{DynamicResource NekoMutedTextBrush}"/><TextBlock Text="{Binding ValueLeverage.AlignmentLabel, FallbackValue=0%}" FontSize="27" FontWeight="Bold" Foreground="{DynamicResource NekoSpiritPurpleBrush}"/></StackPanel></Border>
+    </UniformGrid>
+   </StackPanel>
+  </Border>
+  <Grid Margin="0,16,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
+   <Border Background="{DynamicResource NekoSurfaceBrush}" BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1" CornerRadius="16" Padding="18"><StackPanel><TextBlock Text="GOALS FOR THIS ROLE" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/><ItemsControl ItemsSource="{Binding ValueLeverage.Goals}"><ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource NekoBorderSoftBrush}" BorderThickness="0,0,0,1" Padding="0,13"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="{Binding Description}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,3,12,0"/></StackPanel><StackPanel Grid.Column="1" HorizontalAlignment="Right"><TextBlock Text="{Binding AllocationLabel}" Foreground="{DynamicResource NekoSpiritPurpleBrush}" HorizontalAlignment="Right"/><TextBlock Text="{Binding Status}" Foreground="{DynamicResource NekoMutedTextBrush}" HorizontalAlignment="Right" Margin="0,3,0,0"/></StackPanel></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+   <StackPanel Grid.Column="2">
+    <Border Background="{DynamicResource NekoSurfaceBrush}" BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1" CornerRadius="16" Padding="18"><StackPanel><TextBlock Text="GUIDANCE" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/><ItemsControl ItemsSource="{Binding ValueLeverage.Insights}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Margin="0,10,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+    <Border Background="{DynamicResource NekoSurfaceBrush}" BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1" CornerRadius="16" Padding="18" Margin="0,16,0,0"><StackPanel><TextBlock Text="RECENT RECORDED WORK" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/><ItemsControl ItemsSource="{Binding ValueLeverage.Episodes}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,10,0,0"><TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding Detail}" Foreground="{DynamicResource NekoMutedTextBrush}"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+   </StackPanel>
+  </Grid>
+ </StackPanel>
 </UserControl>

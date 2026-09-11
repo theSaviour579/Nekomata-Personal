@@ -14,6 +14,29 @@
                        TextWrapping="Wrap" Margin="0,6,0,20" Foreground="{DynamicResource NekoMutedTextBrush}"/>
             <TextBlock Text="YOUR NAME" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,0,0,6"/>
             <TextBox x:Name="NameInput" FontSize="17" Padding="12,8" MaxLength="80"/>
+            <TextBlock Text="JOB TITLE" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
+            <TextBox x:Name="JobTitleInput" FontSize="17" Padding="12,8" MaxLength="120"/>
+            <TextBlock Text="Used to tailor Value goals to your own role. Leave blank to use the job title from your connected Microsoft 365 profile."
+                       TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
+            <TextBlock Text="WORKING DAY" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
+            <TextBlock Text="These times drive capacity, free-window and working-time calculations. Use HH:mm."
+                       TextWrapping="Wrap" Margin="0,0,0,8" Foreground="{DynamicResource NekoMutedTextBrush}"/>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="START"/><TextBox x:Name="WorkStartInput" Padding="10,7" MaxLength="5"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="FINISH"/><TextBox x:Name="WorkEndInput" Padding="10,7" MaxLength="5"/></StackPanel>
+            </Grid>
+            <CheckBox x:Name="LunchChoice" Content="Protect a lunch break" Margin="0,14,0,7" Checked="LunchChoice_Changed" Unchecked="LunchChoice_Changed"/>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="LUNCH START"/><TextBox x:Name="LunchStartInput" Padding="10,7" MaxLength="5"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="LUNCH FINISH"/><TextBox x:Name="LunchEndInput" Padding="10,7" MaxLength="5"/></StackPanel>
+            </Grid>
+            <TextBlock Text="DAILY WRAP-UP POP-UP" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
+            <TextBox x:Name="WrapUpTimeInput" Padding="10,7" MaxLength="5" Width="150" HorizontalAlignment="Left"/>
+            <CheckBox x:Name="EmailBriefingChoice" Content="Email my daily briefing to my signed-in Microsoft mailbox" Margin="0,14,0,0"/>
+            <TextBlock Text="One briefing is sent per working day after your configured start time while Nekomata is running."
+                       TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{DynamicResource NekoMutedTextBrush}"/>
             <TextBlock Text="OPENAI API KEY" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
             <PasswordBox x:Name="OpenAiKeyInput" FontSize="16" Padding="12,8"/>
             <TextBlock Text="Leave blank to keep the current key. A new key replaces it securely in Windows Credential Manager."
@@ -46,14 +69,17 @@
             <TextBlock Text="PREFERRED MUSIC SOURCE" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
             <ComboBox x:Name="MediaProviderInput" FontSize="14" Padding="10,7">
                 <ComboBoxItem Content="Spotify"/>
+                <ComboBoxItem Content="Apple Music"/>
                 <ComboBoxItem Content="YouTube Music"/>
                 <ComboBoxItem Content="Radio"/>
             </ComboBox>
+            <TextBlock Text="APPLE MUSIC LINK" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
+            <TextBox x:Name="AppleMusicUrlInput" FontSize="14" Padding="12,8" ToolTip="A music.apple.com home, album or playlist link"/>
             <TextBlock Text="YOUTUBE MUSIC LINK" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
             <TextBox x:Name="YouTubeMusicUrlInput" FontSize="14" Padding="12,8" ToolTip="A music.youtube.com home, album or playlist link"/>
             <TextBlock Text="RADIO STATION LINK" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
             <TextBox x:Name="RadioStationUrlInput" FontSize="14" Padding="12,8" ToolTip="The station website or web player address"/>
-            <TextBlock Text="YouTube Music and radio open the saved page in your default browser. Spotify retains its connected playback controls. Nekomata never downloads or executes content from a saved link."
+            <TextBlock Text="Apple Music, YouTube Music and radio open the saved page in your default browser. Spotify retains its connected playback controls. Nekomata never downloads or executes content from a saved link."
                        TextWrapping="Wrap" Margin="0,5,0,14" Foreground="{DynamicResource NekoMutedTextBrush}"/>
         </StackPanel>
         </ScrollViewer>
