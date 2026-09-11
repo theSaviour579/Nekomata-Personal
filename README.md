@@ -16,7 +16,8 @@ If Nekomata Personal is useful to you, you can support its continued development
 - Spotify uses OAuth PKCE. Configure the organisation's public Spotify app Client ID and register `http://127.0.0.1:43821/callback/` as its redirect URI.
 - Personal settings let each user choose Spotify, a YouTube Music page, or a favourite radio station link. Browser-based sources open only when the user chooses to open them.
 - Portable encrypted backups let you move your workspace to another Windows computer.
-- The shared navigation rail provides quick access to planning, mail, meetings, work logging, review, learning, audit, What If and Value without organisation-specific tools.
+- The shared navigation rail provides quick access to planning, mail, meetings, team skills, work logging, review, learning, audit, What If and Value without organisation-specific tools.
+- Team can sync relevant Microsoft 365 colleagues and job titles, while keeping availability, responsibilities, exclusions and role skills editable in the local Personal workspace.
 - What If compares the ranked plan, a protected objective and an earlier finish while keeping calendar commitments visible for review.
 - Value reads a connected Microsoft 365 job title when available, or a manual title from Personal settings, then creates goals for that role and maps completed work against them. A local role template keeps it useful when AI is unavailable.
 
@@ -24,7 +25,7 @@ If Nekomata Personal is useful to you, you can support its continued development
 
 The application supports delegated Microsoft Graph access for calendar, email, Microsoft To Do and assigned Planner tasks. A central multi-tenant Entra application ID must be supplied in `MicrosoftGraph:ClientId` before distribution. Individual users then connect with the in-app Microsoft sign-in and do not register their own application.
 
-The intended delegated scopes are `User.Read`, `Calendars.ReadWrite`, `Mail.ReadWrite`, `Mail.Send`, and read-only `Tasks.Read`. Users see and consent to those permissions during sign-in. Planner is available only to supported work or school accounts; its basic assigned tasks are imported read-only. Duplicate items exposed by both Planner and To Do are collapsed in favour of the Planner record.
+The intended delegated scopes are `User.Read`, `People.Read`, `Calendars.ReadWrite`, `Mail.ReadWrite`, `Mail.Send`, and read-only `Tasks.Read`. Users see and consent to those permissions during sign-in. `People.Read` supplies relevant Microsoft 365 colleagues and job titles for the editable Team capability. Planner is available only to supported work or school accounts; its basic assigned tasks are imported read-only. Duplicate items exposed by both Planner and To Do are collapsed in favour of the Planner record.
 
 Microsoft 365 Copilot conversation is an optional preview connection for licensed work/school accounts. Add the following delegated Microsoft Graph permissions to the Entra app registration and grant administrator consent before using **Test Microsoft 365 Copilot access** in Personal settings: `Sites.Read.All`, `Mail.Read`, `People.Read.All`, `OnlineMeetingTranscript.Read.All`, `Chat.Read`, `ChannelMessage.Read.All`, and `ExternalItem.Read.All`. These permissions are requested only when the user tests or uses Copilot; ordinary calendar and email sign-in continues to use its existing scope set.
 

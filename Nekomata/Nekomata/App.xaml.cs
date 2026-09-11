@@ -98,6 +98,7 @@ public partial class App : Application
                 services.AddSingleton<PersonalProfileService>();
                 services.AddSingleton<PersonalRoleProfileService>();
                 services.AddSingleton<PersonalValueService>();
+                services.AddSingleton<TeamRoleSkillService>();
                 services.AddSingleton<IUserIdentity, PersonalUserIdentity>();
                 services.AddSingleton<PersonalSecretService>();
                 services.AddSingleton<PersonalBackupService>();
@@ -122,6 +123,9 @@ public partial class App : Application
                 services.AddSingleton<IAIProvider>(provider => provider.GetRequiredService<PersonalAIProvider>());
                 services.AddSingleton<IStructuredAIProvider>(provider => provider.GetRequiredService<PersonalAIProvider>());
                 services.AddSingleton<IProjectRepository, LocalProjectRepository>();
+                services.AddSingleton<ITeamProfileRepository, LocalTeamProfileRepository>();
+                services.AddTransient<TeamSkillsViewModel>();
+                services.AddTransient<TeamSkillsWindow>();
                 services.AddSingleton<IGuardianAuditRepository, LocalGuardianAuditRepository>();
                 services.AddSingleton<GuardianUndoService>();
                 services.AddTransient<GuardianActivityViewModel>();

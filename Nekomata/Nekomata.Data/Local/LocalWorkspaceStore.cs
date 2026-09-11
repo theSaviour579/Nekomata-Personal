@@ -3,6 +3,7 @@ using Nekomata.Models.Guardian;
 using Nekomata.Models.Missions;
 using Nekomata.Models.Projects;
 using Nekomata.Models.Tasks;
+using Nekomata.Models.People;
 
 namespace Nekomata.Data.Local;
 
@@ -65,4 +66,5 @@ public sealed class LocalWorkspaceData
     public List<GuardianMemory> GuardianMemories { get; set; } = [];
     public List<GuardianAuditEntry> GuardianAudit { get; set; } = [];
     public List<WorkdayEvent> WorkdayEvents { get; set; } = [];
+    public List<TeamMemberProfile> TeamMembers { get; set; } = [];
 }
