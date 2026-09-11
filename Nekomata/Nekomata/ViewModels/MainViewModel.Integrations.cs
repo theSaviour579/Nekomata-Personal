@@ -90,12 +90,18 @@ public partial class MainViewModel
             return;
         }
         _spotifyStateTimer?.Stop();
-        SpotifyIntegrationStatus = PreferredMediaProvider == "YouTube Music"
-            ? "YouTube Music selected · ready to open your saved page"
-            : "Radio selected · ready to open your saved station";
-        SpotifyTrack = PreferredMediaProvider == "YouTube Music"
-            ? DisplayMediaAddress(_personalProfile.Current.YouTubeMusicUrl)
-            : DisplayMediaAddress(_personalProfile.Current.RadioStationUrl);
+        SpotifyIntegrationStatus = PreferredMediaProvider switch
+        {
+            "Apple Music" => "Apple Music selected · ready to open your saved page",
+            "YouTube Music" => "YouTube Music selected · ready to open your saved page",
+            _ => "Radio selected · ready to open your saved station"
+        };
+        SpotifyTrack = DisplayMediaAddress(PreferredMediaProvider switch
+        {
+            "Apple Music" => _personalProfile.Current.AppleMusicUrl,
+            "YouTube Music" => _personalProfile.Current.YouTubeMusicUrl,
+            _ => _personalProfile.Current.RadioStationUrl
+        });
         SpotifyArtist = "Browser playback · controls remain with the selected service";
         SpotifyDevice = string.Empty;
     }
@@ -106,9 +112,12 @@ public partial class MainViewModel
         try
         {
             if (PreferredMediaProvider == "Spotify") { OpenSpotify(); return; }
-            var value = PreferredMediaProvider == "YouTube Music"
-                ? _personalProfile.Current.YouTubeMusicUrl
-                : _personalProfile.Current.RadioStationUrl;
+            var value = PreferredMediaProvider switch
+            {
+                "Apple Music" => _personalProfile.Current.AppleMusicUrl,
+                "YouTube Music" => _personalProfile.Current.YouTubeMusicUrl,
+                _ => _personalProfile.Current.RadioStationUrl
+            };
             if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
                 throw new InvalidOperationException("Add a valid link in Personal settings first.");
             Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });

@@ -50,14 +50,17 @@
             <TextBlock Text="PREFERRED MUSIC SOURCE" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,18,0,6"/>
             <ComboBox x:Name="MediaProviderInput" FontSize="14" Padding="10,7">
                 <ComboBoxItem Content="Spotify"/>
+                <ComboBoxItem Content="Apple Music"/>
                 <ComboBoxItem Content="YouTube Music"/>
                 <ComboBoxItem Content="Radio"/>
             </ComboBox>
+            <TextBlock Text="APPLE MUSIC LINK" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
+            <TextBox x:Name="AppleMusicUrlInput" FontSize="14" Padding="12,8" ToolTip="A music.apple.com home, album or playlist link"/>
             <TextBlock Text="YOUTUBE MUSIC LINK" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
             <TextBox x:Name="YouTubeMusicUrlInput" FontSize="14" Padding="12,8" ToolTip="A music.youtube.com home, album or playlist link"/>
             <TextBlock Text="RADIO STATION LINK" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" Margin="0,14,0,6"/>
             <TextBox x:Name="RadioStationUrlInput" FontSize="14" Padding="12,8" ToolTip="The station website or web player address"/>
-            <TextBlock Text="YouTube Music and radio open the saved page in your default browser. Spotify retains its connected playback controls. Nekomata never downloads or executes content from a saved link."
+            <TextBlock Text="Apple Music, YouTube Music and radio open the saved page in your default browser. Spotify retains its connected playback controls. Nekomata never downloads or executes content from a saved link."
                        TextWrapping="Wrap" Margin="0,5,0,14" Foreground="{DynamicResource NekoMutedTextBrush}"/>
         </StackPanel>
         </ScrollViewer>

@@ -12,6 +12,7 @@ public sealed record PersonalProfile
     public string SpotifyClientId { get; init; } = string.Empty;
     public string PreferredMediaProvider { get; init; } = "Spotify";
     public string YouTubeMusicUrl { get; init; } = "https://music.youtube.com";
+    public string AppleMusicUrl { get; init; } = "https://music.apple.com";
     public string RadioStationUrl { get; init; } = string.Empty;
     public string AzureOpenAIEndpoint { get; init; } = string.Empty;
     public string AzureOpenAIDeployment { get; init; } = string.Empty;
@@ -57,6 +58,7 @@ public sealed class PersonalProfileService
             SpotifyClientId = Current.SpotifyClientId,
             PreferredMediaProvider = Current.PreferredMediaProvider,
             YouTubeMusicUrl = Current.YouTubeMusicUrl,
+            AppleMusicUrl = Current.AppleMusicUrl,
             RadioStationUrl = Current.RadioStationUrl,
             AzureOpenAIEndpoint = Current.AzureOpenAIEndpoint,
             AzureOpenAIDeployment = Current.AzureOpenAIDeployment,
@@ -100,19 +102,23 @@ public sealed class PersonalProfileService
         File.WriteAllText(_profilePath, JsonSerializer.Serialize(Current, JsonOptions));
     }
 
-    public void SaveMediaPreference(string provider, string youtubeMusicUrl, string radioStationUrl)
+    public void SaveMediaPreference(string provider, string youtubeMusicUrl, string appleMusicUrl, string radioStationUrl)
     {
         provider = provider.Trim();
-        if (provider is not ("Spotify" or "YouTube Music" or "Radio"))
-            throw new ArgumentException("Choose Spotify, YouTube Music or Radio.");
+        if (provider is not ("Spotify" or "Apple Music" or "YouTube Music" or "Radio"))
+            throw new ArgumentException("Choose Spotify, Apple Music, YouTube Music or Radio.");
         youtubeMusicUrl = ValidateMediaUrl(youtubeMusicUrl, "YouTube Music", required: provider == "YouTube Music");
+        appleMusicUrl = ValidateMediaUrl(appleMusicUrl, "Apple Music", required: provider == "Apple Music");
         radioStationUrl = ValidateMediaUrl(radioStationUrl, "radio station", required: provider == "Radio");
         if (youtubeMusicUrl.Length > 0 && !new Uri(youtubeMusicUrl).Host.Equals("music.youtube.com", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("The YouTube Music link must use music.youtube.com.");
+        if (appleMusicUrl.Length > 0 && !new Uri(appleMusicUrl).Host.Equals("music.apple.com", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("The Apple Music link must use music.apple.com.");
         Current = Current with
         {
             PreferredMediaProvider = provider,
             YouTubeMusicUrl = youtubeMusicUrl,
+            AppleMusicUrl = appleMusicUrl,
             RadioStationUrl = radioStationUrl
         };
         Persist();

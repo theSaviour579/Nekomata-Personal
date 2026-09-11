@@ -22,11 +22,13 @@ public partial class PersonalSettingsWindow : Window
         MicrosoftAiDeploymentInput.Text = profile.Current.AzureOpenAIDeployment;
         SpotifyClientIdInput.Text = profile.Current.SpotifyClientId;
         YouTubeMusicUrlInput.Text = profile.Current.YouTubeMusicUrl;
+        AppleMusicUrlInput.Text = profile.Current.AppleMusicUrl;
         RadioStationUrlInput.Text = profile.Current.RadioStationUrl;
         MediaProviderInput.SelectedIndex = profile.Current.PreferredMediaProvider switch
         {
-            "YouTube Music" => 1,
-            "Radio" => 2,
+            "Apple Music" => 1,
+            "YouTube Music" => 2,
+            "Radio" => 3,
             _ => 0
         };
         ConversationProviderInput.SelectedIndex = profile.Current.ConversationProvider switch
@@ -57,7 +59,7 @@ public partial class PersonalSettingsWindow : Window
             _profile.SaveAzureOpenAI(MicrosoftAiEndpointInput.Text, MicrosoftAiDeploymentInput.Text);
             _profile.SaveSpotifyClientId(SpotifyClientIdInput.Text);
             var mediaProvider = (MediaProviderInput.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Spotify";
-            _profile.SaveMediaPreference(mediaProvider, YouTubeMusicUrlInput.Text, RadioStationUrlInput.Text);
+            _profile.SaveMediaPreference(mediaProvider, YouTubeMusicUrlInput.Text, AppleMusicUrlInput.Text, RadioStationUrlInput.Text);
             var conversationProvider = (ConversationProviderInput.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Automatic";
             _profile.SaveConversationProvider(conversationProvider, CopilotWebSearchInput.IsChecked == true);
             if (RemoveOpenAiKey.IsChecked == true) _secrets.DeleteOpenAiApiKey();

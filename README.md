@@ -14,7 +14,7 @@ If Nekomata Personal is useful to you, you can support its continued development
 - Guardian can use an organisation's Azure OpenAI/Foundry deployment through each user's Microsoft Entra identity, with an optional OpenAI key stored in Windows Credential Manager as fallback.
 - Licensed work/school users can select the preview Microsoft 365 Copilot Chat API for Guardian conversation. Its additional delegated permissions are requested separately, web grounding is opt-in, and it never silently falls back to a chargeable provider.
 - Spotify uses OAuth PKCE. Configure the organisation's public Spotify app Client ID and register `http://127.0.0.1:43821/callback/` as its redirect URI.
-- Personal settings let each user choose Spotify, a YouTube Music page, or a favourite radio station link. Browser-based sources open only when the user chooses to open them.
+- Personal settings let each user choose Spotify, an Apple Music or YouTube Music page, or a favourite radio station link. Browser-based sources open only when the user chooses to open them.
 - Portable encrypted backups let you move your workspace to another Windows computer.
 - The shared navigation rail provides quick access to planning, mail, meetings, team skills, work logging, review, learning, audit, What If and Value without organisation-specific tools.
 - Team can sync Microsoft 365 direct reports and job titles, while keeping availability, responsibilities, exclusions and role skills editable in the local Personal workspace.
