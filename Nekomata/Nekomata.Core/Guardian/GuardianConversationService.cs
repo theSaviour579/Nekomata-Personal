@@ -264,7 +264,9 @@ return response ??
         NekomataWorkspace workspace)
     {
         if (workspace.Tasks.Count == 0)
-            return "No open tasks currently loaded.";
+            return workspace.IntegrationMissionCandidates.Any(item => item.IsActionable)
+                ? "No local tasks loaded. Imported work items, including Microsoft tasks, are listed in the integration context below."
+                : "No open tasks currently loaded.";
 
         return string.Join(
             Environment.NewLine +

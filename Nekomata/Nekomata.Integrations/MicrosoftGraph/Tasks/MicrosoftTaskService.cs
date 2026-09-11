@@ -23,13 +23,13 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
 
     private async Task<IReadOnlyList<MicrosoftTaskItem>> GetToDoTasksAsync(string token, CancellationToken ct)
     {
-        var lists = await GetAsync<GraphCollection<GraphToDoList>>(
+        var lists = await GetCollectionAsync<GraphToDoList>(
             "me/todo/lists", token, ct);
         var result = new List<MicrosoftTaskItem>();
         foreach (var list in lists.Value.Where(item => !string.IsNullOrWhiteSpace(item.Id)))
         {
             var path = $"me/todo/lists/{Uri.EscapeDataString(list.Id!)}/tasks";
-            var tasks = await GetAsync<GraphCollection<GraphToDoTask>>(path, token, ct);
+            var tasks = await GetCollectionAsync<GraphToDoTask>(path, token, ct);
             result.AddRange(tasks.Value
                 .Where(item => !string.Equals(item.Status, "completed", StringComparison.OrdinalIgnoreCase))
                 .Where(item => !string.IsNullOrWhiteSpace(item.Id) && !string.IsNullOrWhiteSpace(item.Title))
@@ -48,7 +48,7 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
         GraphCollection<GraphPlannerTask> tasks;
         try
         {
-            tasks = await GetAsync<GraphCollection<GraphPlannerTask>>(
+            tasks = await GetCollectionAsync<GraphPlannerTask>(
                 "me/planner/tasks", token, ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.NotFound)
@@ -69,6 +69,18 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
             .ToList();
     }
 
+    private async Task<GraphCollection<T>> GetCollectionAsync<T>(string path, string token, CancellationToken ct)
+    {
+        var result = new GraphCollection<T>();
+        string? next = path;
+        while (!string.IsNullOrWhiteSpace(next))
+        {
+            var page = await GetAsync<GraphCollection<T>>(next, token, ct);
+            result.Value.AddRange(page.Value);
+            next = page.NextLink;
+        }
+        return result;
+    }
     private async Task<T> GetAsync<T>(string path, string token, CancellationToken ct) where T : class, new()
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
@@ -93,7 +105,7 @@ public sealed class MicrosoftTaskService(HttpClient http, IMicrosoftAuthenticati
     private static DateTime? ParseGraphDate(GraphDateTimeZone? value) =>
         value is not null && DateTime.TryParse(value.DateTime, out var parsed) ? parsed : null;
 
-    private sealed class GraphCollection<T> { [JsonPropertyName("value")] public List<T> Value { get; init; } = []; }
+    private sealed class GraphCollection<T> { [JsonPropertyName("value")] public List<T> Value { get; init; } = []; [JsonPropertyName("@odata.nextLink")] public string? NextLink { get; init; } }
     private sealed class GraphToDoList { public string? Id { get; init; } public string? DisplayName { get; init; } public string? WellknownListName { get; init; } }
     private sealed class GraphToDoTask
     {
