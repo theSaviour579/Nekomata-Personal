@@ -6,17 +6,26 @@ namespace Nekomata.UI.ViewModels;
 
 public partial class MainViewModel
 {
+    private bool _briefingCalendarBusy;
+
     private async Task RefreshDailyBriefingContextAsync()
     {
-        var briefing = Workspace.Briefing;
+        if (_briefingCalendarBusy) return;
+        _briefingCalendarBusy = true;
         try
         {
             var calendar = _services.GetRequiredService<ICalendarService>();
-            var offset = TimeZoneInfo.Local.GetUtcOffset(DateTime.Today);
-            var start = new DateTimeOffset(DateTime.Today, offset);
-            var events = (await calendar.GetEventsAsync(start, start.AddDays(1)))
+            var today = DateTime.Today;
+            var start = new DateTimeOffset(today, TimeZoneInfo.Local.GetUtcOffset(today));
+            var tomorrow = today.AddDays(1);
+            var end = new DateTimeOffset(tomorrow, TimeZoneInfo.Local.GetUtcOffset(tomorrow));
+            var events = (await calendar.GetEventsAsync(start, end))
+                .Where(item => item.Start < end && item.End > start)
                 .OrderBy(item => item.Start)
                 .ToList();
+
+            if (DateTime.Today != today) return;
+            var briefing = Workspace.Briefing;
 
             ApplyTodayCalendarCapacity(events);
             var now = DateTimeOffset.Now;
@@ -67,10 +76,15 @@ public partial class MainViewModel
         }
         catch (Exception ex)
         {
+            var briefing = Workspace.Briefing;
             briefing.CalendarSummary = $"Calendar summary unavailable: {ex.Message}";
             briefing.MeetingSummary = string.Empty;
             briefing.AwarenessSummary = "Be aware: calendar context could not be included in this briefing.";
             OnPropertyChanged(nameof(Workspace));
+        }
+        finally
+        {
+            _briefingCalendarBusy = false;
         }
     }
 

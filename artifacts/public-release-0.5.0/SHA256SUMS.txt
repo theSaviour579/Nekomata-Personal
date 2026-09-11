@@ -1,0 +1,2 @@
+4f466c2fe226e0dc8aa1cbbe27163bd21540d16fef47f57d809927ddfada5d55  Nekomata-Personal-Setup-0.5.0.exe
+49aa3d23b7f50715ea37f663331b37be861ced2ab68882d194ff6aa43f5a79a1  Nekomata-Personal-0.5.0-win-x64.zip

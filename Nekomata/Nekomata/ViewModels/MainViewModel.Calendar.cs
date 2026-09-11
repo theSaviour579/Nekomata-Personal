@@ -435,7 +435,11 @@ public partial class MainViewModel
     private void InitialisePlanHealthMonitoring()
     {
         _planHealthTimer.Interval = TimeSpan.FromSeconds(30);
-        _planHealthTimer.Tick += async (_, _) => await RefreshCalendarAwareObjectiveAsync();
+        _planHealthTimer.Tick += async (_, _) =>
+        {
+            await RefreshDailyBriefingContextAsync();
+            await RefreshCalendarAwareObjectiveAsync();
+        };
         _planHealthTimer.Start();
     }
 
