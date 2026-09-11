@@ -257,8 +257,13 @@ public partial class MainViewModel
         briefing.ObjectiveStartBefore = null;
         briefing.ObjectiveTaskId = null;
         briefing.ObjectiveProjectId = null;
-        briefing.Headline = "No objective is currently available in the calendar plan.";
-        briefing.GuardianComment = "Guardian will show the next task when an applicable free window begins.";
+        var available = Workspace.RankedMissionCandidates.Count(candidate => candidate.IsActionable && !candidate.IsOnHold);
+        briefing.Headline = available > 0
+            ? "No objective is scheduled in the current calendar window."
+            : "No objective is currently available in the calendar plan.";
+        briefing.GuardianComment = available > 0
+            ? $"{available} ranked work item{(available == 1 ? " is" : "s are")} available. Open What If or Plan to schedule the next block."
+            : "Guardian will show the next task when an applicable free window begins.";
         OnPropertyChanged(nameof(HasBriefingObjective));
         OnPropertyChanged(nameof(Workspace));
     }

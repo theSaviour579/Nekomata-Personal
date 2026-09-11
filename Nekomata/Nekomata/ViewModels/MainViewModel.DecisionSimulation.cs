@@ -11,6 +11,8 @@ using Nekomata.Models.Planning;
 using Nekomata.UI.Windows;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nekomata.UI.ViewModels;
 
@@ -29,8 +31,10 @@ public partial class MainViewModel
     [RelayCommand]
     private async Task ShowDecisionSimulatorAsync()
     {
-        DecisionSimulationCandidates = new(Workspace.RankedMissionCandidates.Where(x => x.IsActionable && x.TaskId is > 0 && x.EstimatedMinutes > 0)
-            .GroupBy(x => x.TaskId).Select(x => x.OrderByDescending(y => y.Score).First()).OrderBy(x => x.Rank <= 0 ? int.MaxValue : x.Rank).Take(20));
+        DecisionSimulationCandidates = new(Workspace.RankedMissionCandidates
+            .Where(x => x.IsActionable && x.EstimatedMinutes > 0 && (x.TaskId is > 0 || !string.IsNullOrWhiteSpace(x.SourceRecordId)))
+            .GroupBy(ScenarioCandidateKey, StringComparer.OrdinalIgnoreCase).Select(x => x.OrderByDescending(y => y.Score).First())
+            .OrderBy(x => x.Rank <= 0 ? int.MaxValue : x.Rank).Take(20));
         SelectedDecisionCandidate = DecisionSimulationCandidates.FirstOrDefault(x => x.TaskId == Workspace.CurrentMission.TaskId) ?? DecisionSimulationCandidates.FirstOrDefault();
         await RefreshDecisionSimulationAsync();
         new DecisionSimulatorWindow(this) { Owner = Application.Current.MainWindow }.ShowDialog();
@@ -59,7 +63,7 @@ public partial class MainViewModel
             var projects = Workspace.Projects.ToDictionary(x => x.Id, x => x.Name);
             var work = DecisionSimulationCandidates.Select(x => new GuardianScenarioWorkItem
             {
-                TaskId = x.TaskId!.Value, ProjectId = x.ProjectId, Title = x.Title,
+                TaskId = ScenarioTaskId(x), ProjectId = x.ProjectId, Title = x.Title,
                 ProjectName = x.ProjectId is long id && projects.TryGetValue(id, out var name) ? name : "",
                 Minutes = Math.Max(settings.MinimumFocusBlockMinutes, x.EstimatedMinutes), Score = x.Score, Rank = x.Rank, DueAt = x.DueAt,
                 IsCritical = x.RequiresImmediateAttention || x.Priority.Equals(TaskPriorities.Critical, StringComparison.OrdinalIgnoreCase)
@@ -71,7 +75,8 @@ public partial class MainViewModel
             {
                 Now = now, WorkdayStart = settings.StartTime, WorkdayEnd = settings.EndTime, LunchStart = settings.LunchStartTime,
                 LunchMinutes = settings.LunchDurationMinutes, IncludeLunch = settings.IncludeLunchBreak, MinimumBlockMinutes = settings.MinimumFocusBlockMinutes,
-                HorizonWorkingDays = horizon, CalendarLoaded = loaded, PreferredTaskId = SelectedDecisionCandidate?.TaskId, LeaveTodayAt = leaveAt,
+                HorizonWorkingDays = horizon, CalendarLoaded = loaded,
+                PreferredTaskId = SelectedDecisionCandidate is null ? null : ScenarioTaskId(SelectedDecisionCandidate), LeaveTodayAt = leaveAt,
                 WorkItems = work, Commitments = commitments
             });
             DecisionScenarios = new(scenarios);
@@ -100,5 +105,16 @@ public partial class MainViewModel
         var date = start.Date;
         while (count-- > 0) { date = date.AddDays(1); while (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) date = date.AddDays(1); }
         return date;
+    }
+
+    private static string ScenarioCandidateKey(MissionCandidate candidate) =>
+        candidate.TaskId is > 0 ? $"task:{candidate.TaskId}" : $"{candidate.SourceType}:{candidate.SourceRecordId}";
+
+    private static long ScenarioTaskId(MissionCandidate candidate)
+    {
+        if (candidate.TaskId is > 0) return candidate.TaskId.Value;
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(ScenarioCandidateKey(candidate)));
+        var value = BitConverter.ToInt64(bytes, 0) & long.MaxValue;
+        return value == 0 ? -1 : -value;
     }
 }
