@@ -504,7 +504,7 @@
                                                     <StackPanel Margin="0,8,0,0">
                                                         <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Decision}" Value="Defer until"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                                                         <TextBlock Text="RETURN TO PRE-FLIGHT ON" FontSize="10" Margin="0,0,0,4"/>
-                                                        <DatePicker SelectedDate="{Binding DeferUntil, Mode=TwoWay}" Foreground="#101820"/>
+                                                        <DatePicker SelectedDate="{Binding DeferUntil, Mode=TwoWay}"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Border>
