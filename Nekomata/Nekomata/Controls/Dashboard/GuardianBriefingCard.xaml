@@ -596,7 +596,7 @@
             FontWeight="SemiBold"/>
 
                                 <Button Grid.Column="2"
-            Content="BEGIN TODAY'S OBJECTIVE"
+            Content="{Binding ObjectiveActionText}"
             Command="{Binding BeginMissionCommand}"
             Height="42"
             HorizontalAlignment="Stretch"

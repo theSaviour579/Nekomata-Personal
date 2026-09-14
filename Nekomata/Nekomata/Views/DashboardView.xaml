@@ -490,6 +490,9 @@
                     StartMissionCommand="{Binding DataContext.StartRecommendedMissionCommand,
                                                   RelativeSource={RelativeSource AncestorType=UserControl}}"
 
+                    StartMissionText="{Binding DataContext.ObjectiveActionText,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+
                     Margin="0,0,0,16"/>
 
                 <dashboard:ProductivityCard

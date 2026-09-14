@@ -8,6 +8,18 @@ namespace Nekomata.Tests;
 
 public sealed class MissionContinuationTests
 {
+    [Theory]
+    [InlineData(false, false, MissionEntryAction.Start)]
+    [InlineData(true, false, MissionEntryAction.ReturnToActiveMission)]
+    [InlineData(true, true, MissionEntryAction.ResumePausedMission)]
+    public void Mission_entry_returns_to_or_resumes_an_existing_session(
+        bool active,
+        bool paused,
+        MissionEntryAction expected)
+    {
+        Assert.Equal(expected, MissionEntryPolicy.Resolve(active, paused));
+    }
+
     [Fact]
     public void Elapsed_session_is_added_to_existing_task_effort()
     {
@@ -108,4 +120,5 @@ public sealed class MissionContinuationTests
         var resolved = ActiveMissionFocusPolicy.Resolve(false, previous, incoming);
 
         Assert.Same(incoming, resolved);
-    }}
+    }
+}

@@ -723,6 +723,12 @@ public partial class MainViewModel
     [RelayCommand]
     private async Task StartRecommendedMissionAsync()
     {
+        if (MissionActive)
+        {
+            await BeginMissionAsync();
+            return;
+        }
+
         if (TopRecommendation is null ||
             GuardianBusy)
         {
