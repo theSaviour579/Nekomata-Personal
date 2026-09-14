@@ -107,7 +107,7 @@
             Height="38"/>
 
                 <Button Grid.Column="2"
-            Content="START MISSION"
+            Content="{Binding StartMissionText, ElementName=Root}"
             Command="{Binding StartMissionCommand,
                               ElementName=Root}"
             Height="38"

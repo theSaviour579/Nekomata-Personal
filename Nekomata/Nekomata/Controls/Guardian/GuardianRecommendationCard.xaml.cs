@@ -38,4 +38,17 @@ public partial class GuardianRecommendationCard : UserControl
         get => (ICommand?)GetValue(StartMissionCommandProperty);
         set => SetValue(StartMissionCommandProperty, value);
     }
+
+    public static readonly DependencyProperty StartMissionTextProperty =
+        DependencyProperty.Register(
+            nameof(StartMissionText),
+            typeof(string),
+            typeof(GuardianRecommendationCard),
+            new PropertyMetadata("START MISSION"));
+
+    public string StartMissionText
+    {
+        get => (string)GetValue(StartMissionTextProperty);
+        set => SetValue(StartMissionTextProperty, value);
+    }
 }

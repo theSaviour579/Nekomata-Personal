@@ -49,11 +49,27 @@ public partial class MainViewModel
     private bool _missionOverrunCheckInShown;
     private Nekomata.Models.Missions.Mission? _activeMission;
 
+    public string ObjectiveActionText => MissionEntryPolicy.Resolve(MissionActive, MissionPaused) switch
+    {
+        MissionEntryAction.ResumePausedMission => "RESUME CURRENT OBJECTIVE",
+        MissionEntryAction.ReturnToActiveMission => "RETURN TO ACTIVE OBJECTIVE",
+        _ => "BEGIN TODAY'S OBJECTIVE"
+    };
+
+    partial void OnMissionActiveChanged(bool value) => OnPropertyChanged(nameof(ObjectiveActionText));
+    partial void OnMissionPausedChanged(bool value) => OnPropertyChanged(nameof(ObjectiveActionText));
+
     [RelayCommand]
     private async Task BeginMissionAsync()
     {
-        if (MissionActive)
+        var entryAction = MissionEntryPolicy.Resolve(MissionActive, MissionPaused);
+        if (entryAction is not MissionEntryAction.Start)
+        {
+            WorkspaceMode = Models.Workspace.WorkspaceMode.Mission;
+            if (entryAction is MissionEntryAction.ResumePausedMission)
+                ToggleMissionPause();
             return;
+        }
 
         var mission = Workspace.CurrentMission;
 
