@@ -291,7 +291,7 @@ public partial class App : System.Windows.Application
         }
 
         if (_host.Services.GetService<Nekomata.UI.ViewModels.MainViewModel>() is { } viewModel)
-            viewModel.DatabaseReady = workspaceReady;
+            viewModel.WorkspaceReady = workspaceReady;
 
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = mainWindow;

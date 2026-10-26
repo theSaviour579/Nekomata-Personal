@@ -20,8 +20,8 @@ public static partial class KokoroText
     /// <summary>All-capital words that are said as words, not letters.</summary>
     private static readonly HashSet<string> SaidAsWords = new(StringComparer.Ordinal)
     {
-        "OK", "NATO", "RAM", "ROM", "SIM", "PIN", "LAN", "WAN", "GIF", "JPEG", "ASAP", "SAGE", "HALO", "TEAMS", "NOW", "TODAY",
-        "NOTE", "FYI", "MERLIN", "WIFI",
+        "OK", "NATO", "RAM", "ROM", "SIM", "PIN", "LAN", "WAN", "GIF", "JPEG", "ASAP", "SAGE", "TEAMS", "NOW", "TODAY",
+        "NOTE", "FYI", "WIFI",
     };
 
     private static readonly (Regex Pattern, string Replacement)[] Contractions =
@@ -62,7 +62,7 @@ public static partial class KokoroText
         s = Regex.Replace(s, @"(\w)s'(?=\s|$|[.,;:!?])", "$1s"); // the teams' → the teams
         s = s.Replace("'", "");
 
-        // Letters already spaced out by the general normaliser ("S L A") and plain acronyms ("MFA", "VPNs").
+        // Letters already spaced out by the general normaliser ("K P I") and plain acronyms ("PDF", "PDFs").
         s = SpacedLetters().Replace(s, m => string.Join(" ", m.Value.Split(' ').Select(l => Letters[l[0]])));
         s = Acronym().Replace(s, m =>
         {

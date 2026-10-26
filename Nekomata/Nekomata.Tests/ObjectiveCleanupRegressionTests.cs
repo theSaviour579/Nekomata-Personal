@@ -29,7 +29,7 @@ public sealed class ObjectiveCleanupRegressionTests
             .Build(winner, candidates, 90);
 
         var alternative = Assert.Single(decision.RejectedMissions);
-        Assert.Equal("Ticket B", alternative.Title);
+        Assert.Equal("Task B", alternative.Title);
         Assert.Equal("200", alternative.SourceRecordId);
     }
 

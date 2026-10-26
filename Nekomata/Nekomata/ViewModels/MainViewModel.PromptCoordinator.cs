@@ -15,7 +15,7 @@ public partial class MainViewModel
         ? $"Routine prompts paused until {_routinePromptsPausedUntil.LocalDateTime:HH:mm}; urgent alerts remain enabled."
         : "Routine prompts coordinated · urgent alerts take precedence.";
     private static bool IsUrgentAttention(GuardianAttentionItem item) => item.Severity.Equals("Critical", StringComparison.OrdinalIgnoreCase) ||
-        item.Severity.Equals("High", StringComparison.OrdinalIgnoreCase) || item.Severity.Equals("Urgent", StringComparison.OrdinalIgnoreCase) || item.Key.StartsWith("halo:p1:", StringComparison.OrdinalIgnoreCase);
+        item.Severity.Equals("High", StringComparison.OrdinalIgnoreCase) || item.Severity.Equals("Urgent", StringComparison.OrdinalIgnoreCase);
     partial void OnDayReviewVisibleChanged(bool value) { if (!value) RoutinePromptClosed(); }
     private static string PromptPausePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nekomata Personal", "routine-prompt-pause.txt");
     private void RoutinePromptClosed() => _routinePromptQuietUntil = DateTimeOffset.Now.AddMinutes(2);

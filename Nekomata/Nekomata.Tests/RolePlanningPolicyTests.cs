@@ -30,7 +30,7 @@ public sealed class RolePlanningPolicyTests
         var strategic = Candidate("Automate purchasing process", 50);
         var leadership = Candidate("Alex 1:1 coaching", 50);
         var delegatable = Candidate("Supplier support report", 60);
-        delegatable.CurrentOwner = "Alex"; delegatable.SuggestedOwner = "Alex"; delegatable.AssignmentConfidence = 78;
+        delegatable.CurrentOwner = "Alex"; delegatable.SuggestedOwner = "Sam"; delegatable.AssignmentConfidence = 78;
         var p1 = Candidate("Urgent supplier incident", 200); p1.IsUrgent = true;
 
         var ranked = policy.Apply(plan, [strategic, leadership, delegatable, p1]);

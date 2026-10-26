@@ -7,7 +7,7 @@ namespace Nekomata.Data.Local;
 /// <summary>
 /// Small JSON document store for Guardian's own records in Nekomata Personal. Each named document is one file under
 /// %LocalAppData%\Nekomata Personal\store, read and rewritten atomically under a per-document lock. Personal has no
-/// database server, so everything that the work edition keeps in PostgreSQL lives here instead.
+/// database server, so the user's workspace data lives here instead.
 /// </summary>
 public sealed class LocalDocumentStore
 {

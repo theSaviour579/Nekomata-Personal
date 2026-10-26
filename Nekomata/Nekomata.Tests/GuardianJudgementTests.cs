@@ -51,7 +51,7 @@ public sealed class GuardianJudgementTests
     {
         var answer = GuardianJudgement.AnythingToWorryAbout(new SituationFacts { FailingJobs = ["email check"] });
         Assert.False(answer.AllClear);
-        Assert.Contains("my email check isn't running properly", answer.Spoken);
+        Assert.Contains("my email check isn't running properly", answer.Spoken, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -98,15 +98,15 @@ public sealed class GuardianInterruptionPolicyTests
     }
 
     [Fact]
-    public void Near_deadline_halo_decision_surfaces_now()
+    public void Near_deadline_task_decision_surfaces_now()
     {
         var result = _policy.Evaluate(new()
         {
             Source = "Email", Severity = "Warning", Title = "Approval required",
-            ActionKind = "review_halo", Deadline = Now.AddMinutes(20), FocusActive = true
+            ActionKind = "review_task", Deadline = Now.AddMinutes(20), FocusActive = true
         }, Now);
 
         Assert.Equal(GuardianInterruptionRoute.Immediate, result.Route);
-        Assert.Equal(100, result.PriorityScore);
+        Assert.Equal(85, result.PriorityScore);
     }
 }

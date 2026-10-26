@@ -38,7 +38,8 @@ public partial class MainViewModel
 
             var fromThem = MatchPeople(inboxTask.Result, m => [m.SenderName, m.SenderAddress], words).Take(5).ToList();
             var toThem = MatchPeople(sentTask.Result, m => m.ToRecipients.Concat(m.ToRecipientAddresses), words).Take(3).ToList();
-            var facts = GuardianFactRelevance.ForMeeting(factsTask.Result.Select(f => f.Summary), null, [who], 6);
+            var facts = GuardianFactRelevance.ForMeeting(
+                factsTask.Result.Select(f => f.Summary), null, [who], 6, UserName);
             var now = DateTimeOffset.Now;
             var meetings = CalendarEvents
                 .Where(e => !e.IsAllDay && e.End >= now.AddHours(-2) &&

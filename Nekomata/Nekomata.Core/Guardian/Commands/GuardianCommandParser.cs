@@ -116,6 +116,8 @@ public static partial class GuardianCommandParser
             return new(GuardianCommandIntent.FormalManner, "off");
         if (Matches(exact, "call me sir", "be formal", "be more formal", "formal mode", "jarvis mode", "you can call me sir"))
             return new(GuardianCommandIntent.FormalManner, "on");
+        if (exact.StartsWith("call me ", StringComparison.OrdinalIgnoreCase))
+            return new(GuardianCommandIntent.FormalManner, "off");
         // Judgement: "anything to worry about?", "I'll handle these myself", and the answers to a challenge.
         if (Matches(exact, "anything i need to worry about", "anything to worry about", "anything i should worry about", "is there anything i need to worry about",
                 "is there anything to worry about", "should i be worried", "should i be worried about anything", "anything i should be worried about",

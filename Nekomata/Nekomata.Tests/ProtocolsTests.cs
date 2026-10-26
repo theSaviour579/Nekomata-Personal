@@ -9,7 +9,7 @@ public sealed class ProtocolsTests
     [Theory]
     [InlineData("End of day protocol", GuardianCommandIntent.RunProtocol, "End of day", "")]
     [InlineData("run the morning protocol", GuardianCommandIntent.RunProtocol, "morning", "")]
-    [InlineData("incident protocol: email is down", GuardianCommandIntent.RunProtocol, "incident", "email is down")]
+    [InlineData("handoff protocol: supplier response", GuardianCommandIntent.RunProtocol, "handoff", "supplier response")]
     [InlineData("create protocol lunch: plan my day; anything I need to worry about", GuardianCommandIntent.CreateProtocol, "lunch", "plan my day; anything I need to worry about")]
     [InlineData("delete the lunch protocol", GuardianCommandIntent.DeleteProtocol, "lunch", "")]
     [InlineData("what protocols do you have?", GuardianCommandIntent.ListProtocols, "", "")]
@@ -46,11 +46,11 @@ public sealed class ProtocolsTests
     }
 
     [Fact]
-    public void Incident_needs_a_detail()
+    public void Placeholder_step_needs_a_detail()
     {
-        var incident = Protocols.Find("incident", [])!;
-        Assert.Null(Protocols.StepsFor(incident, ""));
-        Assert.Equal("declare a major incident email is down", Protocols.StepsFor(incident, "email is down")![0]);
+        var handoff = new Protocol("handoff", "", ["prepare handoff for {detail}"], [], BuiltIn: false);
+        Assert.Null(Protocols.StepsFor(handoff, ""));
+        Assert.Equal("prepare handoff for supplier response", Protocols.StepsFor(handoff, "supplier response")![0]);
         Assert.Equal(["plan my day", "anything I need to worry about"], Protocols.ParseSteps("plan my day; anything I need to worry about"));
     }
 }

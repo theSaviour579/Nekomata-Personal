@@ -146,7 +146,7 @@ public partial class MainViewModel
         _ => 1
     };
 
-    // Attention titles are written for the screen ("Reply needed · #4211 · VPN down");
+    // Attention titles are written for the screen ("Reply needed · supplier response overdue");
     // turn the separators into pauses so they read naturally aloud.
     private static string SpokenTitle(string title) =>
         title.Replace(" · ", ", ").Trim().TrimEnd('.');

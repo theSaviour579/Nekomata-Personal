@@ -125,7 +125,7 @@ public partial class MainViewModel
         }
         MarkUserEngaged();
 
-        // The Ask box takes the same commands as the palette and the voice ("who fixed the VPN last time?", "what did I
+        // The Ask box takes the same commands as the palette and the voice ("who resolved the last delay?", "what did I
         // miss?", "reply to this"): a recognised command runs locally, and its answer lands in this conversation.
         if (!_routingChatCommand && PendingChatAttachments.Count == 0 && !GuardianBusy)
         {

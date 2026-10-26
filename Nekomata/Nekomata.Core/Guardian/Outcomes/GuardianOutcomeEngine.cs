@@ -178,7 +178,7 @@ public sealed class GuardianOutcomeEngine(
     {
         var value = $"{text} {source}".ToLowerInvariant();
         if (value.Contains("sql") || value.Contains("analysis") || value.Contains("data") || value.Contains("report")) return "Analysis";
-        if (value.Contains("halo") || value.Contains("ticket") || value.Contains("incident") || value.Contains("chase")) return "Operational";
+        if (value.Contains("request") || value.Contains("issue") || value.Contains("incident") || value.Contains("chase")) return "Operational";
         if (value.Contains("project") || value.Contains("planning") || value.Contains("strategy")) return "Project";
         if (value.Contains("email") || value.Contains("outlook") || value.Contains("reply")) return "Communication";
         return string.IsNullOrWhiteSpace(source) ? "General" : source.Trim();

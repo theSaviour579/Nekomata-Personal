@@ -44,7 +44,7 @@ public sealed class GuardianHudWindow : Window
         row.Children.Add(Segment("FOCUS", nameof(MainViewModel.HudMissionText), nameof(MainViewModel.HasHudMission)));
         row.Children.Add(Segment("PLAN", nameof(MainViewModel.HudPlanText), nameof(MainViewModel.HasHudPlan),
             urgentPath: nameof(MainViewModel.HudOffPlan)));
-        row.Children.Add(Segment("HALO", nameof(MainViewModel.HudDeadlineText), nameof(MainViewModel.HasHudDeadline),
+        row.Children.Add(Segment("DUE", nameof(MainViewModel.HudDeadlineText), nameof(MainViewModel.HasHudDeadline),
             urgentPath: nameof(MainViewModel.HudDeadlineUrgent)));
         row.Children.Add(Segment("", nameof(MainViewModel.HudAttentionText), nameof(MainViewModel.HasHudAttention),
             accent: true));

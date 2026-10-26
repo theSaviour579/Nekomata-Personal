@@ -45,13 +45,8 @@ public class MissionCandidate
 
     public string WaitingOwnerLabel => ExternalStatusId switch
     {
-        4 => "WITH END USER",
+        4 => "AWAITING RESPONSE",
         28 => "ON HOLD",
-        31 => "WEB DEVELOPERS",
-        32 => "ERP DEVELOPERS",
-        33 => "CRM DEVELOPER",
-        34 => "SERVER ADMINISTRATOR",
-        36 => "PRINTER MSP",
         _ => "OTHER WAITING"
     };
 

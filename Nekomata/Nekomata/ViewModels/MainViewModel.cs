@@ -355,10 +355,9 @@ public partial class MainViewModel : ObservableObject
                 _ = SpeakMorningBriefingWithWeeklyAsync();
             }
         }
-        catch (Exception ex) when (!DatabaseReady)
+        catch (Exception ex) when (!WorkspaceReady)
         {
-            // Start-up connection still being retried in the background; it reloads when the database answers.
-            Think($"Waiting for the database: {ex.GetBaseException().Message}");
+            Think($"Waiting for the local workspace: {ex.GetBaseException().Message}");
         }
         catch (Exception ex)
         {

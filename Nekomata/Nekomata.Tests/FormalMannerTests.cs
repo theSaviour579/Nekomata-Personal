@@ -20,8 +20,13 @@ public sealed class FormalMannerTests
     [InlineData("Sam wants the PP data by Thursday.", true, "Sir, Sam wants the PP data by Thursday.")]
     [InlineData("Sam wants the PP data by Thursday.", false, "Sam wants the PP data by Thursday.")]
     [InlineData("Very good, Sir. It's done.", true, "Very good, Sir. It's done.")]
-    public void Speaks_formally_without_overdoing_it(string text, bool unprompted, string expected) =>
-        Assert.Equal(expected, FormalManner.Apply(text, unprompted));
+    public void Speaks_formally_without_overdoing_it(string text, bool unprompted, string expected)
+    {
+        var original = FormalManner.UserFirstName;
+        FormalManner.UserFirstName = "Alex";
+        try { Assert.Equal(expected, FormalManner.Apply(text, unprompted)); }
+        finally { FormalManner.UserFirstName = original; }
+    }
 
     [Theory]
     [InlineData("Stop calling me Sir", "off")]

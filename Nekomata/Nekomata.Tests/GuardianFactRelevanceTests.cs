@@ -17,7 +17,8 @@ public sealed class GuardianFactRelevanceTests
     [Fact]
     public void ForMeeting_PicksFactsNamingAttendees()
     {
-        var result = GuardianFactRelevance.ForMeeting(Facts, "Ops sync", new[] { "Sarah Jones", "alex.morgan@example.com" });
+        var result = GuardianFactRelevance.ForMeeting(
+            Facts, "Ops sync", new[] { "Sarah Jones", "alex.morgan@example.com" }, userDisplayName: "Alex Morgan");
         Assert.Equal(2, result.Count);
         Assert.All(result, f => Assert.Contains("Sarah", f));
     }
@@ -34,5 +35,6 @@ public sealed class GuardianFactRelevanceTests
 
     [Fact]
     public void ForMeeting_IgnoresTheUserAndGenericWords() =>
-        Assert.Empty(GuardianFactRelevance.ForMeeting(Facts, "Weekly meeting", new[] { "Alex Morgan" }));
+        Assert.Empty(GuardianFactRelevance.ForMeeting(
+            Facts, "Weekly meeting", new[] { "Alex Morgan" }, userDisplayName: "Alex Morgan"));
 }

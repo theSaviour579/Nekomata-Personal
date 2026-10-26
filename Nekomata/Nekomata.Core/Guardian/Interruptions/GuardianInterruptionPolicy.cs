@@ -81,13 +81,12 @@ public sealed class GuardianInterruptionPolicy
         string explanation, IReadOnlyList<string> evidence) => new(route, Math.Clamp(score, 0, 100), confidence, explanation, evidence);
     private static int SourceWeight(string source) => source.ToLowerInvariant() switch
     {
-        var x when x.Contains("merlin") => 35,
-        var x when x.Contains("halo") => 25,
         var x when x.Contains("calendar") => 20,
         var x when x.Contains("forecast") => 25,
         var x when x.Contains("project") => 20,
         var x when x.Contains("email") => 10,
         var x when x.Contains("teams") => 15,
+        var x when x.Contains("task") => 15,
         var x when x.Contains("manual") => 15,
         _ => 0
     };

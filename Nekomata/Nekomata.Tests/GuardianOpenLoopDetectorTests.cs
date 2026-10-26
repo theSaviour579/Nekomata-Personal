@@ -7,10 +7,10 @@ namespace Nekomata.Tests;
 public sealed class GuardianOpenLoopDetectorTests
 {
     [Theory]
-    [InlineData(GuardianOpenLoopSignalKind.Email, true, false, false, 0, OpenLoopType.AwaitingThem)]
-    [InlineData(GuardianOpenLoopSignalKind.Meeting, false, false, true, 0, OpenLoopType.AwaitingMe)]
+    [InlineData(GuardianOpenLoopSignalKind.Email, true, false, 0, OpenLoopType.AwaitingThem)]
+    [InlineData(GuardianOpenLoopSignalKind.Meeting, false, true, 0, OpenLoopType.AwaitingMe)]
     public void Detects_structured_open_loop_signals(
-        GuardianOpenLoopSignalKind kind, bool request, bool automated, bool prep, int age, OpenLoopType expected)
+        GuardianOpenLoopSignalKind kind, bool request, bool prep, int age, OpenLoopType expected)
     {
         var result = GuardianOpenLoopDetector.Detect(new GuardianOpenLoopSignal
         {

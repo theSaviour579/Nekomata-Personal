@@ -9,14 +9,20 @@ namespace Nekomata.Core.Guardian;
 /// </summary>
 public static partial class GuardianFactRelevance
 {
-    private static readonly HashSet<string> Ignored = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> CommonIgnored = new(StringComparer.OrdinalIgnoreCase)
     {
-        "david", "myers", "meeting", "call", "catch", "sync", "weekly", "daily", "monthly", "review", "with", "and", "the",
+        "meeting", "call", "catch", "sync", "weekly", "daily", "monthly", "review", "with", "and", "the",
         "for", "teams", "update", "chat", "check", "about", "from", "that", "this", "they", "their", "will", "have"
     };
 
-    public static IReadOnlyList<string> ForMeeting(IEnumerable<string> facts, string? subject, IEnumerable<string> attendees, int max = 4)
+    public static IReadOnlyList<string> ForMeeting(
+        IEnumerable<string> facts, string? subject, IEnumerable<string> attendees, int max = 4,
+        string? userDisplayName = null)
     {
+        var ignored = new HashSet<string>(CommonIgnored, StringComparer.OrdinalIgnoreCase);
+        foreach (Match part in WordRegex().Matches(userDisplayName ?? ""))
+            if (part.Value.Length >= 3) ignored.Add(part.Value);
+
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var attendee in attendees)
         {
@@ -25,12 +31,12 @@ public static partial class GuardianFactRelevance
                 ? value.Split('@')[0].Split('.', '_', '-')
                 : WordRegex().Matches(value).Select(m => m.Value).ToArray();
             foreach (var part in parts)
-                if (part.Length >= 3 && !Ignored.Contains(part)) names.Add(part);
+                if (part.Length >= 3 && !ignored.Contains(part)) names.Add(part);
         }
 
         var subjectWords = WordRegex().Matches(subject ?? "")
             .Select(m => m.Value)
-            .Where(w => w.Length >= 4 && !Ignored.Contains(w))
+            .Where(w => w.Length >= 4 && !ignored.Contains(w))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return facts

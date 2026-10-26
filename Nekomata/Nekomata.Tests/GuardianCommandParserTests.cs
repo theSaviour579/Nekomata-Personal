@@ -78,9 +78,6 @@ public sealed class GuardianCommandParserTests
     public void Parse_FeedbackSummary(string input) => Assert.Equal(GuardianCommandIntent.FeedbackSummary, GuardianCommandParser.Parse(input).Intent);
 
     [Theory]
-    public void Parse_new_operations(string input, GuardianCommandIntent intent) => Assert.Equal(intent, GuardianCommandParser.Parse(input).Intent);
-
-    [Theory]
     [InlineData("what's due?", GuardianCommandIntent.WhatsDue, "")]
     [InlineData("duty done: patch Tuesday", GuardianCommandIntent.DutyDone, "patch Tuesday")]
     [InlineData("Add objective: halve repeat printer tickets by March", GuardianCommandIntent.AddObjective, "halve repeat printer tickets by March")]
@@ -477,7 +474,6 @@ public sealed class GuardianCommandParserTests
 
     [Theory]
     [InlineData("reply to this")]
-    [InlineData("Can you log this as a ticket?")]
     [InlineData("what's this error")]
     [InlineData("who is this")]
     [InlineData("make this a task")]

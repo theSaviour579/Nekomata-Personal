@@ -86,7 +86,8 @@ public partial class MainViewModel
         {
             var facts = await _services.GetRequiredService<IGuardianMemoryRepository>()
                 .GetByCategoryAsync(GuardianMemoryCategories.UserFact, 200);
-            rememberedFacts = GuardianFactRelevance.ForMeeting(facts.Select(f => f.Summary), meeting.Subject, meeting.Attendees);
+            rememberedFacts = GuardianFactRelevance.ForMeeting(
+                facts.Select(f => f.Summary), meeting.Subject, meeting.Attendees, userDisplayName: UserName);
         }
         catch (Exception ex)
         {

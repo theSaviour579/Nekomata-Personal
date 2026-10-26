@@ -30,8 +30,8 @@ public sealed record HistorySource(int Number, string Kind, DateTimeOffset? When
 // and email signals Guardian has stored, the Chronicle of what happened, and things the user asked it to remember. The AI
 // picks the searches, then answers only from what was found, citing sources by number; if nothing covers it, it says so.
 // "Open source 2" opens that email or chat.
-// Examples: "when did we last change the firewall rules?", "what did we agree with Sophos about the renewal?",
-// "has anyone had this Outlook error before?", "who fixed the VPN last time?", "search for the Mimecast quote".
+// Examples: "when did we last change the delivery plan?", "what did we agree with the supplier about the renewal?",
+// "has anyone raised this issue before?", "who resolved the last delay?", "search for the renewal quote".
 public partial class MainViewModel
 {
     private List<HistorySource> _historySources = [];
@@ -48,7 +48,7 @@ public partial class MainViewModel
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 plan = await ai.AskStructuredAsync<HistoryPlan>(
-                    "Plan a search of an IT manager's work history to answer his question. MailSearches: two or three short Outlook " +
+                    "Plan a search of the user's work history to answer their question. MailSearches: two or three short Outlook " +
                     "search strings (key nouns, product/supplier/person names; no dates, no question words). Keywords: up to six " +
                     "distinctive single words (systems, products, suppliers, people, error codes) for matching messages and chats.",
                     question).WaitAsync(timeout.Token);

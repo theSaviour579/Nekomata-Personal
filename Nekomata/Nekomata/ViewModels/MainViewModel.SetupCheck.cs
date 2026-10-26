@@ -19,9 +19,6 @@ public partial class MainViewModel
     private async Task<List<SetupStep>> SetupStepsAsync()
     {
         var manualDone = LoadJson<HashSet<int>>(SetupDonePath) ?? [];
-        async Task<bool> Consent(Func<Task<bool>> check) => await SafeAsync(check, false);
-        DateTime? Latest<T>(string path, Func<T, DateTime> date) => (LoadJson<List<T>>(path) ?? []).Select(date).DefaultIfEmpty().Max() is var d && d > DateTime.MinValue ? d : null;
-        var weekAgo = DateTime.Today.AddDays(-7);
         var microsoftAccount = await SafeAsync(async () => !string.IsNullOrWhiteSpace(
             await _services.GetRequiredService<IMicrosoftAuthenticationService>().GetConnectedAccountAsync()), false);
         var steps = new List<SetupStep>

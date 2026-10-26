@@ -97,7 +97,7 @@ public sealed class ExecutiveValueEngine(
     {
         var text = $"{session.Title} {session.SourceType} {project?.Name} {project?.Description}".ToLowerInvariant();
         var category = ClassifyCategory(text);
-        var nonFinancial = ContainsAny(text, "compliance", "risk", "governance", "change control");
+        var nonFinancial = ContainsAny(text, "compliance", "risk", "governance", "change control", "security");
         var evidence = session.BusinessValue > 0 ? ValueEvidenceKind.Estimated : nonFinancial ? ValueEvidenceKind.NonFinancial : ValueEvidenceKind.Proxy;
         var valueConfidence = evidence switch
         {

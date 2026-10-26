@@ -1,6 +1,7 @@
 using Nekomata.Core.Guardian.Anticipation;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Guardian;
+using Nekomata.Core.Personalization;
 using Xunit;
 
 namespace Nekomata.Tests;
@@ -39,8 +40,17 @@ public sealed class OperationalIntentDetectionServiceTests
         {
             Source = "Microsoft Teams", Kind = ContextSignalKind.Conversation, Person = "Alex Morgan",
             Body = "I can arrange 30 minutes tomorrow morning", Title = "I can arrange 30 minutes tomorrow morning", ObservedAt = now
-        })).DetectAsync(now);
+        }), new TestIdentity("Alex Morgan")).DetectAsync(now);
         Assert.Empty(result);
+    }
+
+    private sealed class TestIdentity(string displayName) : IUserIdentity
+    {
+        public string DisplayName { get; } = displayName;
+        public string FirstName => DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+        public string Description => DisplayName;
+        public bool Is(string? nameOrAddress) => !string.IsNullOrWhiteSpace(nameOrAddress) &&
+            nameOrAddress.Equals(DisplayName, StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class FakeSignals(params ContextSignal[] values) : IContextSignalRepository

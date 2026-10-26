@@ -8,7 +8,7 @@ using Nekomata.Data.Local;
 
 namespace Nekomata.UI.Services.LocalStores;
 
-// File-backed stores for the Core learning and value engines. The work edition keeps these in PostgreSQL;
+// File-backed stores for the Core learning and value engines. Personal keeps these in the local workspace;
 // Nekomata Personal keeps them beside the rest of the local workspace.
 
 public sealed class LocalWorkDebtRepository(LocalDocumentStore store) : IWorkDebtRepository

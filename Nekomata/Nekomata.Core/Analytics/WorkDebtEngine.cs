@@ -71,9 +71,9 @@ public sealed class WorkDebtEngine
     private static readonly string[] OperationalCategories =
         ["Operational support", "Administration & communication", "Operational resilience", "Rework / avoidable"];
     private static readonly string[] NecessaryControlTerms =
-        ["compliance", "audit", "control", "governance"];
+        ["compliance", "audit", "control", "governance", "backup"];
     private static readonly string[] AvoidableTerms =
-        ["remediation", "rework", "stale", "failure", "error", "firefight"];
+        ["remediation", "rework", "stale", "failure", "error", "firefight", "chase", "chasing"];
 
     public WorkDebtAnalysis Analyse(IEnumerable<WorkEpisode> source, decimal hourlyLabourRate, DateTime? observedAt = null)
     {
