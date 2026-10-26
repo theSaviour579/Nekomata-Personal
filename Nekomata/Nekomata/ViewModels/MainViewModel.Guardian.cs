@@ -1,17 +1,29 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Nekomata.UI.Controls.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.AI.Models;
 using Nekomata.AI.Models.Actions;
 using Nekomata.Core.Guardian;
+using Nekomata.Core.Guardian.Commands;
+using Nekomata.Core.Analytics;
+using Nekomata.Core.Commitments;
+using Nekomata.Core.Missions;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Guardian;
 using Nekomata.Models.Projects;
 using Nekomata.Models.Tasks;
 using Nekomata.Models.Planning;
+using Nekomata.Models.Missions;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Text.Json;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
+using System.IO;
+using Nekomata.UI.Services;
 
 namespace Nekomata.UI.ViewModels;
 
@@ -20,6 +32,10 @@ public partial class MainViewModel
     public ObservableCollection<GuardianChatTurn>
         ChatHistory
     { get; } = [];
+
+    public ObservableCollection<GuardianAttachmentItem> PendingChatAttachments { get; } = [];
+
+    public bool HasPendingChatAttachments => PendingChatAttachments.Count > 0;
 
     [ObservableProperty]
     private GuardianDashboardRecommendation?
@@ -52,6 +68,54 @@ public partial class MainViewModel
     private bool guardianBusy;
 
     [RelayCommand]
+    private async Task AddGuardianAttachmentsAsync()
+    {
+        var picker = new OpenFileDialog
+        {
+            Title = "Attach evidence to Guardian",
+            Multiselect = true,
+            Filter = "Supported files|*.pdf;*.docx;*.xlsx;*.csv;*.tsv;*.txt;*.sql;*.json;*.xml;*.md;*.log;*.png;*.jpg;*.jpeg|All files|*.*"
+        };
+        if (picker.ShowDialog() != true) return;
+        var importer = _services.GetRequiredService<GuardianAttachmentService>();
+        foreach (var path in picker.FileNames)
+        {
+            try
+            {
+                var imported = await importer.ImportAsync(path);
+                PendingChatAttachments.Add(new GuardianAttachmentItem(imported));
+            }
+            catch (Exception ex)
+            {
+                GuardianResponse = $"Could not attach {Path.GetFileName(path)}: {ex.Message}";
+            }
+        }
+        OnPropertyChanged(nameof(HasPendingChatAttachments));
+    }
+
+    [RelayCommand]
+    private void RemoveGuardianAttachment(GuardianAttachmentItem? item)
+    {
+        if (item is null || !PendingChatAttachments.Remove(item)) return;
+        try { File.Delete(item.Attachment.StoredPath); } catch { /* retained safely if in use */ }
+        OnPropertyChanged(nameof(HasPendingChatAttachments));
+    }
+
+    private bool _routingChatCommand;
+
+    /// <summary>Intents this method answers itself (or that only make sense as a Guardian conversation).</summary>
+    private static bool HandledByGuardianChat(GuardianCommandIntent intent) => intent is
+        GuardianCommandIntent.Unknown or GuardianCommandIntent.ShowWeeklyOvertime or GuardianCommandIntent.ShowExecutiveValue or
+        GuardianCommandIntent.ShowStopDoing or GuardianCommandIntent.ShowWorkDebt or
+        GuardianCommandIntent.ShowIOwe or GuardianCommandIntent.ShowOwedToMe or GuardianCommandIntent.ShowAtRiskCommitments or
+        GuardianCommandIntent.ShowWaitingCommitments or GuardianCommandIntent.ShowPromisedThisWeek or GuardianCommandIntent.ShowCallCommitments or
+        GuardianCommandIntent.ShowHealth or GuardianCommandIntent.ShowUnhealthyIntegrations or GuardianCommandIntent.ShowLastSync or
+        GuardianCommandIntent.ShowRoleAlignment or GuardianCommandIntent.ProtectMyRole or GuardianCommandIntent.ForecastRoleAlignment or
+        GuardianCommandIntent.ImproveRoleAlignment or GuardianCommandIntent.ExplainRoleDrift or GuardianCommandIntent.ShowMostImportantCorrection or
+        GuardianCommandIntent.ProtectStrategicTime or GuardianCommandIntent.ExplainRoleBias or
+        GuardianCommandIntent.FindTime or GuardianCommandIntent.PlanTomorrow;
+
+    [RelayCommand]
     private async Task SendGuardianMessageAsync()
     {
         if (string.IsNullOrWhiteSpace(ChatInput) ||
@@ -59,23 +123,147 @@ public partial class MainViewModel
         {
             return;
         }
+        MarkUserEngaged();
+
+        // The Ask box takes the same commands as the palette and the voice ("who resolved the last delay?", "what did I
+        // miss?", "reply to this"): a recognised command runs locally, and its answer lands in this conversation.
+        if (!_routingChatCommand && PendingChatAttachments.Count == 0 && !GuardianBusy)
+        {
+            var typed = ChatInput.Trim();
+            var intent = GuardianCommandParser.Parse(typed).Intent;
+            GuardianCommandMatch? routed = null;
+            if (intent == GuardianCommandIntent.Unknown && PendingChatAttachments.Count == 0 &&
+                !string.Equals(_aiRoutedText, typed, StringComparison.Ordinal))
+            {
+                GuardianBusy = true;
+                try { routed = await RouteWithAiAsync(typed); }
+                finally { GuardianBusy = false; }
+            }
+            _aiRoutedText = null;
+            if (routed is not null || !HandledByGuardianChat(intent))
+            {
+                _preRouted = routed;
+                ChatInput = "";
+                ChatHistory.Add(new GuardianChatTurn { Role = "user", Content = typed });
+                _routingChatCommand = true;
+                try
+                {
+                    CommandPaletteInput = typed;
+                    await ExecuteCommandPaletteAsync();
+                }
+                finally { _routingChatCommand = false; }
+                return;
+            }
+        }
 
         var userMessage =
             ChatInput.Trim();
+        Think(userMessage.Length > 70 ? $"Thinking about: {userMessage[..70]}…" : $"Thinking about: {userMessage}");
+
+        var attachments = PendingChatAttachments.Select(item => item.Attachment).ToList();
+        var attachmentNames = attachments.Select(item => item.FileName).ToList();
 
         ChatInput = "";
         GuardianBusy = true;
+        GuardianPresenceState = GuardianPresenceState.Thinking;
         GuardianPanelExpanded = true;
 
-        ChatHistory.Add(
-            new GuardianChatTurn
-            {
-                Role = "user",
-                Content = userMessage
-            });
+        if (!_routingChatCommand) // a command that fell back to Guardian already shows what the user typed
+            ChatHistory.Add(
+                new GuardianChatTurn
+                {
+                    Role = "user",
+                    Content = userMessage,
+                    AttachmentNames = attachmentNames
+                });
+
+        PendingChatAttachments.Clear();
+        OnPropertyChanged(nameof(HasPendingChatAttachments));
 
         try
         {
+            var localIntent = GuardianCommandParser.Parse(userMessage).Intent;
+            if (localIntent == GuardianCommandIntent.ShowWeeklyOvertime)
+            {
+                GuardianResponse = FormatOvertimeSummary(await GetWeeklyOvertimeAsync());
+                PendingGuardianAction = null;
+                GuardianProposalVisible = false;
+                ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
+                GuardianPanelTitle = $"GUARDIAN · {ChatHistory.Count} MESSAGES";
+                _ = SpeakGuardianAsync(GuardianResponse);
+                return;
+            }
+            if (localIntent == GuardianCommandIntent.ShowExecutiveValue)
+            {
+                GuardianResponse = FormatExecutiveValueSummary(await GetCurrentWeekExecutiveValueAsync());
+                PendingGuardianAction = null;
+                GuardianProposalVisible = false;
+                ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
+                GuardianPanelTitle = $"GUARDIAN · {ChatHistory.Count} MESSAGES";
+                _ = SpeakGuardianAsync(GuardianResponse);
+                return;
+            }
+            if (localIntent == GuardianCommandIntent.ShowStopDoing)
+            {
+                GuardianResponse = FormatStopDoing(await GetCurrentWeekExecutiveValueAsync());
+                PendingGuardianAction = null;
+                GuardianProposalVisible = false;
+                ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
+                GuardianPanelTitle = $"GUARDIAN · {ChatHistory.Count} MESSAGES";
+                _ = SpeakGuardianAsync(GuardianResponse);
+                return;
+            }
+            if (localIntent == GuardianCommandIntent.ShowWorkDebt)
+            {
+                await RefreshWorkDebtAsync();
+                GuardianResponse = WorkDebt.Items.Count == 0 ? "No repeated operational pattern currently has enough evidence to qualify as Work Debt." :
+                    $"Work Debt · {WorkDebt.TotalMinutes} observed minutes · {WorkDebt.OvertimeMinutes} outside working hours\n" +
+                    string.Join("\n", WorkDebt.Items.Take(8).Select(x => $"• {x.Status} · {x.Title} — {x.TotalTimeMinutes}m across {x.EpisodeCount} episodes · {x.Confidence}% confidence\n  {x.Recommendation}"));
+                PendingGuardianAction = null; GuardianProposalVisible = false;
+                ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
+                GuardianPanelTitle = $"GUARDIAN · {ChatHistory.Count} MESSAGES"; _ = SpeakGuardianAsync(GuardianResponse); return;
+            }
+            if (localIntent is GuardianCommandIntent.ShowIOwe or GuardianCommandIntent.ShowOwedToMe or
+                GuardianCommandIntent.ShowAtRiskCommitments or GuardianCommandIntent.ShowWaitingCommitments or
+                GuardianCommandIntent.ShowPromisedThisWeek or GuardianCommandIntent.ShowCallCommitments)
+            {
+                await RefreshCommitmentSummaryAsync();
+                IEnumerable<Commitment> selected = localIntent switch
+                {
+                    GuardianCommandIntent.ShowIOwe => ActiveCommitments.Where(x => x.Direction == CommitmentDirection.OwedByMe),
+                    GuardianCommandIntent.ShowOwedToMe => ActiveCommitments.Where(x => x.Direction == CommitmentDirection.OwedToMe),
+                    GuardianCommandIntent.ShowAtRiskCommitments => ActiveCommitments.Where(x => x.Status is CommitmentStatus.DueSoon or CommitmentStatus.Overdue),
+                    GuardianCommandIntent.ShowWaitingCommitments => ActiveCommitments.Where(x => x.Status == CommitmentStatus.WaitingExternal),
+                    GuardianCommandIntent.ShowPromisedThisWeek => ActiveCommitments.Where(x => x.Direction == CommitmentDirection.OwedByMe && x.CreatedAt >= DateTimeOffset.Now.AddDays(-7)),
+                    _ => ActiveCommitments.Where(x => x.SourceType.Contains("call", StringComparison.OrdinalIgnoreCase) || x.SourceType.Contains("goto", StringComparison.OrdinalIgnoreCase))
+                };
+                var commitments = selected.Take(20).ToList();
+                GuardianResponse = commitments.Count == 0 ? "No matching active commitments were found." : string.Join("\n", commitments.Select(x =>
+                    $"• {x.Status} · {x.Summary} · {(x.DueAt is null ? "no explicit due date" : x.DueAt.Value.LocalDateTime.ToString("ddd dd MMM HH:mm"))} · {x.Confidence}% confidence\n  Evidence: {x.EvidenceSummary}"));
+                PendingGuardianAction = null; GuardianProposalVisible = false;
+                ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
+                GuardianPanelTitle = $"GUARDIAN · {ChatHistory.Count} MESSAGES"; _ = SpeakGuardianAsync(GuardianResponse); return;
+            }
+            if (localIntent is GuardianCommandIntent.ShowRoleAlignment or GuardianCommandIntent.ProtectMyRole or
+                GuardianCommandIntent.ForecastRoleAlignment or GuardianCommandIntent.ImproveRoleAlignment or
+                GuardianCommandIntent.ExplainRoleDrift or GuardianCommandIntent.ShowMostImportantCorrection or
+                GuardianCommandIntent.ProtectStrategicTime or GuardianCommandIntent.ExplainRoleBias)
+            {
+                await RefreshRolePlanningAsync();
+                GuardianResponse = localIntent switch
+                {
+                    GuardianCommandIntent.ShowRoleAlignment => FormatRoleAlignment(RoleAlignment!),
+                    GuardianCommandIntent.ProtectMyRole => FormatRoleProtection(RoleAlignment!),
+                    _ => FormatRolePlanningCommand(localIntent)
+                };
+                PendingGuardianAction = null;
+                GuardianProposalVisible = false;
+                ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
+                GuardianPanelTitle = $"GUARDIAN · {ChatHistory.Count} MESSAGES";
+                _ = SpeakGuardianAsync(GuardianResponse);
+                return;
+            }
+
             var calendarBriefing = await TryBuildCalendarDayBriefingAsync(userMessage);
             if (calendarBriefing is not null)
             {
@@ -104,17 +292,17 @@ public partial class MainViewModel
                 }
                 var request = new GuardianConversationRequest
                 {
-                    UserMessage = WithPersonalAttachment(await AddCalendarContextAsync(userMessage)),
+                    UserMessage = AddSituationContext(await AddJournalContextAsync(await AddCalendarContextAsync(
+                        AddAttachmentContext(userMessage, attachments)), userMessage)),
+                    IntentMessage = userMessage,
                     Workspace = Workspace,
                     CurrentTime = DateTime.Now,
                     Conversation = ChatHistory.ToList()
                 };
                 response = await _guardianConversationService.AskAsync(request);
-                ClearPersonalAttachment();
             }
 
-            GuardianResponse =
-                response.Message;
+            GuardianResponse = response.Message;
 
             PendingGuardianAction =
                 response;
@@ -134,13 +322,13 @@ public partial class MainViewModel
                 new GuardianChatTurn
                 {
                     Role = "assistant",
-                    Content = response.Message
+                    Content = GuardianResponse
                 });
 
             GuardianPanelTitle =
                 $"GUARDIAN · {ChatHistory.Count} MESSAGES";
 
-            _ = SpeakGuardianAsync(response.Message);
+            _ = SpeakGuardianAsync(GuardianResponse);
 
             await RememberImportantConversationAsync(
     memoryRepository,
@@ -164,16 +352,32 @@ public partial class MainViewModel
         finally
         {
             GuardianBusy = false;
+            if (GuardianPresenceState == GuardianPresenceState.Thinking)
+                GuardianPresenceState = GuardianPresenceState.Idle;
         }
     }
 
-
+    private static string AddAttachmentContext(string message, IReadOnlyList<Nekomata.Models.Guardian.GuardianFileAttachment> attachments)
+    {
+        if (attachments.Count == 0) return message;
+        var context = new System.Text.StringBuilder(message).AppendLine().AppendLine("Attached evidence:");
+        foreach (var attachment in attachments)
+        {
+            context.AppendLine($"- {attachment.FileName} ({attachment.ContentType}, {attachment.SizeBytes} bytes, SHA-256 {attachment.Sha256})");
+            if (!string.IsNullOrWhiteSpace(attachment.ExtractedText))
+                context.AppendLine("--- extracted content ---").AppendLine(attachment.ExtractedText).AppendLine("--- end content ---");
+            else
+                context.AppendLine("[Stored locally; content extraction for this file type is not enabled yet.]");
+        }
+        return context.ToString();
+    }
 
     private async Task<GuardianActionResponse?> TryBuildDeterministicCalendarPlanAsync(string userMessage)
     {
         var lower = userMessage.ToLowerInvariant();
         var asksToPlan = new[] { "plan", "schedule", "fill", "organise", "organize", "slot", "slotted" }.Any(lower.Contains);
-        var calendarScope = new[] { "day", "calendar", "today", "tomorrow", "monday", "tuesday", "wednesday", "thursday", "friday", "when" }.Any(lower.Contains);
+        var calendarScope = new[] { "day", "calendar", "today", "tomorrow", "monday", "tuesday", "wednesday", "thursday", "friday", "when", "next week" }.Any(lower.Contains) ||
+                            ResolveMentionedCalendarDates(lower).Count > 0;
         if (!asksToPlan || !calendarScope) return null;
 
         var dates = ResolvePlanningDates(lower);
@@ -181,16 +385,14 @@ public partial class MainViewModel
         var calendar = _services.GetRequiredService<ICalendarService>();
         var ticketMatch = System.Text.RegularExpressions.Regex.Match(
             userMessage,
-            @"\bticket\s*#?\s*(\d+)\b",
+            @"\btask\s*#?\s*(\d+)\b",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        var requestedTicketId = ticketMatch.Success
-            ? ticketMatch.Groups[1].Value
-            : null;
+        var requestedTaskId = ticketMatch.Success && long.TryParse(ticketMatch.Groups[1].Value, out var parsedTaskId)
+            ? parsedTaskId
+            : (long?)null;
         var candidates = Workspace.RankedMissionCandidates
             .Where(item => item.EstimatedMinutes > 0)
-            .Where(item => requestedTicketId is null ||
-                (item.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase) &&
-                 string.Equals(item.SourceRecordId, requestedTicketId, StringComparison.OrdinalIgnoreCase)))
+            .Where(item => requestedTaskId is null || item.TaskId == requestedTaskId)
             .OrderByDescending(item => item.RequiresImmediateAttention)
             .ThenBy(item => item.Rank)
             .ThenByDescending(item => item.Score)
@@ -229,9 +431,6 @@ public partial class MainViewModel
                                 ((item.TaskId is long existingTaskId &&
                                   (calendarEvent.BodyPreview.Contains($"NEKOMATA:TASK:{existingTaskId}", StringComparison.OrdinalIgnoreCase) ||
                                    calendarEvent.BodyPreview.Contains($"NEKOMATA:{existingTaskId}", StringComparison.OrdinalIgnoreCase))) ||
-                                 (item.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase) &&
-                                  !string.IsNullOrWhiteSpace(item.SourceRecordId) &&
-                                  calendarEvent.BodyPreview.Contains($"NEKOMATA:HALO:{item.SourceRecordId}", StringComparison.OrdinalIgnoreCase)) ||
                                  calendarEvent.Subject.Contains(item.Title, StringComparison.OrdinalIgnoreCase)));
                     });
                     if (candidate is null) break;
@@ -266,13 +465,23 @@ public partial class MainViewModel
 
     private static IReadOnlyList<DateTime> ResolvePlanningDates(string lower)
     {
-        var dates = new List<DateTime>();
+        var dates = ResolveMentionedCalendarDates(lower).ToList();
         if (lower.Contains("today")) dates.Add(DateTime.Today);
         if (lower.Contains("tomorrow")) dates.Add(DateTime.Today.AddDays(1));
-        for (var i = 0; i <= 7; i++)
+        if (lower.Contains("next week"))
+        {
+            var nextMonday = DateTime.Today.AddDays(((int)DayOfWeek.Monday - (int)DateTime.Today.DayOfWeek + 7) % 7);
+            if (nextMonday <= DateTime.Today) nextMonday = nextMonday.AddDays(7);
+            dates.AddRange(Enumerable.Range(0, 5).Select(day => nextMonday.AddDays(day)));
+        }
+        for (var i = 0; i <= 60; i++)
         {
             var date = DateTime.Today.AddDays(i);
-            if (lower.Contains(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase)) dates.Add(date.Date);
+            var dayName = date.DayOfWeek.ToString();
+            if (!lower.Contains(dayName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (lower.Contains($"next {dayName.ToLowerInvariant()}") && i < 7) continue;
+            dates.Add(date.Date);
+            break;
         }
         if (dates.Count == 0) dates.Add(DateTime.Now.Hour >= 16 ? DateTime.Today.AddDays(1) : DateTime.Today);
         return dates.Distinct().Where(date => date.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday).OrderBy(date => date).ToList();
@@ -386,19 +595,42 @@ public partial class MainViewModel
 
     private static DateTime ResolveCalendarOverviewDate(string lowerMessage)
     {
+        var explicitDate = ResolveMentionedCalendarDates(lowerMessage).FirstOrDefault();
+        if (explicitDate != default) return explicitDate;
         if (lowerMessage.Contains("tomorrow"))
             return DateTime.Today.AddDays(1);
         if (lowerMessage.Contains("today"))
             return DateTime.Today;
 
-        for (var daysAhead = 0; daysAhead <= 7; daysAhead++)
+        for (var daysAhead = 0; daysAhead <= 60; daysAhead++)
         {
             var candidate = DateTime.Today.AddDays(daysAhead);
-            if (lowerMessage.Contains(candidate.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase))
+            var dayName = candidate.DayOfWeek.ToString();
+            if (lowerMessage.Contains(dayName, StringComparison.OrdinalIgnoreCase) &&
+                (!lowerMessage.Contains($"next {dayName.ToLowerInvariant()}") || daysAhead >= 7))
                 return candidate;
         }
 
         return DateTime.Today;
+    }
+
+    private static IReadOnlyList<DateTime> ResolveMentionedCalendarDates(string text)
+    {
+        var dates = new List<DateTime>();
+        foreach (Match match in Regex.Matches(text, @"\b(?<date>\d{4}-\d{2}-\d{2})\b"))
+            if (DateTime.TryParseExact(match.Groups["date"].Value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var iso))
+                dates.Add(iso.Date);
+
+        foreach (Match match in Regex.Matches(text,
+                     @"\b(?<day>\d{1,2})(?:st|nd|rd|th)?\s+(?<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+(?<year>\d{4}))?\b",
+                     RegexOptions.IgnoreCase))
+        {
+            var year = match.Groups["year"].Success ? match.Groups["year"].Value : DateTime.Today.Year.ToString(CultureInfo.InvariantCulture);
+            if (!DateTime.TryParse($"{match.Groups["day"].Value} {match.Groups["month"].Value} {year}", CultureInfo.GetCultureInfo("en-GB"), DateTimeStyles.AllowWhiteSpaces, out var parsed)) continue;
+            if (!match.Groups["year"].Success && parsed.Date < DateTime.Today) parsed = parsed.AddYears(1);
+            dates.Add(parsed.Date);
+        }
+        return dates.Distinct().OrderBy(date => date).ToList();
     }
     private async Task<string> AddCalendarContextAsync(string userMessage)
     {
@@ -408,26 +640,33 @@ public partial class MainViewModel
             "book ", "block ", "appointment", "meeting", "tomorrow", "today",
             "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
         };
-        if (!calendarTerms.Any(term => userMessage.Contains(term, StringComparison.OrdinalIgnoreCase)))
+        if (!calendarTerms.Any(term => userMessage.Contains(term, StringComparison.OrdinalIgnoreCase)) &&
+            ResolveMentionedCalendarDates(userMessage).Count == 0)
             return userMessage;
 
         try
         {
             var calendar = _services.GetRequiredService<ICalendarService>();
-            var firstDate = DateTime.Today;
+            var mentionedDates = ResolveMentionedCalendarDates(userMessage);
+            var planningDates = ResolvePlanningDates(userMessage.ToLowerInvariant());
+            var requestedDates = mentionedDates.Count > 0 ? mentionedDates : planningDates;
+            var firstDate = requestedDates.Count > 0 ? requestedDates.Min().Date : DateTime.Today;
+            var lastDate = requestedDates.Count > 0 ? requestedDates.Max().Date : firstDate.AddDays(7);
+            if (lastDate < firstDate.AddDays(7) && mentionedDates.Count == 0) lastDate = firstDate.AddDays(7);
+            if ((lastDate - firstDate).TotalDays > 31) lastDate = firstDate.AddDays(31);
             var offset = TimeZoneInfo.Local.GetUtcOffset(firstDate);
             var start = new DateTimeOffset(firstDate, offset);
-            var end = start.AddDays(8);
+            var end = new DateTimeOffset(lastDate.AddDays(1), TimeZoneInfo.Local.GetUtcOffset(lastDate.AddDays(1)));
             var events = await calendar.GetEventsAsync(start, end);
             var context = new System.Text.StringBuilder();
-            context.AppendLine($"Coverage: {firstDate:dddd dd MMMM yyyy} through {firstDate.AddDays(7):dddd dd MMMM yyyy}.");
+            context.AppendLine($"Coverage: {firstDate:dddd dd MMMM yyyy} through {lastDate:dddd dd MMMM yyyy}.");
 
-            for (var day = 0; day < 8; day++)
+            for (var date = firstDate; date <= lastDate; date = date.AddDays(1))
             {
-                var date = firstDate.AddDays(day);
+                var dayStart = new DateTimeOffset(date.Date, TimeZoneInfo.Local.GetUtcOffset(date.Date));
+                var dayEnd = new DateTimeOffset(date.Date.AddDays(1), TimeZoneInfo.Local.GetUtcOffset(date.Date.AddDays(1)));
                 var dayEvents = events
-                    .Where(item => item.Start.Date == date.Date ||
-                        (item.IsAllDay && item.Start.Date <= date.Date && item.End.Date > date.Date))
+                    .Where(item => item.Start < dayEnd && item.End > dayStart)
                     .OrderBy(item => item.Start)
                     .ToList();
                 context.AppendLine();
@@ -506,6 +745,9 @@ public partial class MainViewModel
 
         try
         {
+            var proposalMemories = await _services.GetRequiredService<IGuardianMemoryRepository>().GetRecentAsync(50);
+            var proposalGuidance = _services.GetRequiredService<Nekomata.Core.Guardian.Learning.GuardianProposalLearningPolicy>()
+                .BuildGuidance(proposalMemories, project.Id);
             var prompt = $$"""
                 You are Guardian, the AI assistant inside Nekomata.
 
@@ -523,6 +765,9 @@ public partial class MainViewModel
                 Due date: {{project.DueAt?.ToString("yyyy-MM-dd") ?? "None"}}
                 At risk: {{project.AtRisk}}
                 Current next action: {{project.NextAction ?? "None"}}
+
+                REVIEWED PLANNING PREFERENCES
+                {{proposalGuidance}}
 
                 Return valid JSON only.
 
@@ -631,7 +876,14 @@ public partial class MainViewModel
         var selectedChanges = PendingGuardianAction.Changes.Where(item => item.Selected).ToList();
         if (selectedTasks.Count == 0 && selectedChanges.Count == 0)
         {
-            GuardianResponse = "Select at least one proposed action.";
+            var feedbackCount = await PersistProposalFeedbackAsync();
+            if (feedbackCount > 0)
+            {
+                DismissGuardianProposal();
+                GuardianResponse = $"Saved {feedbackCount} planning preference{(feedbackCount == 1 ? "" : "s")}. Guardian will use this evidence in future proposals.";
+            }
+            else
+                GuardianResponse = "Select at least one proposed action or remove an item with feedback.";
             GuardianPanelExpanded = true;
             return;
         }
@@ -643,6 +895,9 @@ public partial class MainViewModel
             .FirstOrDefault(value => value.HasValue);
 
         GuardianBusy = true;
+        var missionWasActive = MissionActive && _activeMission is not null;
+        var isDecisionSimulation = PendingGuardianAction.ActionType.Equals("decision_simulation_plan", StringComparison.OrdinalIgnoreCase);
+        var decisionSimulationNarrative = PendingGuardianAction.Message;
         try
         {
             var result = await _guardianApplyService.ApplyAsync(PendingGuardianAction, PendingGuardianProject?.Id);
@@ -658,6 +913,20 @@ public partial class MainViewModel
                 Detail = result.UserSummary,
                 ProjectId = PendingGuardianProject?.Id
             });
+            var proposalFeedbackCount = await PersistProposalFeedbackAsync();
+
+            if (isDecisionSimulation && result.Actions.Count > 0)
+            {
+                var chain = await RecordDecisionChainAsync(decisionSimulationNarrative, "Accepted");
+                await RecordWorkdayEventAsync(new WorkdayEvent
+                {
+                    CorrelationId = chain.CorrelationId, ParentEventId = chain.DecisionEventId,
+                    EventType = "DecisionScenarioApplied", Category = "Planning", Title = "Simulated plan accepted",
+                    Narrative = $"Applied {result.Actions.Count} reviewed calendar block(s). {decisionSimulationNarrative}",
+                    Recommendation = decisionSimulationNarrative, UserDecision = "Accepted", Outcome = "Applied",
+                    Significance = 80
+                });
+            }
 
             if (result.Actions.Count > 0)
                 DismissGuardianProposal();
@@ -667,11 +936,15 @@ public partial class MainViewModel
             {
                 OnPropertyChanged(nameof(CanUndoCalendarPlan));
                 SelectedCalendarDate = calendarTargetDate ?? SelectedCalendarDate;
-                WorkspaceMode = Nekomata.Models.Workspace.WorkspaceMode.Calendar;
+                WorkspaceMode = ActiveMissionFocusPolicy.ResolveModeAfterCalendarAction(missionWasActive);
                 await RefreshCalendarAsync();
+                if (missionWasActive)
+                    ReturnToActiveMission();
             }
 
             GuardianResponse = result.UserSummary;
+            if (proposalFeedbackCount > 0)
+                GuardianResponse += $"{Environment.NewLine}Guardian learned from {proposalFeedbackCount} removed or replaced suggestion{(proposalFeedbackCount == 1 ? "" : "s")}.";
             ChatHistory.Add(new GuardianChatTurn { Role = "assistant", Content = GuardianResponse });
             GuardianPanelExpanded = true;
         }
@@ -735,41 +1008,43 @@ public partial class MainViewModel
             return;
         }
 
-        var matchesCurrentMission =
-            string.Equals(
-                TopRecommendation.Title,
-                Workspace.CurrentMission?.Title,
-                StringComparison.OrdinalIgnoreCase);
-
-        if (matchesCurrentMission)
-        {
-            await BeginMissionAsync();
-            return;
-        }
-
-        GuardianPanelExpanded = true;
-
-        ChatInput = $"""
-            Turn the current recommendation into a focused mission:
-
-            Title: {TopRecommendation.Title}
-            Score: {TopRecommendation.Score}
-            Priority: {TopRecommendation.Priority}
-            Business value: {TopRecommendation.BusinessValue:C0}
-            Estimated effort: {TopRecommendation.EstimatedMinutes} minutes
-            Due: {TopRecommendation.DueAt?.ToString("dd MMM yyyy") ?? "No due date"}
-            Reason: {TopRecommendation.Reason}
-
-            Create:
-            - the mission objective
-            - the first action
-            - three to five execution steps
-            - a definition of done
-            - risks or dependencies
-            """;
-
-        await SendGuardianMessageAsync();
+        await RecordRecommendationDecisionAsync($"Start {TopRecommendation.Title}", "Accepted", metadata: BuildRecommendationEvidence(TopRecommendation));
+        var candidate = Workspace.RankedMissionCandidates.FirstOrDefault(item =>
+                            TopRecommendation.TaskId is long taskId && item.TaskId == taskId)
+                        ?? Workspace.RankedMissionCandidates.FirstOrDefault(item =>
+                            TopRecommendation.ProjectId is long projectId && item.ProjectId == projectId &&
+                            item.Title.Equals(TopRecommendation.Title, StringComparison.OrdinalIgnoreCase))
+                        ?? new MissionCandidate
+                        {
+                            SourceType = TopRecommendation.RecommendationType,
+                            TaskId = TopRecommendation.TaskId,
+                            ProjectId = TopRecommendation.ProjectId,
+                            Title = TopRecommendation.Title,
+                            Description = TopRecommendation.Reason,
+                            EstimatedMinutes = Math.Max(1, TopRecommendation.EstimatedMinutes),
+                            BusinessValue = TopRecommendation.BusinessValue,
+                            Priority = TopRecommendation.Priority,
+                            DueAt = TopRecommendation.DueAt,
+                            Score = TopRecommendation.Score,
+                            AtRisk = TopRecommendation.AtRisk,
+                            Progress = TopRecommendation.ProgressPercent
+                        };
+        Workspace.CurrentMission = _services.GetRequiredService<IMissionFactory>().Create(candidate);
+        OnPropertyChanged(nameof(Workspace));
+        await BeginMissionAsync();
     }
+
+    private static string BuildRecommendationEvidence(GuardianDashboardRecommendation recommendation) =>
+        JsonSerializer.Serialize(new
+        {
+            recommendation.Score,
+            recommendation.Priority,
+            recommendation.EstimatedMinutes,
+            recommendation.DueAt,
+            recommendation.BusinessValue,
+            recommendation.AtRisk,
+            recommendation.Reason
+        });
 
     private async Task RememberImportantConversationAsync(
         IGuardianMemoryRepository memoryRepository,

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
 using Nekomata.Integrations.MicrosoftGraph.Models;
+using Nekomata.Core.Guardian.OpenLoops;
 
 namespace Nekomata.UI.ViewModels;
 
@@ -34,6 +35,7 @@ public partial class MainViewModel
             CalendarLastSyncedText = $"Calendar synced {DateTime.Now:HH:mm:ss}";
 
             var meetings = events
+                .Where(item => item.End > now)
                 .Where(item => !item.IsNekomataManaged)
                 .Where(item => GetOtherParticipants(item).Count > 0)
                 .ToList();
@@ -66,10 +68,26 @@ public partial class MainViewModel
                 awareness.Add($"burnout exposure is {Workspace.Capacity.BurnoutRisk.ToLowerInvariant()}");
             if (meetings.Count > 0 && next is not null && meetings.Contains(next))
                 awareness.Add($"prepare for {next.Subject} with {string.Join(", ", GetOtherParticipants(next))}");
+            var matureLoops = (await _services.GetRequiredService<GuardianOpenLoopAgeService>()
+                .EvaluateAsync(DateTimeOffset.Now)).Where(item => item.ChaseMature ||
+                    (item.ChaseState == Nekomata.Models.Guardian.GuardianChaseState.Approved &&
+                     item.Message.Contains("could not be sent", StringComparison.OrdinalIgnoreCase))).ToList();
+            if (matureLoops.Count == 1)
+                awareness.Add(matureLoops[0].Message);
+            else if (matureLoops.Count > 1)
+                awareness.Add($"{matureLoops.Count} external follow-ups have reached their chase point");
 
             briefing.AwarenessSummary = awareness.Count == 0
                 ? "Be aware: no immediate conflicts or critical workload warnings are visible."
                 : "Be aware: " + string.Join("; ", awareness) + ".";
+
+            var executive = await _services
+                .GetRequiredService<Nekomata.Core.Guardian.Briefing.GuardianExecutiveBriefingService>()
+                .BuildAsync(Workspace, events, now);
+            briefing.ExecutiveSummary = executive.Narrative;
+            briefing.ExecutiveDecisionCount = executive.DecisionCount;
+            briefing.ExecutiveProvenance = executive.Provenance;
+            briefing.AiSummary = executive.Narrative;
 
             OnPropertyChanged(nameof(Workspace));
             OnPropertyChanged(nameof(BriefingSummary));

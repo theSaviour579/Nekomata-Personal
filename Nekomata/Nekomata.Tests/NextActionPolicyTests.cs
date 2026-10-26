@@ -4,7 +4,7 @@ using Xunit;
 namespace Nekomata.Tests;
 public class NextActionPolicyTests
 {
-    private static MissionCandidate Item(string id, int score = 10) => new() { SourceType = "Halo", SourceRecordId = id, Title = id, EstimatedMinutes = 20, Score = score };
+    private static MissionCandidate Item(string id, int score = 10) => new() { SourceType = "Planner", SourceRecordId = id, Title = id, EstimatedMinutes = 20, Score = score };
     [Fact] public void Highest_ranked_fitting_item_is_first()
     {
         var large = Item("large",100); large.EstimatedMinutes = 60;
@@ -12,7 +12,7 @@ public class NextActionPolicyTests
     }
     [Fact] public void Urgent_fitting_work_precedes_score()
     {
-        var urgent = Item("urgent"); urgent.IsP1=true;
+        var urgent = Item("urgent"); urgent.IsUrgent=true;
         Assert.Equal("urgent", NextActionPolicy.Select([Item("high",100),urgent],30,"Me",new HashSet<string>())[0].Title);
     }
     [Fact] public void Waiting_and_blocked_work_are_excluded()
@@ -43,5 +43,36 @@ public class NextActionPolicyTests
     {
         var item=Item("overrun"); item.Progress=1;
         Assert.Single(NextActionPolicy.Select([item],30,"Me",new HashSet<string>()));
+    }
+
+    [Fact] public void Dashboard_free_window_skips_oversized_high_ranked_work()
+    {
+        var oversized = Item("two-hour project", 120); oversized.EstimatedMinutes = 120; oversized.Rank = 1;
+        var fitting = Item("ten-minute task", 40); fitting.EstimatedMinutes = 10; fitting.Rank = 2;
+        Assert.Equal("ten-minute task", FreeWindowMissionPolicy.Select([oversized, fitting], 15)!.Title);
+    }
+
+    [Fact] public void Dashboard_free_window_returns_none_when_no_ranked_work_fits()
+    {
+        var item = Item("two-hour project", 120); item.EstimatedMinutes = 120;
+        Assert.Null(FreeWindowMissionPolicy.Select([item], 15));
+    }
+
+    [Fact] public void Dashboard_free_window_uses_predicted_active_duration()
+    {
+        var item = Item("underestimated project", 120); item.EstimatedMinutes = 10; item.PredictedActiveMinutes = 45;
+        Assert.Null(FreeWindowMissionPolicy.Select([item], 15));
+    }
+
+    [Fact] public void Immediate_attention_remains_exempt_from_window_fitting()
+    {
+        var item = Item("Urgent incident", 120); item.EstimatedMinutes = 120; item.IsUrgent = true;
+        Assert.Same(item, FreeWindowMissionPolicy.Select([item], 15));
+    }
+
+    [Fact] public void Autonomous_next_action_uses_predicted_duration()
+    {
+        var item = Item("underestimated project", 120); item.EstimatedMinutes = 10; item.PredictedActiveMinutes = 45;
+        Assert.Empty(NextActionPolicy.Select([item], 15, "Me", new HashSet<string>()));
     }
 }

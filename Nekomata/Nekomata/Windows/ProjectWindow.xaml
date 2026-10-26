@@ -173,6 +173,16 @@
                           Foreground="{DynamicResource NekoTextBrush}"
                           Margin="0,6,0,18"/>
 
+                <TextBlock Text="Process &amp; Compliance" Style="{DynamicResource NekoSectionTitleText}" Margin="0,4,0,8"/>
+                <TextBlock Text="Guardian applies these obligations only when explicitly enabled for this project."
+                           Style="{DynamicResource NekoMutedText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                <CheckBox Content="System changes require Change Control"
+                          IsChecked="{Binding Project.RequiresChangeControl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          Foreground="{DynamicResource NekoTextBrush}" Margin="0,4,0,8"/>
+                <CheckBox Content="System changes require ECSV"
+                          IsChecked="{Binding Project.RequiresEcsv, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          Foreground="{DynamicResource NekoTextBrush}" Margin="0,4,0,18"/>
+
                 <!-- Next Action -->
                 <TextBlock Text="Next Action"
                            Style="{DynamicResource NekoBodyText}"/>

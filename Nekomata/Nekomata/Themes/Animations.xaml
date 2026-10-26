@@ -1,4 +1,169 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    
+
+    <!--
+        Guardian presence storyboards (GuardianPresenceOrb.xaml.cs switches between these
+        by key as GuardianPresenceState changes). Each targets named elements declared in
+        GuardianPresenceOrb.xaml:
+          GlowEllipse / GlowScale  - the soft blurred halo behind the core
+          CoreScale                - the core sphere's scale transform
+          SweepRotate              - the dashed scan ring's rotation, always running but at
+                                      a different speed per state (slow idle drift, brisk
+                                      spin while Thinking) rather than only appearing then
+        Colour (core gradient stops, glow fill, scan stroke) and the scan ring's resting
+        opacity are cross-faded directly in code-behind, not animated here, since they are
+        one-shot transitions rather than loops.
+    -->
+
+    <!-- Idle: calm breathing and a slow ambient drift on the scan ring - nothing is
+         happening, but it's visibly alive rather than a static icon. -->
+    <Storyboard x:Key="GuardianIdlePulse">
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleX"
+                          From="0.93" To="1.0" Duration="0:0:3.4"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleY"
+                          From="0.93" To="1.0" Duration="0:0:3.4"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowEllipse" Storyboard.TargetProperty="Opacity"
+                          From="0.16" To="0.4" Duration="0:0:3.4"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleX"
+                          From="0.92" To="1.1" Duration="0:0:3.4"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleY"
+                          From="0.92" To="1.1" Duration="0:0:3.4"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="SweepRotate" Storyboard.TargetProperty="Angle"
+                          From="0" To="360" Duration="0:0:9" RepeatBehavior="Forever"/>
+    </Storyboard>
+
+    <!-- Listening: quicker, tighter pulse and a noticeably brisker scan - paying close
+         attention to what's being said. -->
+    <Storyboard x:Key="GuardianListeningPulse">
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleX"
+                          From="0.95" To="1.16" Duration="0:0:0.42"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleY"
+                          From="0.95" To="1.16" Duration="0:0:0.42"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowEllipse" Storyboard.TargetProperty="Opacity"
+                          From="0.3" To="0.65" Duration="0:0:0.42"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleX"
+                          From="0.95" To="1.28" Duration="0:0:0.42"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleY"
+                          From="0.95" To="1.28" Duration="0:0:0.42"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="SweepRotate" Storyboard.TargetProperty="Angle"
+                          From="0" To="360" Duration="0:0:2.2" RepeatBehavior="Forever"/>
+    </Storyboard>
+
+    <!-- Thinking: the scan ring becomes the dominant motion - fastest, brightest spin -
+         while the core holds a steady, only slightly larger size. Actively working. -->
+    <Storyboard x:Key="GuardianThinkingSweep">
+        <DoubleAnimation Storyboard.TargetName="SweepRotate" Storyboard.TargetProperty="Angle"
+                          From="0" To="360" Duration="0:0:1.0" RepeatBehavior="Forever"/>
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleX"
+                          From="1.0" To="1.09" Duration="0:0:1.4"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleY"
+                          From="1.0" To="1.09" Duration="0:0:1.4"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowEllipse" Storyboard.TargetProperty="Opacity"
+                          From="0.28" To="0.48" Duration="0:0:1.4"
+                          AutoReverse="True" RepeatBehavior="Forever"/>
+    </Storyboard>
+
+    <!-- Speaking: two overlapping, out-of-phase pulses on X vs Y give an organic
+         "talking" wobble rather than a mechanical uniform pulse; the scan ring keeps
+         a steady, moderate pace underneath it. -->
+    <Storyboard x:Key="GuardianSpeakingPulse">
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleX"
+                          From="0.95" To="1.14" Duration="0:0:0.38"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleY"
+                          From="0.93" To="1.17" Duration="0:0:0.57"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowEllipse" Storyboard.TargetProperty="Opacity"
+                          From="0.3" To="0.58" Duration="0:0:0.46"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleX"
+                          From="0.95" To="1.22" Duration="0:0:0.46"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleY"
+                          From="0.95" To="1.22" Duration="0:0:0.62"
+                          AutoReverse="True" RepeatBehavior="Forever">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="SweepRotate" Storyboard.TargetProperty="Angle"
+                          From="0" To="360" Duration="0:0:3.0" RepeatBehavior="Forever"/>
+    </Storyboard>
+
+    <!-- Acting: a quick, bright double-pulse marking an autonomous action Guardian just
+         took on its own AutoExecute authority - distinct from Thinking/Speaking so it
+         reads as "already handled" rather than "working on it". Finite rather than
+         looped; MainViewModel reverts the state to Idle shortly after raising it. -->
+    <Storyboard x:Key="GuardianActingFlash">
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleX"
+                          From="1.0" To="1.22" Duration="0:0:0.22"
+                          AutoReverse="True" RepeatBehavior="2x">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="CoreScale" Storyboard.TargetProperty="ScaleY"
+                          From="1.0" To="1.22" Duration="0:0:0.22"
+                          AutoReverse="True" RepeatBehavior="2x">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowEllipse" Storyboard.TargetProperty="Opacity"
+                          From="0.25" To="0.78" Duration="0:0:0.22"
+                          AutoReverse="True" RepeatBehavior="2x">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleX"
+                          From="0.95" To="1.32" Duration="0:0:0.22"
+                          AutoReverse="True" RepeatBehavior="2x">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="GlowScale" Storyboard.TargetProperty="ScaleY"
+                          From="0.95" To="1.32" Duration="0:0:0.22"
+                          AutoReverse="True" RepeatBehavior="2x">
+            <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetName="SweepRotate" Storyboard.TargetProperty="Angle"
+                          From="0" To="360" Duration="0:0:0.9"/>
+    </Storyboard>
+
 </ResourceDictionary>

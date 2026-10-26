@@ -1,0 +1,22 @@
+<Window x:Class="Nekomata.UI.Views.GuardianInterruptionNotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Guardian interruption" Width="520" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="Manual" Left="1250" Top="40" Topmost="True" ShowInTaskbar="False"
+        Background="{DynamicResource NekoBackgroundBrush}" Foreground="{DynamicResource NekoTextBrush}">
+    <Border Padding="20" Background="{DynamicResource NekoCardGradientBrush}"
+            BorderBrush="{DynamicResource NekoWarningBrush}" BorderThickness="1" CornerRadius="18">
+        <StackPanel>
+            <TextBlock Text="GUARDIAN INTERRUPTION" Foreground="{DynamicResource NekoWarningBrush}" FontWeight="Bold"/>
+            <TextBlock Text="{Binding InterruptionHeadline}" FontSize="20" FontWeight="Bold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding InterruptionInput}" Margin="0,8,0,0" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding InterruptionAdvice}" Margin="0,8,0,16" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap"/>
+            <UniformGrid Columns="3">
+                <Button Content="SWITCH" Command="{Binding ApplyInterruptionDecisionCommand}" CommandParameter="Urgent"
+                        Background="{DynamicResource NekoWarningBrush}" Foreground="{DynamicResource NekoBackgroundBrush}" Margin="0,0,5,0"/>
+                <Button Content="QUEUE" Command="{Binding ApplyInterruptionDecisionCommand}" CommandParameter="Queued" Margin="3,0"/>
+                <Button Content="DELEGATE" Command="{Binding ApplyInterruptionDecisionCommand}" CommandParameter="Delegated" Margin="5,0,0,0"/>
+            </UniformGrid>
+        </StackPanel>
+    </Border>
+</Window>

@@ -12,8 +12,8 @@ public class GuardianRecommendationService
         NekomataWorkspace workspace)
     {
         // Ranked candidates already combine local work with connected sources.
-        // Use that authoritative list so assigned Microsoft tasks can appear on
-        // the dashboard even when the user has no locally-created tasks.
+        // Use that authoritative list so assigned Microsoft tasks can appear
+        // even when the user has no locally-created tasks.
         var rankedRecommendation = workspace.RankedMissionCandidates
             .Where(candidate => candidate.IsActionable && !candidate.IsOnHold)
             .OrderBy(candidate => candidate.Rank <= 0 ? int.MaxValue : candidate.Rank)

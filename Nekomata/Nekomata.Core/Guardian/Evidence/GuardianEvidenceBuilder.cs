@@ -90,15 +90,7 @@ public class GuardianEvidenceBuilder
 
             MissionsCompletedYesterday =
                 workspace.Briefing
-                    .MissionsCompletedYesterday,
-
-            // Integrations
-            // These remain false until the connectors exist.
-
-            HaloConnected = false,
-            CalendarConnected = false,
-            SqlConnected = false,
-            EmailConnected = false
+                    .MissionsCompletedYesterday
         };
         System.Diagnostics.Debug.WriteLine(
     $"EVIDENCE OVER CAPACITY: {evidence.OverCapacity}");
@@ -141,10 +133,6 @@ public class GuardianEvidenceBuilder
             evidence.HealthWarnings.Add(
                 "Today's workload exceeds available capacity.");
         }
-
-        // External connections are optional in Personal. Their health is shown
-        // by Integration Diagnostics and must not reduce workspace health or
-        // surface work-edition warnings such as Halo or SQL being unavailable.
 
         evidence.WorkspaceHealthScore =
             Math.Clamp(

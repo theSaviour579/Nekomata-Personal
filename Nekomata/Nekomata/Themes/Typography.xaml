@@ -1,18 +1,25 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Text must never fall back to the Windows default black foreground on dark surfaces. -->
+    <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}" />
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text" />
+    </Style>
+
+    <!-- Page titles and section labels in the Guardian HUD style: mono, soft purple. -->
     <Style x:Key="NekoTitleText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource NekoAccentBrush}" />
-        <Setter Property="FontFamily" Value="Segoe UI Variable Display" />
-        <Setter Property="FontSize" Value="42" />
+        <Setter Property="Foreground" Value="#C9BBFF" />
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+        <Setter Property="FontSize" Value="30" />
         <Setter Property="FontWeight" Value="Bold" />
     </Style>
 
     <Style x:Key="NekoSectionTitleText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource NekoAccentBrush}" />
-        <Setter Property="FontFamily" Value="Segoe UI Variable Text" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource NekoHudLabelBrush}" />
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Normal" />
     </Style>
 
     <Style x:Key="NekoHeadingText" TargetType="TextBlock">
@@ -36,7 +43,7 @@
 
     <Style x:Key="NekoTinyText" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource NekoMutedTextBrush}" />
-        <Setter Property="FontFamily" Value="Segoe UI Variable Text" />
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
         <Setter Property="FontSize" Value="11" />
     </Style>
 

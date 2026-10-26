@@ -6,6 +6,8 @@ public class GuardianRejectedMission
 
     public string SourceType { get; set; } = "";
 
+    public string? SourceRecordId { get; set; }
+
     public long? TaskId { get; set; }
 
     public long? ProjectId { get; set; }

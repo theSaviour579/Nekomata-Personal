@@ -64,6 +64,30 @@ public partial class GuardianProposalPanel : UserControl
         set => SetValue(CreateTasksCommandProperty, value);
     }
 
+    public static readonly DependencyProperty RemoveItemCommandProperty = DependencyProperty.Register(
+        nameof(RemoveItemCommand), typeof(ICommand), typeof(GuardianProposalPanel), new PropertyMetadata(null));
+    public ICommand? RemoveItemCommand
+    {
+        get => (ICommand?)GetValue(RemoveItemCommandProperty);
+        set => SetValue(RemoveItemCommandProperty, value);
+    }
+
+    public static readonly DependencyProperty ReplaceItemCommandProperty = DependencyProperty.Register(
+        nameof(ReplaceItemCommand), typeof(ICommand), typeof(GuardianProposalPanel), new PropertyMetadata(null));
+    public ICommand? ReplaceItemCommand
+    {
+        get => (ICommand?)GetValue(ReplaceItemCommandProperty);
+        set => SetValue(ReplaceItemCommandProperty, value);
+    }
+
+    public static readonly DependencyProperty RestoreItemCommandProperty = DependencyProperty.Register(
+        nameof(RestoreItemCommand), typeof(ICommand), typeof(GuardianProposalPanel), new PropertyMetadata(null));
+    public ICommand? RestoreItemCommand
+    {
+        get => (ICommand?)GetValue(RestoreItemCommandProperty);
+        set => SetValue(RestoreItemCommandProperty, value);
+    }
+
     private void SelectAllClick(object sender, RoutedEventArgs e) => SetAllSelected(true);
 
     private void ClearAllClick(object sender, RoutedEventArgs e) => SetAllSelected(false);
@@ -88,6 +112,20 @@ public partial class GuardianProposalPanel : UserControl
     private void ProposalSelectionChanged(object sender, RoutedEventArgs e) => RefreshSummary();
 
     private void ProposalValueChanged(object sender, RoutedEventArgs e) => RefreshSummary();
+
+    private void RemoveItemClick(object sender, RoutedEventArgs e) => ExecuteItemCommand(RemoveItemCommand, sender);
+    private void ReplaceItemClick(object sender, RoutedEventArgs e) => ExecuteItemCommand(ReplaceItemCommand, sender);
+    private void RestoreItemClick(object sender, RoutedEventArgs e) => ExecuteItemCommand(RestoreItemCommand, sender);
+
+    private void ExecuteItemCommand(ICommand? command, object sender)
+    {
+        var item = (sender as FrameworkElement)?.DataContext;
+        if (item is null || command?.CanExecute(item) != true) return;
+        command.Execute(item);
+        ChangesItems.Items.Refresh();
+        TasksItems.Items.Refresh();
+        RefreshSummary();
+    }
 
     private void RefreshSummary()
     {

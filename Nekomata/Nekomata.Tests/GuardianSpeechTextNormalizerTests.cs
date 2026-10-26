@@ -9,8 +9,8 @@ public sealed class GuardianSpeechTextNormalizerTests
     [InlineData("YoY Spend Deep Dive", "year on year Spend Deep Dive")]
     [InlineData("Estimated 3h 0m", "Estimated 3 hours 0 minutes")]
     [InlineData("Remaining 1h 1m", "Remaining 1 hour 1 minute")]
-    [InlineData("P1 SLA breach on #5739", "priority one S L A breach on ticket 5739")]
-    [InlineData("Open ticket #5739", "Open ticket 5739")]
+    [InlineData("Budget breach on #5739", "Budget breach on number 5739")]
+    [InlineData("Open item #5739", "Open item number 5739")]
     [InlineData("SQL KPI and ROI", "S Q L K P I and return on investment")]
     public void Expands_business_terms_for_natural_speech(string input, string expected)
     {

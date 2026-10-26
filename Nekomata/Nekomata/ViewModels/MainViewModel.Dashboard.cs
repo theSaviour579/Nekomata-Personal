@@ -80,12 +80,6 @@ public partial class MainViewModel
 
         OnPropertyChanged(nameof(DashboardSummary));
         OnPropertyChanged(nameof(BriefingSummary));
-        OnPropertyChanged(nameof(UrgentHaloTickets));
-        OnPropertyChanged(nameof(HasUrgentHaloTickets));
-        OnPropertyChanged(nameof(HaloIntegrationStatus));
-        OnPropertyChanged(nameof(IsKnowBe4Connected));
-        OnPropertyChanged(nameof(KnowBe4FailureCount));
-        OnPropertyChanged(nameof(KnowBe4IntegrationStatus));
         OnPropertyChanged(nameof(IsSpotifyConfigured));
         OnPropertyChanged(nameof(SpotifyIntegrationStatus));
         OnPropertyChanged(nameof(PreferredMediaProvider));
@@ -96,30 +90,18 @@ public partial class MainViewModel
         OnPropertyChanged(nameof(MicrosoftPlannerCount));
         OnPropertyChanged(nameof(MicrosoftTasksIntegrationStatus));
         OnPropertyChanged(nameof(IsMicrosoftTasksConnected));
-        OnPropertyChanged(nameof(HaloWatchlistTickets));
-        OnPropertyChanged(nameof(HaloWatchlistCount));
-        OnPropertyChanged(nameof(HaloWatchlistChaseCount));
-        OnPropertyChanged(nameof(HaloWatchlistButtonLabel));
-        OnPropertyChanged(nameof(HaloWatchlistSummary));
-        OnPropertyChanged(nameof(BattleTickets));
-        OnPropertyChanged(nameof(BattlePrimaryTicket));
-        OnPropertyChanged(nameof(ActiveBattleCount));
-        OnPropertyChanged(nameof(BattleIncidentLabel));
-        OnPropertyChanged(nameof(BattleSlaCountdown));
-        OnPropertyChanged(nameof(BattleSlaDeadline));
-        OnPropertyChanged(nameof(BattleEffortLabel));
 
         OnPropertyChanged(nameof(HasBriefingObjective));
         OnPropertyChanged(nameof(HasYesterdayActivity));
         OnPropertyChanged(nameof(HasBriefingRisks));
         OnPropertyChanged(nameof(HasBriefingRecommendations));
+        RefreshAmbientSituation();
     }
 
     partial void OnCurrentDateTimeChanged(
         DateTime value)
     {
         UpdateGreeting();
-        OnPropertyChanged(nameof(BattleSlaCountdown));
 
         /*
          * Refresh date-sensitive bindings when the minute changes.
@@ -131,6 +113,9 @@ public partial class MainViewModel
             OnPropertyChanged(nameof(DashboardSummary));
             RefreshTimeAwareCapacity();
             _ = RefreshCalendarAwareObjectiveAsync();
+            RefreshAmbientSituation();
+            CheckWorkloadForecastAttention();
+            ReleaseQueuedInterruptions();
         }
     }
 

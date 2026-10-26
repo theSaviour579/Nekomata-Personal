@@ -2,6 +2,8 @@ namespace Nekomata.Integrations.MicrosoftGraph.Mail;
 
 public interface IEmailService
 {
+    Task<EmailIngestionPage> GetIngestionPageAsync(string folder,DateTimeOffset since,string? cursor,int maxPages=10,CancellationToken cancellationToken=default) =>
+        Task.FromResult(new EmailIngestionPage([],null,true));
     Task<string> GetMailboxAddressAsync(CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("Mailbox identity is unavailable.");
     Task<IReadOnlyList<EmailMessage>> SearchInboxAndSentAsync(string query, CancellationToken cancellationToken = default) =>
@@ -45,6 +47,15 @@ public interface IEmailService
         CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<EmailMessage>>([]);
 
+    /// <summary>Saves a new (not reply) message to Drafts. Never sends.</summary>
+    Task<EmailDraftResult> CreateNewDraftAsync(
+        IReadOnlyList<string> to,
+        string subject,
+        string body,
+        IReadOnlyList<string>? cc = null,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("New drafts are unavailable.");
+
     Task UpdateDraftAsync(
         string draftId,
         string body,
@@ -65,3 +76,5 @@ public interface IEmailService
         string category,
         CancellationToken cancellationToken = default);
 }
+
+public sealed record EmailIngestionPage(IReadOnlyList<EmailMessage> Items,string? NextCursor,bool FullyCaughtUp);

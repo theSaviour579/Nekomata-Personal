@@ -9,11 +9,36 @@ public sealed class EmailService : IEmailService
 {
     private readonly HttpClient _httpClient;
     private readonly IMicrosoftAuthenticationService _authentication;
+    private readonly string _user;
 
-    public EmailService(HttpClient httpClient, IMicrosoftAuthenticationService authentication)
+    public EmailService(HttpClient httpClient, IMicrosoftAuthenticationService authentication,MicrosoftGraphOptions? options=null)
     {
         _httpClient = httpClient;
         _authentication = authentication;
+        _user=(options??new MicrosoftGraphOptions()).UserResource;
+    }
+
+    public async Task<EmailIngestionPage> GetIngestionPageAsync(string folder,DateTimeOffset since,string? cursor,int maxPages=10,CancellationToken cancellationToken=default)
+    {
+        if(folder is not ("inbox" or "sentitems"))throw new ArgumentOutOfRangeException(nameof(folder));
+        maxPages=Math.Clamp(maxPages,1,100);
+        var dateField=folder=="inbox"?"receivedDateTime":"sentDateTime";
+        var filter=Uri.EscapeDataString($"{dateField} ge {since.ToUniversalTime():yyyy-MM-ddTHH:mm:ssZ}");
+        string? url=string.IsNullOrWhiteSpace(cursor)
+            ?$"{_user}/mailFolders/{folder}/messages?$filter={filter}&$top=100&$select=id,subject,from,toRecipients,sentDateTime,receivedDateTime,importance,isRead,hasAttachments,bodyPreview,body,uniqueBody,webLink,conversationId,categories,ccRecipients&$orderby={dateField}%20asc"
+            :cursor;
+        var result=new List<EmailMessage>();
+        for(var page=0;url is not null&&page<maxPages;page++)
+        {
+            using var request=await CreateRequestAsync(HttpMethod.Get,url,cancellationToken);
+            request.Headers.Add("Prefer","outlook.body-content-type=\"text\"");
+            using var response=await _httpClient.SendAsync(request,cancellationToken);
+            await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
+            var payload=await response.Content.ReadFromJsonAsync<GraphMessageResponse>(cancellationToken:cancellationToken);
+            result.AddRange(payload?.Value.Select(Map)??[]);
+            url=payload?.NextLink;
+        }
+        return new(result.DistinctBy(x=>x.Id).OrderBy(x=>x.ReceivedAt).ToList(),url,url is null);
     }
 
     public async Task<IReadOnlyList<EmailMessage>> GetUnreadInboxAsync(
@@ -22,12 +47,12 @@ public sealed class EmailService : IEmailService
     {
         maximum = Math.Clamp(maximum, 1, 100);
         var requestUri =
-            $"me/mailFolders/inbox/messages?$filter=isRead%20eq%20false&$top={maximum}" +
+            $"{_user}/mailFolders/inbox/messages?$filter=isRead%20eq%20false&$top={maximum}" +
             "&$select=id,subject,from,receivedDateTime,importance,isRead,hasAttachments,bodyPreview,webLink,conversationId,categories,ccRecipients";
 
         using var request = await CreateRequestAsync(HttpMethod.Get, requestUri, cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<GraphMessageResponse>(cancellationToken: cancellationToken);
 
         return payload?.Value.Select(Map).ToList() ?? [];
@@ -38,24 +63,24 @@ public sealed class EmailService : IEmailService
         CancellationToken cancellationToken = default)
     {
         maximum = Math.Clamp(maximum, 1, 200);
-        var requestUri = $"me/mailFolders/inbox/messages?$top={maximum}" +
+        var requestUri = $"{_user}/mailFolders/inbox/messages?$top={maximum}" +
             "&$select=id,subject,from,toRecipients,receivedDateTime,importance,isRead,hasAttachments,bodyPreview,webLink,conversationId,categories,ccRecipients" +
             "&$orderby=receivedDateTime%20desc";
         using var request = await CreateRequestAsync(HttpMethod.Get, requestUri, cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<GraphMessageResponse>(cancellationToken: cancellationToken);
         return payload?.Value.Select(Map).ToList() ?? [];
     }
 
     public Task<IReadOnlyList<EmailMessage>> SearchSentMessagesAsync(string query, CancellationToken cancellationToken = default) =>
-        SearchMailboxAsync(query, 50, "me/mailFolders/sentitems/messages", cancellationToken);
+        SearchMailboxAsync(query, 50, $"{_user}/mailFolders/sentitems/messages", cancellationToken);
 
     public async Task<string> GetMailboxAddressAsync(CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Get, "me?$select=mail,userPrincipalName", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Get, $"{_user}?$select=mail,userPrincipalName", cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
         using var profile = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var root = profile.RootElement;
         var address = root.TryGetProperty("mail", out var mail) ? mail.GetString() : null;
@@ -65,14 +90,14 @@ public sealed class EmailService : IEmailService
 
     public async Task<IReadOnlyList<EmailMessage>> SearchInboxAndSentAsync(string query, CancellationToken cancellationToken = default)
     {
-        var inbox = SearchMailboxAsync(query, 50, "me/mailFolders/inbox/messages", cancellationToken);
+        var inbox = SearchMailboxAsync(query, 50, $"{_user}/mailFolders/inbox/messages", cancellationToken);
         var sent = SearchSentMessagesAsync(query, cancellationToken);
         await Task.WhenAll(inbox, sent);
         return inbox.Result.Concat(sent.Result).DistinctBy(x => x.Id).OrderByDescending(x => x.ReceivedAt).ToList();
     }
 
     public Task<IReadOnlyList<EmailMessage>> SearchMessagesAsync(string query, int maximum = 20, CancellationToken cancellationToken = default) =>
-        SearchMailboxAsync(query, maximum, "me/messages", cancellationToken);
+        SearchMailboxAsync(query, maximum, $"{_user}/messages", cancellationToken);
 
     private async Task<IReadOnlyList<EmailMessage>> SearchMailboxAsync(
         string query,
@@ -90,7 +115,7 @@ public sealed class EmailService : IEmailService
         using var request = await CreateRequestAsync(HttpMethod.Get, requestUri, cancellationToken);
         request.Headers.TryAddWithoutValidation("ConsistencyLevel", "eventual");
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<GraphMessageResponse>(cancellationToken: cancellationToken);
         return payload?.Value.Select(Map).ToList() ?? [];
     }
@@ -104,11 +129,11 @@ public sealed class EmailService : IEmailService
 
         using var request = await CreateRequestAsync(
             HttpMethod.Get,
-            $"me/messages/{Uri.EscapeDataString(messageId)}?$select=body",
+            $"{_user}/messages/{Uri.EscapeDataString(messageId)}?$select=body",
             cancellationToken);
         request.Headers.Add("Prefer", "outlook.body-content-type=\"text\"");
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
         var message = await response.Content.ReadFromJsonAsync<GraphMessage>(cancellationToken: cancellationToken);
         return message?.Body?.Content?.Trim() ?? "";
     }
@@ -118,12 +143,12 @@ public sealed class EmailService : IEmailService
     {
         maximum = Math.Clamp(maximum, 1, 10);
         var requestUri =
-            $"me/mailFolders/sentitems/messages?$top={maximum}" +
+            $"{_user}/mailFolders/sentitems/messages?$top={maximum}" +
             "&$select=body&$orderby=sentDateTime%20desc";
         using var request = await CreateRequestAsync(HttpMethod.Get, requestUri, cancellationToken);
         request.Headers.Add("Prefer", "outlook.body-content-type=\"text\"");
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<GraphMessageResponse>(cancellationToken: cancellationToken);
         return payload?.Value
             .Select(message => message.Body?.Content?.Trim())
@@ -136,12 +161,12 @@ public sealed class EmailService : IEmailService
         CancellationToken cancellationToken = default)
     {
         maximum = Math.Clamp(maximum, 1, 100);
-        var requestUri = $"me/mailFolders/sentitems/messages?$top={maximum}" +
+        var requestUri = $"{_user}/mailFolders/sentitems/messages?$top={maximum}" +
             "&$select=id,subject,from,toRecipients,sentDateTime,importance,isRead,hasAttachments,bodyPreview,webLink,conversationId,categories,ccRecipients" +
             "&$orderby=sentDateTime%20desc";
         using var request = await CreateRequestAsync(HttpMethod.Get, requestUri, cancellationToken);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<GraphMessageResponse>(cancellationToken: cancellationToken);
         return payload?.Value.Select(Map).ToList() ?? [];
     }
@@ -152,14 +177,14 @@ public sealed class EmailService : IEmailService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(conversationId);
         var filter = Uri.EscapeDataString($"conversationId eq '{conversationId.Replace("'", "''")}' and isDraft eq false");
-        string? url = $"me/messages?$filter={filter}&$top=100&$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,sentDateTime,bodyPreview,uniqueBody,conversationId";
+        string? url = $"{_user}/messages?$filter={filter}&$top=100&$select=id,subject,from,toRecipients,ccRecipients,receivedDateTime,sentDateTime,bodyPreview,uniqueBody,conversationId";
         var messages = new List<EmailMessage>();
         for (var page = 0; url != null && page < 10; page++)
         {
             using var request = await CreateRequestAsync(HttpMethod.Get, url, cancellationToken);
             request.Headers.TryAddWithoutValidation("Prefer", "outlook.body-content-type=\"text\"");
             using var response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
             var payload = await response.Content.ReadFromJsonAsync<GraphMessageResponse>(cancellationToken: cancellationToken);
             messages.AddRange(payload?.Value.Select(Map) ?? []);
             url = payload?.NextLink;
@@ -178,11 +203,11 @@ public sealed class EmailService : IEmailService
         if (string.IsNullOrWhiteSpace(body))
             throw new ArgumentException("Draft text cannot be empty.", nameof(body));
 
-        var resource = $"me/messages/{Uri.EscapeDataString(messageId)}/createReplyAll";
+        var resource = $"{_user}/messages/{Uri.EscapeDataString(messageId)}/createReplyAll";
         using var create = await CreateRequestAsync(HttpMethod.Post, resource, cancellationToken);
         create.Content = JsonContent.Create(new { comment = body.Trim() });
         using var createdResponse = await _httpClient.SendAsync(create, cancellationToken);
-        createdResponse.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(createdResponse,cancellationToken);
         var draft = await createdResponse.Content.ReadFromJsonAsync<GraphMessage>(cancellationToken: cancellationToken)
             ?? throw new InvalidOperationException("Microsoft Graph returned an empty draft response.");
         if (string.IsNullOrWhiteSpace(draft.Id))
@@ -193,6 +218,36 @@ public sealed class EmailService : IEmailService
             Id = draft.Id,
             WebLink = draft.WebLink ?? ""
         };
+    }
+
+    public async Task<EmailDraftResult> CreateNewDraftAsync(
+        IReadOnlyList<string> to,
+        string subject,
+        string body,
+        IReadOnlyList<string>? cc = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (to.Count == 0 || to.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException("At least one recipient address is required.", nameof(to));
+        if (string.IsNullOrWhiteSpace(body))
+            throw new ArgumentException("Draft text cannot be empty.", nameof(body));
+
+        using var create = await CreateRequestAsync(HttpMethod.Post, $"{_user}/messages", cancellationToken);
+        create.Content = JsonContent.Create(new
+        {
+            subject = subject.Trim(),
+            body = new { contentType = "Text", content = body.Trim() },
+            toRecipients = to.Select(address => new { emailAddress = new { address = address.Trim() } }).ToArray(),
+            ccRecipients = (cc ?? []).Where(a => !string.IsNullOrWhiteSpace(a))
+                .Select(address => new { emailAddress = new { address = address.Trim() } }).ToArray()
+        });
+        using var createdResponse = await _httpClient.SendAsync(create, cancellationToken);
+        await GraphResponseDiagnostics.EnsureSuccessAsync(createdResponse, cancellationToken);
+        var draft = await createdResponse.Content.ReadFromJsonAsync<GraphMessage>(cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException("Microsoft Graph returned an empty draft response.");
+        if (string.IsNullOrWhiteSpace(draft.Id))
+            throw new InvalidOperationException("Microsoft Graph did not return a draft ID.");
+        return new EmailDraftResult { Id = draft.Id, WebLink = draft.WebLink ?? "" };
     }
 
     public async Task UpdateDraftAsync(
@@ -207,14 +262,14 @@ public sealed class EmailService : IEmailService
 
         using var request = await CreateRequestAsync(
             HttpMethod.Patch,
-            $"me/messages/{Uri.EscapeDataString(draftId)}",
+            $"{_user}/messages/{Uri.EscapeDataString(draftId)}",
             cancellationToken);
         request.Content = JsonContent.Create(new
         {
             body = new { contentType = "Text", content = body.Trim() }
         });
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
     }
 
     public async Task SendDraftAsync(
@@ -226,11 +281,11 @@ public sealed class EmailService : IEmailService
 
         using var request = await CreateRequestAsync(
             HttpMethod.Post,
-            $"me/messages/{Uri.EscapeDataString(draftId)}/send",
+            $"{_user}/messages/{Uri.EscapeDataString(draftId)}/send",
             cancellationToken);
         request.Content = new StringContent(string.Empty);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
     }
 
     public async Task SendMessageAsync(
@@ -242,7 +297,7 @@ public sealed class EmailService : IEmailService
         ArgumentException.ThrowIfNullOrWhiteSpace(recipient);
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
         ArgumentException.ThrowIfNullOrWhiteSpace(body);
-        using var request = await CreateRequestAsync(HttpMethod.Post, "me/sendMail", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Post, $"{_user}/sendMail", cancellationToken);
         request.Content = JsonContent.Create(new
         {
             message = new
@@ -254,7 +309,7 @@ public sealed class EmailService : IEmailService
             saveToSentItems = true
         });
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
     }
     public async Task ApplyCategoryAsync(
         string messageId,
@@ -273,11 +328,11 @@ public sealed class EmailService : IEmailService
             .ToArray();
         using var request = await CreateRequestAsync(
             HttpMethod.Patch,
-            $"me/messages/{Uri.EscapeDataString(messageId)}",
+            $"{_user}/messages/{Uri.EscapeDataString(messageId)}",
             cancellationToken);
         request.Content = JsonContent.Create(new { categories });
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await GraphResponseDiagnostics.EnsureSuccessAsync(response,cancellationToken);
     }
 
     private async Task<HttpRequestMessage> CreateRequestAsync(
@@ -291,7 +346,16 @@ public sealed class EmailService : IEmailService
         return request;
     }
 
-    private static EmailMessage Map(GraphMessage source) => new()
+    private static EmailMessage Map(GraphMessage source)
+    {
+        // Senders and recipients are people the AI-use policy protects: remember them for the AI placeholders.
+        Nekomata.AI.Privacy.PrivacyDirectory.AddPerson(source.From?.EmailAddress?.Name, source.From?.EmailAddress?.Address);
+        foreach (var r in source.ToRecipients.Concat(source.CcRecipients))
+            Nekomata.AI.Privacy.PrivacyDirectory.AddPerson(r.EmailAddress?.Name, r.EmailAddress?.Address);
+        return MapMessage(source);
+    }
+
+    private static EmailMessage MapMessage(GraphMessage source) => new()
     {
         Id = source.Id ?? "",
         Subject = string.IsNullOrWhiteSpace(source.Subject) ? "(No subject)" : source.Subject,

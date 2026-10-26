@@ -19,7 +19,8 @@ public static class AdaptiveReplanPolicy
         var currentEvidence = all.FirstOrDefault(x => Same(current, x));
         var blocked = reportedBlocked || currentEvidence is { IsActionable: false } || currentEvidence is { IsOnHold: true };
         var alternatives = all.Where(x => !Same(current, x) && x.IsActionable && !x.IsOnHold && !x.IsAwaitingExternalResponse &&
-            x.EstimatedMinutes > 0 && x.EstimatedMinutes <= freeMinutes)
+            (x.EstimatedMinutes > 0 || x.PredictedActiveMinutes > 0) &&
+            FreeWindowMissionPolicy.EffectiveMinutes(x) <= freeMinutes)
             .OrderByDescending(x => x.RequiresImmediateAttention).ThenByDescending(x => x.Score).ToList();
         var candidate = alternatives.FirstOrDefault();
         if (candidate == null) return null;

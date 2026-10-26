@@ -27,6 +27,7 @@ public partial class EmailTriageItem : ObservableObject
     [ObservableProperty] private string meetingSuggestions = "";
     [ObservableProperty] private ObservableCollection<MeetingDateOption> meetingDateOptions = [];
     [ObservableProperty] private string meetingTimePreference = "Any";
+    [ObservableProperty] private string draftEvidenceSummary = "";
 
     public bool IsFiltered =>
         Classification.Equals("Marketing", StringComparison.OrdinalIgnoreCase) ||

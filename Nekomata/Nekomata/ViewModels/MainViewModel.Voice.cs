@@ -1,5 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
+using Nekomata.Models.Planning;
+using Nekomata.UI.Controls.Common;
+using System.IO;
 
 namespace Nekomata.UI.ViewModels;
 
@@ -21,10 +25,90 @@ public partial class MainViewModel
             _ = _guardianSpeech.SpeakAsync("Guardian voice enabled.");
     }
 
-    private Task SpeakGuardianAsync(string? message, bool interrupt = false)
+    private async Task SpeakGuardianAsync(string? message, bool interrupt = false)
     {
+        if (GuardianVoiceEnabled && HoldIfQuiet(message)) return;
+        message = BreakThroughPreface(message ?? "");
+        Nekomata.Core.Guardian.FormalManner.Enabled = FeatureOn("formal-voice");
+        Nekomata.Core.Guardian.FormalManner.UserFirstName = UserFirstName;
+        message = Nekomata.Core.Guardian.FormalManner.Apply(message, unprompted: !IsSpeechSolicited());
         _guardianSpeech.Enabled = GuardianVoiceEnabled;
-        return _guardianSpeech.SpeakAsync(message, interrupt);
+        _guardianSpeakingDepth++;
+        _guardianUtteranceCount++;
+        GuardianPresenceState = GuardianPresenceState.Speaking;
+        if (_guardianSpeakingDepth == 1) { StartBargeInMonitor(); DuckMusic(true); }
+        try
+        {
+            await _guardianSpeech.SpeakAsync(message, interrupt);
+        }
+        finally
+        {
+            _guardianSpeakingDepth = Math.Max(0, _guardianSpeakingDepth - 1);
+            if (_guardianSpeakingDepth == 0) { StopBargeInMonitor(); DuckMusic(false); }
+            if (_guardianSpeakingDepth == 0 && GuardianPresenceState == GuardianPresenceState.Speaking)
+                GuardianPresenceState = GuardianPresenceState.Idle;
+        }
+    }
+
+    private bool _announcingNewDay;
+
+    private static string MorningBriefingAnnouncedPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nekomata Personal",
+        $"morning-briefing-{DateTime.Today:yyyy-MM-dd}.done");
+
+    // Keeps the "good morning" moment from being lost if the app is left running across
+    // midnight: the splash-only path in LoadAsync only ever fires once, on a cold start.
+    private void EvaluateMorningBriefingBoundary()
+    {
+        try
+        {
+            if (_announcingNewDay || !_initialLoadCompleted || IsInitialLoading) return;
+            if (DateTime.Now < _services.GetRequiredService<WorkingDaySettings>().GetStart(DateTime.Today)) return;
+            if (File.Exists(MorningBriefingAnnouncedPath)) return;
+            _ = AnnounceNewCalendarDayAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Morning briefing day-boundary check failed: {ex}");
+        }
+    }
+
+    private async Task AnnounceNewCalendarDayAsync()
+    {
+        _announcingNewDay = true;
+        try
+        {
+            MarkMorningBriefingAnnounced();
+            Workspace = await _workspaceCoordinator.RefreshAsync();
+            OnPropertyChanged(nameof(GuardianSuggestedTasks));
+            UpdateGreeting();
+            await RefreshDailyBriefingContextAsync();
+            await RefreshCalendarAwareObjectiveAsync();
+            // The same briefing as a fresh start-up (fresh calendar, one definition of "meetings"). The older
+            // workspace summary is only its fallback; using it here contradicted the real brief.
+            await SpeakMorningBriefingWithWeeklyAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"New-day announcement failed: {ex}");
+        }
+        finally
+        {
+            _announcingNewDay = false;
+        }
+    }
+
+    private static void MarkMorningBriefingAnnounced()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(MorningBriefingAnnouncedPath)!);
+            File.WriteAllText(MorningBriefingAnnouncedPath, DateTimeOffset.Now.ToString("O"));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Could not record today's morning briefing: {ex.Message}");
+        }
     }
 
     private Task SpeakMorningBriefingAsync()
@@ -79,5 +163,30 @@ public partial class MainViewModel
             ? meetingSummary["Meetings:".Length..].Trim()
             : meetingSummary.Trim();
         return $"As for meetings, you have {details}";
+    }
+
+    private Task SpeakEndOfDayReviewAsync()
+    {
+        var review = DayReview;
+        var objectives = review.ObjectivesPlanned == 0
+            ? "You didn't have planned objectives tracked today."
+            : review.ObjectivesCompleted == review.ObjectivesPlanned
+                ? $"You completed all {review.ObjectivesPlanned} planned objective{(review.ObjectivesPlanned == 1 ? "" : "s")} today."
+                : $"You completed {review.ObjectivesCompleted} of {review.ObjectivesPlanned} planned objectives today.";
+        var focusedTime = review.CompletedMinutes > 0 ? $" {review.CompletedLabel} of that was focused work." : string.Empty;
+        var interruptions = review.InterruptionCount switch
+        {
+            0 => string.Empty,
+            1 => " There was one interruption along the way.",
+            _ => $" There were {review.InterruptionCount} interruptions along the way."
+        };
+        var rollForward = review.RollForwardCount switch
+        {
+            0 => " Nothing needs to roll forward.",
+            1 => " One item will roll forward to tomorrow.",
+            _ => $" {review.RollForwardCount} items will roll forward to tomorrow."
+        };
+        return SpeakGuardianAsync(
+            $"That's the workday closed. {objectives}{focusedTime}{interruptions}{rollForward} {review.TomorrowSummary}");
     }
 }

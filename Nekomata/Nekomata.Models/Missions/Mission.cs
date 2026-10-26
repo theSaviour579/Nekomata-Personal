@@ -12,6 +12,10 @@ public class Mission
     public decimal BusinessValue { get; set; }
 
     public TimeSpan EstimatedDuration { get; set; }
+    public int EnteredEstimateMinutes { get; set; }
+    public int PredictedActiveMinutes { get; set; }
+    public int InterruptionOverheadMinutes { get; set; }
+    public string PredictionExplanation { get; set; } = "";
 
     public DateTime? StartBefore { get; set; }
 
@@ -31,6 +35,11 @@ public class Mission
 
     public string RecommendationReason { get; set; } = "";
 
+    public string CurrentOwner { get; set; } = "";
+    public string SuggestedOwner { get; set; } = "";
+    public int AssignmentConfidence { get; set; }
+    public string AssignmentReason { get; set; } = "";
+
     public List<MissionScoreFactor> ScoreFactors { get; set; } = [];
 
     public List<string> Strengths { get; set; } = [];
@@ -39,6 +48,7 @@ public class Mission
     public GuardianDecision Decision { get; set; } = new();
 
     public List<GuardianReason> GuardianReasons { get; set; } = [];
+    public List<Guid> AppliedPolicyIds { get; set; } = [];
 
     public IReadOnlyList<MissionScoreGroup>
     GroupedScoreFactors =>

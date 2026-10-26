@@ -72,6 +72,7 @@ public class MissionSelector : IMissionSelector
         foreach (var candidate in candidates)
         {
             _scorer.Score(candidate);
+            ApplyPersonalOperatingModel(candidate, workspace);
 
             candidate.GuardianReasons.Clear();
 
@@ -154,6 +155,46 @@ public class MissionSelector : IMissionSelector
                 .ToList();
 
         return filteredCandidates;
+    }
+
+    private static void ApplyPersonalOperatingModel(MissionCandidate candidate, NekomataWorkspace workspace)
+    {
+        var deepWork = candidate.PredictedActiveMinutes >= 90 ||
+            candidate.Title.Contains("analysis", StringComparison.OrdinalIgnoreCase) ||
+            candidate.Title.Contains("project", StringComparison.OrdinalIgnoreCase) ||
+            candidate.Description.Contains("sql", StringComparison.OrdinalIgnoreCase);
+        if (!deepWork) return;
+
+        var now = DateTime.Now;
+        var morning = workspace.Outcomes.Insights
+            .Where(x => x.IsPolicyActive && x.PolicyAction is "prefer_deep_morning" or "prefer_analysis_before_11")
+            .OrderByDescending(x => x.ConfidencePercent).FirstOrDefault();
+        var disruption = workspace.Outcomes.Insights
+            .Where(x => x.IsPolicyActive && x.PolicyAction == "avoid_deep_afternoon")
+            .OrderByDescending(x => x.ObservedRatio).FirstOrDefault();
+
+        if (now.Hour < 12 && morning is not null)
+        {
+            var policy = workspace.Policies.FirstOrDefault(x => x.IsActive && x.Action == morning.PolicyAction);
+            candidate.ScoreFactors.Add(new MissionScoreFactor
+            {
+                Category = "Personal Operating Model", Name = "Strong Focus Window", Points = 10,
+                Explanation = $"The active personal policy prefers deep/analysis work now ({morning.ConfidencePercent}% confidence across {morning.SampleSize} comparable sessions)."
+            });
+            candidate.Score += 10;
+            if (policy is not null) candidate.AppliedPolicyIds.Add(policy.Id);
+        }
+        else if (now.Hour >= 14 && disruption is not null)
+        {
+            var policy = workspace.Policies.FirstOrDefault(x => x.IsActive && x.Action == disruption.PolicyAction);
+            candidate.ScoreFactors.Add(new MissionScoreFactor
+            {
+                Category = "Personal Operating Model", Name = "Fragmentation Risk", Points = -10,
+                Explanation = $"An active interruptibility policy marks this afternoon as a weaker deep-work window ({disruption.ObservedRatio:P0} interruption rate; {disruption.ConfidencePercent}% confidence)."
+            });
+            candidate.Score -= 10;
+            if (policy is not null) candidate.AppliedPolicyIds.Add(policy.Id);
+        }
     }
 
     private static bool ShouldKeepCandidate(

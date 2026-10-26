@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Nekomata.AI.Interfaces;
+using Nekomata.AI.Privacy;
 using OpenAI.Chat;
 using System.Text.Json;
 
@@ -12,8 +13,8 @@ public class OpenAIProvider : IAIProvider
     public OpenAIProvider(IConfiguration configuration)
     {
         var apiKey =
-            configuration["OpenAI:ApiKey"]
-            ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            (configuration["OpenAI:ApiKey"]
+            ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY"))?.Trim();
 
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("OpenAI API key not found or is empty.");
@@ -27,13 +28,19 @@ public class OpenAIProvider : IAIProvider
     {
         try
         {
+            // Names, addresses, phone numbers, customers and amounts are swapped for placeholders before sending,
+            // and put back in the answer here (AI-use policy).
+            var guard = new Pseudonymiser();
+            var maskedPrompt = guard.Mask(prompt);
             var messages = new List<ChatMessage>
         {
             new SystemChatMessage(
-                "You are Guardian, the AI assistant inside Nekomata. Be concise, practical, and helpful."),
+                "You are Guardian, the AI assistant inside Nekomata. Be concise, practical, and helpful." +
+                (guard.Masked ? " " + Pseudonymiser.Instruction : "")),
 
-            new UserChatMessage(prompt)
+            new UserChatMessage(maskedPrompt)
         };
+            AiSendLog.Record(new(DateTimeOffset.Now, "text", "gpt-5.1", maskedPrompt.Length, guard.Counts));
             System.Diagnostics.Debug.WriteLine(
     $"Guardian prompt length: {prompt.Length:N0} characters");
             ChatCompletion completion =
@@ -46,7 +53,7 @@ public class OpenAIProvider : IAIProvider
 
             return string.IsNullOrWhiteSpace(text)
                 ? "Guardian received an empty response."
-                : text;
+                : guard.Unmask(text);
         }
         catch (Exception ex)
         {

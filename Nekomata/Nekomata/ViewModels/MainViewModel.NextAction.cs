@@ -68,12 +68,11 @@ public partial class MainViewModel
                     decision.Decision == "Continue next workday" && decision.PlanDate.Date > DateTime.Today;
             if (suppressed) excluded.Add(NextActionPolicy.Key(candidate));
         }
-        var learning = ReadDecisionLearning();
         return NextActionPolicy.Select(Workspace.RankedMissionCandidates, NextActionFreeMinutes(), _personalProfile.Current.DisplayName, excluded)
-            .OrderByDescending(x => x.RequiresImmediateAttention || x.IsP1)
-            .ThenByDescending(x => x.Score - DecisionLearning.Penalty(learning.Preferences, NextActionPolicy.Key(x), x.RequiresImmediateAttention || x.IsP1, DateTimeOffset.Now)).ToList();
+            .OrderByDescending(x => x.RequiresImmediateAttention || x.IsUrgent)
+            .ThenByDescending(x => x.Score - DecisionLearning.Penalty(_decisionLearning.Preferences, NextActionPolicy.Key(x), x.RequiresImmediateAttention || x.IsUrgent, DateTimeOffset.Now)).ToList();
     }
-    private void CheckNextAction()
+    private async Task CheckNextActionAsync()
     {
         try
         {
@@ -84,6 +83,7 @@ public partial class MainViewModel
             }
             if (NextActionFreeMinutes() < 10) return;
             if (!CanPresentRoutinePrompt(Nekomata.Core.Guardian.Anticipation.GuardianPromptKind.NextAction)) return;
+            await ReadDecisionLearningAsync();
             _nextActionState ??= File.Exists(NextActionPath) ? JsonSerializer.Deserialize<NextActionState>(File.ReadAllText(NextActionPath)) : null;
             if (_nextActionState?.Day != DateTime.Today) _nextActionState = new() { Day = DateTime.Today };
             if (DateTimeOffset.Now - _nextActionState.LastPrompt < TimeSpan.FromMinutes(45)) return;
@@ -107,7 +107,7 @@ public partial class MainViewModel
         var another = new Button { Content = "CHOOSE ANOTHER", Margin = new Thickness(0,8,0,0), IsEnabled = candidates.Count > 1 };
         var later = new Button { Content = "NOT NOW", Margin = new Thickness(0,8,0,0) };
         panel.Children.Add(new TextBlock { Text = "OPTIONAL FEEDBACK · for Choose another / Not now", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,6) });
-        var feedback = new ComboBox { ItemsSource = new[] { "No feedback", "Wrong priority", "Wrong owner", "Missing context", "Bad timing", "Already handled" }, SelectedIndex = 0, Foreground = System.Windows.Media.Brushes.Black, Background = System.Windows.Media.Brushes.White, Margin = new Thickness(0,0,0,12) };
+        var feedback = new ComboBox { ItemsSource = new[] { "No feedback", "Wrong priority", "Wrong owner", "Missing context", "Bad timing", "Already handled" }, SelectedIndex = 0, Margin = new Thickness(0,0,0,12) };
         panel.Children.Add(feedback);
         panel.Children.Add(start); panel.Children.Add(another); panel.Children.Add(later);
         var window = new Window { Title = "Guardian · next action", Width = 540, SizeToContent = SizeToContent.Height, Content = panel, ShowActivated = false };
@@ -123,14 +123,14 @@ public partial class MainViewModel
                 "No known waiting/hold flag or conflicting owner recommendation. Starting requires your approval.";
         }
         Render();
-        another.Click += (_, _) =>
+        another.Click += async (_, _) =>
         {
-            try { RecordDecisionFeedback(candidates[index], feedback.SelectedItem?.ToString() ?? "No feedback"); feedback.SelectedIndex = 0; index = (index + 1) % candidates.Count; Render(); }
+            try { await RecordDecisionFeedbackAsync(candidates[index], feedback.SelectedItem?.ToString() ?? "No feedback"); feedback.SelectedIndex = 0; index = (index + 1) % candidates.Count; Render(); }
             catch (Exception ex) { reason.Text = "Could not save feedback: " + ex.Message; }
         };
-        later.Click += (_, _) =>
+        later.Click += async (_, _) =>
         {
-            try { RecordDecisionFeedback(candidates[index], feedback.SelectedItem?.ToString() ?? "No feedback"); _nextActionState!.Dismissed.Add(NextActionPolicy.Key(candidates[index])); SaveNextActionState(); window.Close(); }
+            try { await RecordDecisionFeedbackAsync(candidates[index], feedback.SelectedItem?.ToString() ?? "No feedback"); _nextActionState!.Dismissed.Add(NextActionPolicy.Key(candidates[index])); SaveNextActionState(); window.Close(); }
             catch (Exception ex) { reason.Text = "Could not save your choice: " + ex.Message; }
         };
         start.Click += async (_, _) =>

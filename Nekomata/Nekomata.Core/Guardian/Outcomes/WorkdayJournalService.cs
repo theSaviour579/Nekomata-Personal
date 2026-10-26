@@ -23,14 +23,19 @@ public sealed class WorkdayJournalService(IWorkdayEventRepository repository)
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Workday boundary event failed safely: {ex}"); }
     }
 
-    public async Task RecordIfAbsentAsync(WorkdayEvent entry)
+    public async Task<bool> RecordIfAbsentAsync(WorkdayEvent entry)
     {
         try
         {
-            if (await repository.ExistsAsync(entry.EventType, entry.ExternalId)) return;
+            if (await repository.ExistsAsync(entry.EventType, entry.ExternalId)) return false;
             await repository.AddAsync(entry);
+            return true;
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Workday journal idempotent event failed safely: {ex}"); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Workday journal idempotent event failed safely: {ex}");
+            return false;
+        }
     }
 
     public static IReadOnlyList<GuardianJournalInsight> BuildInsights(IReadOnlyCollection<WorkdayEvent> events)

@@ -26,4 +26,5 @@ public sealed class TeamMemberSkill
     public int Proficiency { get; set; } = 2;
     public bool IsPrimary { get; set; }
     public string Aliases { get; set; } = "";
+    public string WeakAliases { get; set; } = "";
 }

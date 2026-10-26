@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using Nekomata.AI.Models.Meetings;
 using Nekomata.Core.Meetings;
+using Nekomata.Core.Guardian.Actions;
 using Nekomata.Models.AI;
 using Nekomata.Models.Workspace;
 using Nekomata.UI.Views;
@@ -17,6 +18,9 @@ public partial class GuardianTaskPlannerViewModel
 
     private readonly NekomataWorkspace
         _workspace;
+
+    private readonly IGuardianApplyService _applyService;
+    private readonly Func<Task> _afterApply;
 
     // ============================================================
     // STATE
@@ -64,13 +68,17 @@ public partial class GuardianTaskPlannerViewModel
 
     public GuardianTaskPlannerViewModel(
         IMeetingAnalysisService meetingAnalysisService,
-        NekomataWorkspace workspace)
+        NekomataWorkspace workspace,
+        IGuardianApplyService applyService,
+        Func<Task> afterApply)
     {
         _meetingAnalysisService =
             meetingAnalysisService;
 
         _workspace =
             workspace;
+        _applyService = applyService;
+        _afterApply = afterApply;
     }
 
     // ============================================================
@@ -191,7 +199,9 @@ public partial class GuardianTaskPlannerViewModel
 
         var viewModel =
             new GuardianReviewViewModel(
-                ActionPlan);
+                ActionPlan,
+                _applyService,
+                _afterApply);
 
         var window =
             new GuardianReviewWindow
@@ -253,6 +263,17 @@ public partial class GuardianTaskPlannerViewModel
         var title =
             BuildActionTitle(
                 action);
+        var isCreate = action.ActionType.Equals(MeetingActionType.Create, StringComparison.OrdinalIgnoreCase);
+        var isPriorityChange = action.Property.Equals("Priority", StringComparison.OrdinalIgnoreCase);
+        var isStatusChange = action.Property.Equals("Status", StringComparison.OrdinalIgnoreCase);
+        var isDueChange = action.Property.Equals("DueAt", StringComparison.OrdinalIgnoreCase) ||
+                          action.Property.Equals("Due", StringComparison.OrdinalIgnoreCase) ||
+                          action.Property.Equals("Deadline", StringComparison.OrdinalIgnoreCase);
+        var isEstimateChange = action.Property.Equals("EstimatedMinutes", StringComparison.OrdinalIgnoreCase) ||
+                               action.Property.Equals("Estimate", StringComparison.OrdinalIgnoreCase);
+        var dueText = string.IsNullOrWhiteSpace(action.DueAt) && isDueChange
+            ? action.NewValue
+            : action.DueAt;
 
         return new GuardianTaskAction
         {
@@ -264,8 +285,9 @@ public partial class GuardianTaskPlannerViewModel
                 title,
 
             Description =
-                BuildActionDescription(
-                    action),
+                string.IsNullOrWhiteSpace(action.Description)
+                    ? BuildActionDescription(action)
+                    : action.Description,
 
             Reason =
                 action.Reason,
@@ -273,8 +295,27 @@ public partial class GuardianTaskPlannerViewModel
             Category =
                 action.TargetType,
 
+            ProposedProperty = action.Property,
+            ProposedValue = action.NewValue,
+
             Priority =
-                null,
+                isCreate || isPriorityChange
+                    ? NormalisePriority(isPriorityChange ? action.NewValue : action.Priority)
+                    : null,
+
+            TaskId = action.TaskId,
+            ProjectId = action.ProjectId,
+            Status = isStatusChange
+                ? action.NewValue
+                : action.ActionType.Equals("Complete", StringComparison.OrdinalIgnoreCase)
+                    ? "Completed"
+                    : action.ActionType.Equals(MeetingActionType.Delete, StringComparison.OrdinalIgnoreCase)
+                        ? "Cancelled"
+                    : null,
+            EstimatedMinutes = action.EstimatedMinutes ??
+                (isEstimateChange && int.TryParse(action.NewValue, out var minutes) ? minutes : null),
+            DueAt = DateTime.TryParse(dueText, out var dueAt) ? dueAt : null,
+            EstimatedBusinessValue = action.EstimatedBusinessValue,
 
             Confidence =
                 CalculateConfidence(
@@ -291,6 +332,14 @@ public partial class GuardianTaskPlannerViewModel
                 true
         };
     }
+
+    private static string NormalisePriority(string? priority) => priority?.Trim().ToLowerInvariant() switch
+    {
+        "critical" => "Critical",
+        "high" or "urgent" => "High",
+        "low" => "Low",
+        _ => "Normal"
+    };
 
     private static string BuildActionTitle(
         MeetingAction action)

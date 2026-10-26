@@ -154,6 +154,9 @@ public class GuardianMissionDecisionBuilder
                     SourceType =
                         candidate.SourceType,
 
+                    SourceRecordId =
+                        candidate.SourceRecordId,
+
                     TaskId =
                         candidate.TaskId,
 
@@ -337,16 +340,19 @@ public class GuardianMissionDecisionBuilder
         MissionCandidate candidate,
         Mission winner)
     {
-        return candidate.TaskId ==
-               winner.TaskId
-               &&
-               candidate.ProjectId ==
-               winner.ProjectId
-               &&
-               string.Equals(
-                   candidate.SourceType,
-                   winner.SourceType,
-                   StringComparison.OrdinalIgnoreCase);
+        if (!string.Equals(candidate.SourceType, winner.SourceType, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (winner.TaskId is not null)
+            return candidate.TaskId == winner.TaskId;
+
+        if (winner.ProjectId is not null)
+            return candidate.ProjectId == winner.ProjectId;
+
+        if (!string.IsNullOrWhiteSpace(winner.SourceRecordId))
+            return string.Equals(candidate.SourceRecordId, winner.SourceRecordId, StringComparison.OrdinalIgnoreCase);
+
+        return string.Equals(candidate.Title, winner.Title, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string FormatDuration(

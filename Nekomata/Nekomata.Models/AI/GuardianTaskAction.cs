@@ -27,6 +27,10 @@ public class GuardianTaskAction
 
     public string? Category { get; set; }
 
+    public string? ProposedProperty { get; set; }
+
+    public string? ProposedValue { get; set; }
+
     public string? Reason { get; set; }
 
     public int Confidence { get; set; }

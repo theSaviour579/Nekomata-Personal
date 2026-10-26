@@ -2,9 +2,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.UI.Services;
-using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
+using System.Diagnostics;
+using System.IO;
 
 namespace Nekomata.UI.ViewModels;
 

@@ -20,6 +20,9 @@ public class NekomataProject
 
     public bool AtRisk { get; set; }
 
+    public bool RequiresChangeControl { get; set; }
+    public bool RequiresEcsv { get; set; }
+
     public string? NextAction { get; set; }
 
     public DateTime CreatedAt { get; set; }

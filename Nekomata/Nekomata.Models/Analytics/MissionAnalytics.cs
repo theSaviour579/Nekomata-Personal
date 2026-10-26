@@ -10,7 +10,17 @@ public class MissionAnalytics
 
     public TimeSpan FocusTimeToday { get; set; }
 
+    public TimeSpan ElapsedPaidWorkdayToday { get; set; }
+
     public decimal BusinessValueDeliveredToday { get; set; }
+
+    public decimal HourlyLabourRate { get; set; }
+
+    public decimal WageCostToday { get; set; }
+
+    public decimal ValueAfterWageCostToday { get; set; }
+
+    public decimal BusinessValueToWageCostRatio { get; set; }
 
     public double AverageScoreToday { get; set; }
 

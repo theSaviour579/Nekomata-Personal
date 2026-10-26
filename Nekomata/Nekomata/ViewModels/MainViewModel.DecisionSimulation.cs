@@ -11,13 +11,13 @@ using Nekomata.Models.Planning;
 using Nekomata.UI.Windows;
 using System.Collections.ObjectModel;
 using System.Windows;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Nekomata.UI.ViewModels;
 
 public partial class MainViewModel
 {
+    private DateTimeOffset _decisionSimulationCalendarRangeStart;
+    private DateTimeOffset _decisionSimulationCalendarRangeEnd;
     [ObservableProperty] private ObservableCollection<GuardianDayScenario> decisionScenarios = [];
     [ObservableProperty] private GuardianDayScenario? selectedDecisionScenario;
     [ObservableProperty] private ObservableCollection<MissionCandidate> decisionSimulationCandidates = [];
@@ -26,18 +26,26 @@ public partial class MainViewModel
     [ObservableProperty] private int decisionSimulationHorizonDays = 3;
     public IReadOnlyList<int> DecisionSimulationHorizonOptions { get; } = [3, 5, 10];
     [ObservableProperty] private string decisionSimulationStatus = "Choose an objective or departure time, then compare the consequences.";
+    [ObservableProperty] private string decisionSimulationCalendarSyncStatus = "Calendar sync has not been checked.";
+    [ObservableProperty] private bool decisionSimulationCalendarReady;
     [ObservableProperty] private bool decisionSimulationBusy;
 
     [RelayCommand]
     private async Task ShowDecisionSimulatorAsync()
     {
-        DecisionSimulationCandidates = new(Workspace.RankedMissionCandidates
-            .Where(x => x.IsActionable && x.EstimatedMinutes > 0 && (x.TaskId is > 0 || !string.IsNullOrWhiteSpace(x.SourceRecordId)))
-            .GroupBy(ScenarioCandidateKey, StringComparer.OrdinalIgnoreCase).Select(x => x.OrderByDescending(y => y.Score).First())
-            .OrderBy(x => x.Rank <= 0 ? int.MaxValue : x.Rank).Take(20));
-        SelectedDecisionCandidate = DecisionSimulationCandidates.FirstOrDefault(x => x.TaskId == Workspace.CurrentMission.TaskId) ?? DecisionSimulationCandidates.FirstOrDefault();
+        DecisionSimulationCandidates = new ObservableCollection<MissionCandidate>(Workspace.RankedMissionCandidates
+            .Where(x => x.IsActionable && x.TaskId is > 0 && x.EstimatedMinutes > 0)
+            .GroupBy(x => x.TaskId)
+            .Select(x => x.OrderByDescending(y => y.Score).First())
+            .OrderBy(x => x.Rank <= 0 ? int.MaxValue : x.Rank)
+            .Take(20));
+        SelectedDecisionCandidate = DecisionSimulationCandidates.FirstOrDefault(x => x.TaskId == Workspace.CurrentMission.TaskId)
+                                    ?? DecisionSimulationCandidates.FirstOrDefault();
         await RefreshDecisionSimulationAsync();
-        new DecisionSimulatorWindow(this) { Owner = Application.Current.MainWindow }.ShowDialog();
+        new DecisionSimulatorWindow(this)
+        {
+            Owner = Application.Current.MainWindow
+        }.ShowDialog();
     }
 
     [RelayCommand]
@@ -45,76 +53,194 @@ public partial class MainViewModel
     {
         if (DecisionSimulationBusy) return;
         DecisionSimulationBusy = true;
-        DecisionSimulationStatus = "Reading the calendar and modelling the options…";
+        DecisionSimulationCalendarReady = false;
+        DecisionSimulationStatus = "Reading the calendar and modelling three working days…";
+        DecisionSimulationCalendarSyncStatus = "Checking Microsoft 365 calendar…";
         try
         {
             var now = DateTimeOffset.Now;
             var settings = _services.GetRequiredService<WorkingDaySettings>();
-            var horizon = Math.Clamp(DecisionSimulationHorizonDays, 1, 10);
-            var horizonEnd = AddWorkingDays(now.Date, horizon - 1).AddDays(1);
+            var horizonDays = Math.Clamp(DecisionSimulationHorizonDays, 1, 10);
+            var horizonEnd = GuardianDayScenarioEngine.WorkingHorizonEndExclusive(now.Date, horizonDays);
             IReadOnlyList<Nekomata.Integrations.MicrosoftGraph.Models.CalendarEvent> events;
-            var loaded = false;
             try
             {
-                events = await _services.GetRequiredService<ICalendarService>().GetEventsAsync(new(now.Date, TimeZoneInfo.Local.GetUtcOffset(now.Date)), new(horizonEnd, TimeZoneInfo.Local.GetUtcOffset(horizonEnd)));
-                loaded = true;
+                var offset = TimeZoneInfo.Local.GetUtcOffset(now.Date);
+                _decisionSimulationCalendarRangeStart = new DateTimeOffset(now.Date, offset);
+                _decisionSimulationCalendarRangeEnd = new DateTimeOffset(horizonEnd, TimeZoneInfo.Local.GetUtcOffset(horizonEnd));
+                events = await _services.GetRequiredService<ICalendarService>().GetEventsAsync(
+                    _decisionSimulationCalendarRangeStart, _decisionSimulationCalendarRangeEnd);
             }
-            catch { events = CalendarEvents.ToList(); loaded = CalendarLoaded; }
-            var projects = Workspace.Projects.ToDictionary(x => x.Id, x => x.Name);
-            var work = DecisionSimulationCandidates.Select(x => new GuardianScenarioWorkItem
+            catch (Exception ex)
             {
-                TaskId = ScenarioTaskId(x), ProjectId = x.ProjectId, Title = x.Title,
-                ProjectName = x.ProjectId is long id && projects.TryGetValue(id, out var name) ? name : "",
-                Minutes = Math.Max(settings.MinimumFocusBlockMinutes, x.EstimatedMinutes), Score = x.Score, Rank = x.Rank, DueAt = x.DueAt,
-                IsCritical = x.RequiresImmediateAttention || x.Priority.Equals(TaskPriorities.Critical, StringComparison.OrdinalIgnoreCase)
+                // The dashboard cache normally covers only its selected day. It must never be
+                // presented as a complete multi-day scenario snapshot because doing so can place
+                // proposed work over commitments later in the horizon.
+                System.Diagnostics.Debug.WriteLine($"Decision-simulation calendar load failed: {ex}");
+                DecisionScenarios = [];
+                SelectedDecisionScenario = null;
+                DecisionSimulationCalendarSyncStatus = "LIVE CALENDAR REQUIRED · no plan can be synced from a partial snapshot";
+                DecisionSimulationStatus = "Guardian could not load the complete Microsoft 365 calendar horizon. Check the connection and re-run the comparison; no provisional schedule has been produced.";
+                return;
+            }
+
+            var alreadyScheduled = events.Where(x => x.IsNekomataManaged).ToList();
+            var projects = Workspace.Projects.ToDictionary(x => x.Id, x => x.Name);
+            var proposalMemories = await _services.GetRequiredService<Nekomata.Data.Repositories.IGuardianMemoryRepository>().GetRecentAsync(100);
+            var proposalPolicy = _services.GetRequiredService<Nekomata.Core.Guardian.Learning.GuardianProposalLearningPolicy>();
+            var candidates = DecisionSimulationCandidates
+                .Where(x => x.TaskId is > 0)
+                .Where(x => !proposalPolicy.ShouldSuppress(x.Title, proposalMemories))
+                .Select(x =>
+                {
+                    var taskId = x.TaskId!.Value;
+                    var estimated = Math.Max(settings.MinimumFocusBlockMinutes,
+                        x.PredictedActiveMinutes > 0 ? x.PredictedActiveMinutes + x.InterruptionOverheadMinutes : x.EstimatedMinutes);
+                    var scheduled = alreadyScheduled
+                        .Where(item => item.BodyPreview.Contains($"NEKOMATA:TASK:{taskId}", StringComparison.OrdinalIgnoreCase))
+                        .Sum(item => Math.Max(0, (int)(item.End - item.Start).TotalMinutes));
+                    return new GuardianScenarioWorkItem
+                    {
+                        TaskId = taskId, ProjectId = x.ProjectId, Title = x.Title,
+                        ProjectName = x.ProjectId is long projectId && projects.TryGetValue(projectId, out var name) ? name : "",
+                        SourceType = x.SourceType, Minutes = Math.Max(0, estimated - scheduled),
+                        Score = x.Score, Rank = x.Rank, DueAt = x.DueAt,
+                        IsCritical = x.RequiresImmediateAttention || x.Priority.Equals(TaskPriorities.Critical, StringComparison.OrdinalIgnoreCase)
+                    };
+                })
+                .Where(x => x.Minutes > 0)
+                .ToList();
+            var commitments = events.Select(x => new GuardianScenarioCommitment
+            {
+                Id = x.Id, Title = x.Subject, Start = x.Start, End = x.End,
+                IsAllDay = x.IsAllDay, IsManaged = x.IsNekomataManaged
             }).ToList();
-            var commitments = events.Select(x => new GuardianScenarioCommitment { Id = x.Id, Title = x.Subject, Start = x.Start, End = x.End, IsAllDay = x.IsAllDay }).ToList();
+            var relationshipSignals = _relationshipDelayInsights.Take(3).Select(x =>
+                $"Relationship signal: {x.ContactName} has an unusual response delay on '{x.Subject}' ({x.Confidence}% confidence)." ).ToList();
             var leaveAt = TimeSpan.TryParse(DecisionSimulationLeaveTime, out var parsed) ? parsed : settings.EndTime;
             DecisionSimulationLeaveTime = leaveAt.ToString(@"hh\:mm");
+            var interruption = EstimateRemainingInterruptions(now, Math.Max(0, (settings.GetEnd(now.LocalDateTime) - now.LocalDateTime).TotalHours));
             var scenarios = _services.GetRequiredService<GuardianDayScenarioEngine>().Build(new()
             {
-                Now = now, WorkdayStart = settings.StartTime, WorkdayEnd = settings.EndTime, LunchStart = settings.LunchStartTime,
-                LunchMinutes = settings.LunchDurationMinutes, IncludeLunch = settings.IncludeLunchBreak, MinimumBlockMinutes = settings.MinimumFocusBlockMinutes,
-                HorizonWorkingDays = horizon, CalendarLoaded = loaded,
-                PreferredTaskId = SelectedDecisionCandidate is null ? null : ScenarioTaskId(SelectedDecisionCandidate), LeaveTodayAt = leaveAt,
-                WorkItems = work, Commitments = commitments
+                Now = now, WorkdayStart = settings.StartTime, WorkdayEnd = settings.EndTime,
+                LunchStart = settings.LunchStartTime, LunchMinutes = settings.LunchDurationMinutes,
+                IncludeLunch = settings.IncludeLunchBreak, MinimumBlockMinutes = settings.MinimumFocusBlockMinutes,
+                HorizonWorkingDays = horizonDays,
+                InterruptionAllowanceMinutes = interruption.Minutes, CalendarLoaded = true,
+                PreferredTaskId = SelectedDecisionCandidate?.TaskId, LeaveTodayAt = leaveAt,
+                WorkItems = candidates, Commitments = commitments, RelationshipSignals = relationshipSignals
             });
-            DecisionScenarios = new(scenarios);
+            var invalid = scenarios
+                .Select(scenario => new
+                {
+                    Scenario = scenario,
+                    Conflict = GuardianDayScenarioEngine.FindFirstConflict(scenario, commitments)
+                })
+                .FirstOrDefault(item => item.Conflict is not null);
+            if (invalid is not null)
+                throw new InvalidOperationException(
+                    $"The generated '{invalid.Scenario.Title}' scenario overlaps the loaded commitment '{invalid.Conflict!.Title}'.");
+            DecisionScenarios = new ObservableCollection<GuardianDayScenario>(scenarios);
             SelectedDecisionScenario = DecisionScenarios.FirstOrDefault();
-            DecisionSimulationStatus = $"Compared {scenarios.Count} plans across {horizon} working days using {work.Count} objectives and {commitments.Count} calendar entries.";
+            DecisionSimulationCalendarReady = true;
+            DecisionSimulationCalendarSyncStatus = $"LIVE CALENDAR READY · {commitments.Count} existing commitment(s) loaded across the {horizonDays}-workday horizon";
+            DecisionSimulationStatus = $"Compared {scenarios.Count} plans across {horizonDays} working days using {candidates.Count} unscheduled objectives and {commitments.Count} fixed or existing calendar entries.";
         }
-        catch (Exception ex) { DecisionSimulationStatus = $"The comparison could not be completed: {ex.Message}"; }
+        catch (Exception ex)
+        {
+            DecisionSimulationCalendarSyncStatus = "CALENDAR SYNC UNAVAILABLE";
+            DecisionSimulationStatus = $"The comparison could not be completed: {ex.Message}";
+        }
         finally { DecisionSimulationBusy = false; }
     }
 
-    public Task<bool> PrepareDecisionScenarioForReviewAsync()
+    public async Task<bool> PrepareDecisionScenarioForReviewAsync()
     {
-        if (SelectedDecisionScenario is not { CanPrepare: true } scenario) return Task.FromResult(false);
-        PendingGuardianAction = new GuardianActionResponse
+        if (!DecisionSimulationCalendarReady)
         {
-            ActionType = "decision_simulation_plan", Confidence = scenario.ConfidencePercent,
-            Message = $"{scenario.Title} is ready for review. {scenario.FinishLabel}; {scenario.RiskLabel}. Nothing has been changed yet.",
-            Changes = scenario.Blocks.Select(block => new GuardianChange { Selected = true, EntityType = "Calendar", EntityId = block.TaskId, Property = "CreateFocusBlock", OldValue = "", NewValue = $"{block.Start:O}|{block.End:O}|{block.Title}", Reason = $"Decision simulation '{scenario.Title}'.", Confidence = scenario.ConfidencePercent }).ToList()
-        };
-        PendingGuardianProject = null; GuardianProposalVisible = true; GuardianPanelExpanded = true; GuardianResponse = PendingGuardianAction.Message;
-        return Task.FromResult(true);
+            DecisionSimulationStatus = "A complete live calendar horizon is required before this scenario can be reviewed for sync.";
+            return false;
+        }
+        if (SelectedDecisionScenario is not { CanPrepare: true } scenario) return false;
+
+        var selectedKey = scenario.Key;
+        try
+        {
+            var latestEvents = await _services.GetRequiredService<ICalendarService>().GetEventsAsync(
+                _decisionSimulationCalendarRangeStart, _decisionSimulationCalendarRangeEnd);
+            var latestCommitments = latestEvents.Select(ToScenarioCommitment).ToList();
+            var conflict = GuardianDayScenarioEngine.FindFirstConflict(scenario, latestCommitments);
+            if (conflict is not null)
+            {
+                DecisionSimulationCalendarReady = false;
+                DecisionSimulationStatus = $"The calendar changed: '{conflict.Title}' now occupies proposed time. Rebuilding the comparison from the latest Microsoft 365 calendar…";
+                await RefreshDecisionSimulationAsync();
+                if (!DecisionSimulationCalendarReady)
+                    return false;
+                SelectedDecisionScenario = DecisionScenarios.FirstOrDefault(item => item.Key == selectedKey)
+                                           ?? DecisionScenarios.FirstOrDefault();
+                DecisionSimulationStatus = $"Calendar changes were incorporated. Review the rebuilt '{SelectedDecisionScenario?.Title ?? "scenario"}' before syncing.";
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Decision-simulation pre-review validation failed: {ex}");
+            DecisionSimulationCalendarReady = false;
+            DecisionSimulationCalendarSyncStatus = "LIVE CALENDAR REVALIDATION FAILED";
+            DecisionSimulationStatus = "Guardian could not revalidate the complete calendar immediately before review. Re-run the comparison; nothing has been changed.";
+            return false;
+        }
+
+        PendingGuardianAction = GuardianScenarioCalendarPlanBuilder.Build(scenario);
+        PendingGuardianProject = null;
+        GuardianProposalVisible = true;
+        GuardianPanelExpanded = true;
+        GuardianResponse = PendingGuardianAction.Message;
+        DecisionSimulationStatus = $"Prepared {scenario.Blocks.Count} calendar block(s) for individual review. Nothing has been synced yet.";
+        return true;
     }
 
-    private static DateTime AddWorkingDays(DateTime start, int count)
+    public async Task<bool> SyncDecisionScenarioToCalendarAsync()
     {
-        var date = start.Date;
-        while (count-- > 0) { date = date.AddDays(1); while (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) date = date.AddDays(1); }
-        return date;
+        if (DecisionSimulationBusy || GuardianBusy || !DecisionSimulationCalendarReady ||
+            SelectedDecisionScenario is not { CanPrepare: true } scenario)
+            return false;
+
+        if (!await PrepareDecisionScenarioForReviewAsync())
+            return false;
+
+        DecisionSimulationBusy = true;
+        try
+        {
+            DecisionSimulationStatus = $"Revalidating and syncing {scenario.Blocks.Count} approved calendar block(s)…";
+
+            // This uses the normal Guardian application pipeline. Decision-simulation plans are
+            // validated as an atomic batch and rolled back if any block cannot be created.
+            await CreateSelectedTasksAsync();
+            var applied = PendingGuardianAction is null;
+            DecisionSimulationStatus = applied
+                ? $"Calendar synced · {scenario.Blocks.Count} focus block(s) applied. The batch can be undone from Calendar."
+                : GuardianResponse;
+            DecisionSimulationCalendarSyncStatus = applied
+                ? $"SYNCED TO MICROSOFT 365 · {DateTime.Now:HH:mm:ss}"
+                : "CALENDAR SYNC NEEDS ATTENTION";
+            return applied;
+        }
+        finally
+        {
+            DecisionSimulationBusy = false;
+        }
     }
 
-    private static string ScenarioCandidateKey(MissionCandidate candidate) =>
-        candidate.TaskId is > 0 ? $"task:{candidate.TaskId}" : $"{candidate.SourceType}:{candidate.SourceRecordId}";
-
-    private static long ScenarioTaskId(MissionCandidate candidate)
+    private static GuardianScenarioCommitment ToScenarioCommitment(
+        Nekomata.Integrations.MicrosoftGraph.Models.CalendarEvent item) => new()
     {
-        if (candidate.TaskId is > 0) return candidate.TaskId.Value;
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(ScenarioCandidateKey(candidate)));
-        var value = BitConverter.ToInt64(bytes, 0) & long.MaxValue;
-        return value == 0 ? -1 : -value;
-    }
+        Id = item.Id,
+        Title = item.Subject,
+        Start = item.Start,
+        End = item.End,
+        IsAllDay = item.IsAllDay,
+        IsManaged = item.IsNekomataManaged
+    };
 }

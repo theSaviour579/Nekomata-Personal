@@ -20,5 +20,9 @@ public sealed class PersonalIdentityTests
     private sealed class TestIdentity(string displayName) : IUserIdentity
     {
         public string DisplayName { get; } = displayName;
+        public string FirstName => DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+        public string Description => DisplayName;
+        public bool Is(string? nameOrAddress) => !string.IsNullOrWhiteSpace(nameOrAddress) &&
+            nameOrAddress.Equals(DisplayName, StringComparison.OrdinalIgnoreCase);
     }
 }

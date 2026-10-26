@@ -9,6 +9,7 @@
 **/.vs/
 *.user
 *.suo
+*_wpftmp.csproj
 
 # Local configuration and secrets
 appsettings.Local.json
@@ -26,3 +27,9 @@ appsettings.Local.json
 *.sqlite*
 *.nkb
 *.dump
+
+# Release packaging / publish output / scratch (not source)
+artifacts/
+_claude_scratch/
+**/publish-*/
+*.zip.sha256

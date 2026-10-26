@@ -8,9 +8,10 @@ public static class NextActionPolicy
     public static List<MissionCandidate> Select(IEnumerable<MissionCandidate> candidates, double freeMinutes, string ownName, ISet<string> excluded) => candidates
         .Where(x => freeMinutes >= 10 && x.IsActionable && !x.IsOnHold && !x.IsAwaitingExternalResponse &&
             !x.SourceType.Equals("Calendar", StringComparison.OrdinalIgnoreCase) &&
-            x.EstimatedMinutes > 0 && x.EstimatedMinutes <= freeMinutes && !excluded.Contains(Key(x)))
+            (x.EstimatedMinutes > 0 || x.PredictedActiveMinutes > 0) &&
+            FreeWindowMissionPolicy.EffectiveMinutes(x) <= freeMinutes && !excluded.Contains(Key(x)))
         .Where(x => string.IsNullOrWhiteSpace(x.CurrentOwner) || x.CurrentOwner.Equals(ownName, StringComparison.OrdinalIgnoreCase))
         .Where(x => string.IsNullOrWhiteSpace(x.SuggestedOwner) || x.SuggestedOwner.Equals(ownName, StringComparison.OrdinalIgnoreCase))
-        .OrderByDescending(x => x.RequiresImmediateAttention || x.IsP1).ThenByDescending(x => x.Score)
+        .OrderByDescending(x => x.RequiresImmediateAttention || x.IsUrgent).ThenByDescending(x => x.Score)
         .DistinctBy(Key).ToList();
 }

@@ -14,7 +14,7 @@ public sealed class MicrosoftTaskImportTests
             new() { SourceType = "Microsoft Planner", Title = "Due today", DueAt = DateTime.Today },
             new() { SourceType = "Microsoft Planner", Title = "Overdue", DueAt = DateTime.Today.AddDays(-2) },
             new() { SourceType = "Microsoft To Do", Title = "To Do", DueAt = DateTime.Today },
-            new() { SourceType = "Halo", Title = "Ticket", DueAt = DateTime.Today }
+            new() { SourceType = "Planner", Title = "Ticket", DueAt = DateTime.Today }
         ]);
 
         var tasks = Nekomata.Core.Workspace.WorkspaceTaskSummary.GetTasks(workspace).ToList();

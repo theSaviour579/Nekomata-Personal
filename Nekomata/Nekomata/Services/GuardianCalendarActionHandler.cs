@@ -26,6 +26,20 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
                 change.EntityType.Equals("Calendar", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
+        var atomicPlan = response.ActionType.Equals("decision_simulation_plan", StringComparison.OrdinalIgnoreCase);
+        if (atomicPlan)
+        {
+            try
+            {
+                await ValidateAtomicPlanAsync(changes, cancellationToken: default);
+            }
+            catch (Exception ex)
+            {
+                result.Messages.Add($"⚠ The simulated plan was not applied because the calendar changed or contains a conflict: {ex.Message} Re-run the comparison to use the latest calendar.");
+                return;
+            }
+        }
+
         if (changes.Count > 0) _undo.BeginBatch();
 
         foreach (var change in changes)
@@ -52,6 +66,15 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
             catch (Exception ex)
             {
                 result.Messages.Add($"⚠ Skipped {Describe(change)}: {ex.Message}");
+                if (atomicPlan)
+                {
+                    var fullyRolledBack = await RollBackAtomicPlanAsync(result);
+                    _undo.CancelBatch();
+                    result.Messages.Add(fullyRolledBack
+                        ? "↩ The blocks created by this attempt were removed; no partial simulated plan was left in the calendar."
+                        : "⚠ Some blocks could not be removed automatically. Review the calendar entries named in the rollback warning.");
+                    return;
+                }
             }
         }
 
@@ -59,6 +82,59 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
 
         if (changes.Count > 0 && result.Actions.All(action => action.Type != "Calendar"))
             result.Success = false;
+    }
+
+    private async Task ValidateAtomicPlanAsync(IReadOnlyList<GuardianChange> changes, CancellationToken cancellationToken)
+    {
+        if (changes.Count == 0) throw new InvalidOperationException("The plan contains no selected calendar blocks.");
+        var proposed = changes.Select(change =>
+        {
+            var operation = new string(change.Property.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            if (operation is not ("createfocusblock" or "createcalendarblock" or "schedulefocusblock"))
+                throw new InvalidOperationException($"Unsupported simulated-plan operation '{change.Property}'.");
+            var parts = Parse(change.NewValue, 3);
+            var start = ParseDate(parts[0]);
+            var end = ParseDate(parts[1]);
+            ValidateRange(start, end);
+            return (Change: change, Start: start, End: end, Title: parts[2]);
+        }).OrderBy(x => x.Start).ToList();
+
+        for (var index = 1; index < proposed.Count; index++)
+        {
+            if (proposed[index].Start < proposed[index - 1].End)
+                throw new InvalidOperationException($"'{proposed[index - 1].Title}' overlaps '{proposed[index].Title}'.");
+        }
+
+        var rangeStart = proposed.Min(x => x.Start);
+        var rangeEnd = proposed.Max(x => x.End);
+        var offset = TimeZoneInfo.Local.GetUtcOffset(rangeStart.Date);
+        var events = await _calendar.GetEventsAsync(
+            new DateTimeOffset(rangeStart.Date, offset),
+            new DateTimeOffset(rangeEnd.Date.AddDays(1), TimeZoneInfo.Local.GetUtcOffset(rangeEnd.Date)),
+            cancellationToken);
+        foreach (var block in proposed)
+        {
+            var conflict = events.FirstOrDefault(item => item.Start < block.End && item.End > block.Start);
+            if (conflict is not null)
+                throw new InvalidOperationException($"'{block.Title}' overlaps '{conflict.Subject}' at {block.Start:ddd HH:mm}.");
+        }
+    }
+
+    private async Task<bool> RollBackAtomicPlanAsync(GuardianApplyResult result)
+    {
+        var created = result.Actions
+            .Where(action => action.Type == "Calendar" && action.Operation == "Create" && !string.IsNullOrWhiteSpace(action.ExternalId))
+            .ToList();
+        var rollbackFailures = new List<string>();
+        foreach (var action in created.AsEnumerable().Reverse())
+        {
+            try { await _calendar.DeleteFocusEventAsync(action.ExternalId!); }
+            catch (Exception ex) { rollbackFailures.Add($"{action.Title}: {ex.Message}"); }
+        }
+        result.Actions.RemoveAll(action => created.Contains(action));
+        if (rollbackFailures.Count > 0)
+            result.Messages.Add("⚠ Rollback needs attention: " + string.Join("; ", rollbackFailures));
+        return rollbackFailures.Count == 0;
     }
 
     private async Task CreateAsync(GuardianChange change, GuardianApplyResult result)
@@ -70,12 +146,13 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
         ValidateRange(requestedStart, requestedEnd);
 
         var fitted = await FitIntoFreeWindowAsync(requestedStart, requestedEnd);
-        var haloTicket = System.Text.RegularExpressions.Regex.Match(title, @"#(?<id>\d+)");
-        var marker = haloTicket.Success
-            ? $"NEKOMATA:HALO:{haloTicket.Groups["id"].Value}"
-            : change.EntityId > 0
-                ? $"NEKOMATA:TASK:{change.EntityId}"
-                : $"NEKOMATA:GUARDIAN:{Guid.NewGuid():N}";
+        // A negative EntityId points at a task created earlier in this same batch: -1 is the first new task.
+        var taskId = change.EntityId > 0 ? change.EntityId
+            : change.EntityId < 0 && -change.EntityId <= result.CreatedTaskIds.Count ? result.CreatedTaskIds[(int)(-change.EntityId) - 1]
+            : 0;
+        var marker = taskId > 0
+            ? $"NEKOMATA:TASK:{taskId}"
+            : $"NEKOMATA:GUARDIAN:{Guid.NewGuid():N}";
         var created = await _calendar.CreateFocusEventAsync(title, fitted.Start, fitted.End, marker);
         _undo.RecordCreated(created.Id, title, fitted.Start);
 
@@ -84,7 +161,7 @@ public sealed class GuardianCalendarActionHandler : IGuardianCalendarActionHandl
             Type = "Calendar",
             Title = $"Scheduled {title}",
             Description = $"{fitted.Start:ddd dd MMM HH:mm}–{fitted.End:HH:mm}",
-            EntityId = change.EntityId > 0 ? change.EntityId : null,
+            EntityId = taskId > 0 ? taskId : null,
             ExternalId = created.Id,
             Operation = "Create",
             AfterState = JsonSerializer.Serialize(CalendarAuditSnapshot.From(created)),

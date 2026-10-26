@@ -60,31 +60,96 @@
                 CornerRadius="14"
                 Padding="16">
 
-            <TextBlock
-                Text="Actions will appear here."
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Foreground="{DynamicResource NekoMutedTextBrush}"/>
+            <ListBox ItemsSource="{Binding ActionPlan.Actions}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="0"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource NekoSurfaceAltBrush}"
+                                BorderBrush="{DynamicResource NekoBorderSoftBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="14"
+                                Margin="0,0,0,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="150"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding Selected}"
+                                          VerticalAlignment="Top"
+                                          Margin="0,3,12,0"/>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding Title}"
+                                               Foreground="{DynamicResource NekoTextBrush}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Description}"
+                                               Foreground="{DynamicResource NekoMutedTextBrush}"
+                                               Margin="0,5,0,0"
+                                               TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Reason}"
+                                               Foreground="{DynamicResource NekoMutedTextBrush}"
+                                               FontStyle="Italic"
+                                               Margin="0,5,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="15,0,0,0">
+                                    <TextBlock Text="{Binding ActionType}"
+                                               Foreground="{DynamicResource NekoAccentBrush}"
+                                               FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Priority, StringFormat=Priority: {0}}"
+                                               Foreground="{DynamicResource NekoWarningBrush}"
+                                               Margin="0,5,0,0"/>
+                                    <TextBlock Text="{Binding EstimatedMinutes, StringFormat=Estimate: {0} min, TargetNullValue=Estimate: not set}"
+                                               Foreground="{DynamicResource NekoMutedTextBrush}"
+                                               Margin="0,3,0,0"/>
+                                    <TextBlock Text="{Binding DueAt, StringFormat=Due: {0:dd MMM yyyy}, TargetNullValue=Due: not set}"
+                                               Foreground="{DynamicResource NekoMutedTextBrush}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
 
         </Border>
 
         <!-- Buttons -->
 
-        <StackPanel Grid.Row="3"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,20,0,0">
+        <Grid Grid.Row="3" Margin="0,20,0,0">
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{DynamicResource NekoMutedTextBrush}"
+                       VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
 
             <Button
                 Width="150"
                 Margin="0,0,10,0"
-                Content="Apply"/>
+                Content="Apply selected"
+                Command="{Binding ApplyCommand}"
+                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
 
             <Button
                 Width="120"
-                Content="Cancel"/>
+                Content="Cancel"
+                Command="{Binding CancelCommand}"
+                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
 
-        </StackPanel>
+            </StackPanel>
+        </Grid>
 
     </Grid>
 

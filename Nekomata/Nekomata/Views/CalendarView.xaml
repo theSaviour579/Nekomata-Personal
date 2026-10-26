@@ -1,8 +1,10 @@
 <UserControl x:Class="Nekomata.UI.Views.CalendarView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nekomata.UI.Controls">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -23,7 +25,12 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Padding="18" CornerRadius="18" Background="{DynamicResource NekoCardGradientBrush}"
+        <StackPanel Grid.Row="1">
+            <controls:GuardianContextBriefingCard Briefing="{Binding CalendarContextBriefing}" ActionCommand="{Binding OpenCalendarContextActionCommand}"/>
+            <controls:GuardianWorkloadForecastCard Forecast="{Binding WorkloadForecast}" RecoveryCommand="{Binding PreviewForecastRecoveryCommand}" SimulationCommand="{Binding ShowDecisionSimulatorCommand}"/>
+        </StackPanel>
+
+        <Border Grid.Row="2" Padding="18" CornerRadius="18" Background="{DynamicResource NekoCardGradientBrush}"
                 BorderBrush="{DynamicResource NekoBorderSoftBrush}" BorderThickness="1" Margin="0,0,0,14">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -40,7 +47,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Content="UNDO LAST PLAN" Command="{Binding UndoLastCalendarPlanCommand}" Margin="0,0,8,0">
-                        <Button.Style><Style TargetType="Button"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanUndoCalendarPlan}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                        <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanUndoCalendarPlan}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
                     </Button>
                     <Button Content="PLAN MY DAY" Command="{Binding ScheduleDayCommand}" Margin="0,0,8,0"/>
                     <Button Content="CONNECT / REFRESH" Command="{Binding RefreshCalendarCommand}"/>
@@ -48,7 +55,7 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Padding="14" CornerRadius="14" Background="{DynamicResource NekoSurfaceAltBrush}"
+        <Border Grid.Row="3" Padding="14" CornerRadius="14" Background="{DynamicResource NekoSurfaceAltBrush}"
                 BorderBrush="{DynamicResource NekoBorderSoftBrush}" BorderThickness="1" Margin="0,0,0,14">
             <StackPanel>
                 <TextBlock Text="{Binding CalendarStatus}" Style="{DynamicResource NekoMutedText}" TextWrapping="Wrap"/>
@@ -56,7 +63,7 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="4">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
                 <StackPanel.Style>
                     <Style TargetType="StackPanel">
@@ -93,12 +100,125 @@
                                     <TextBlock Text="{Binding Location}" Style="{DynamicResource NekoMutedText}" Margin="0,5,0,0"/>
                                     <TextBlock Text="{Binding Organiser}" Style="{DynamicResource NekoTinyText}" Margin="0,3,0,0"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="3" Text="MICROSOFT 365" Foreground="{DynamicResource NekoSpiritPurpleBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                <StackPanel Grid.Column="3" VerticalAlignment="Top">
+                                    <TextBlock Text="MICROSOFT 365" Foreground="{DynamicResource NekoSpiritPurpleBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                    <Button Content="THREAD CONTEXT" Margin="0,10,0,0" Padding="9,4"
+                                            Command="{Binding DataContext.OpenCalendarThreadContextCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <Border Panel.ZIndex="20" Width="390" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                    Padding="20" CornerRadius="18" Background="{DynamicResource NekoCardGradientBrush}"
+                    BorderBrush="{DynamicResource NekoSpiritPurpleBrush}" BorderThickness="1"
+                    TextElement.Foreground="{DynamicResource NekoTextBrush}">
+                <Border.Style>
+                    <Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding ThreadContextDrawerVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="THREAD CONTEXT" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/>
+                            <Button Grid.Column="1" Content="✕" Command="{Binding CloseThreadContextDrawerCommand}" Padding="7,2" MinWidth="36"/>
+                        </Grid>
+                        <TextBlock Text="{Binding ThreadContextDrawer.Title}" Style="{DynamicResource NekoTitleText}" FontSize="24" Margin="0,14,0,0" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.PrimaryProject, StringFormat=Project: {0}}" Style="{DynamicResource NekoMutedText}" Margin="0,6,0,0"/>
+                        <Separator Margin="0,14"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.NextCommitmentLabel, StringFormat=Next: {0}}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.HighestImpactDependency, StringFormat=Blocking: {0}, TargetNullValue=Blocking: none}" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.ActiveTasks, StringFormat=Active tasks: {0}}" Margin="0,7,0,0"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.OpenLoops, StringFormat=Open loops: {0}}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.RemainingEffortLabel, StringFormat=Remaining effort: {0}}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.PlannedMeetingEffortLabel, StringFormat=Planned meeting effort: {0}}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding ThreadContextDrawer.RecordedMeetingEffortLabel, StringFormat=Recorded meeting effort: {0}}" Margin="0,4,0,0"/>
+                        <TextBlock Text="Unbound required work detected" Foreground="{DynamicResource NekoWarningBrush}" FontWeight="SemiBold" Margin="0,8,0,0">
+                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding ThreadContextDrawer.Impact.HasUnboundRequiredWork}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                        <Expander Header="LINK THIS MEETING TO AN EXISTING TASK" Margin="0,8,0,0" Foreground="{DynamicResource NekoAccentBrush}">
+                            <Expander.Style><Style TargetType="Expander"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasThreadContextTaskOptions}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Expander.Style>
+                            <ItemsControl ItemsSource="{Binding ThreadContextTaskOptions}" Margin="0,6,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Margin="0,3,0,0" Padding="10,8" HorizontalContentAlignment="Stretch"
+                                                Command="{Binding DataContext.ConfirmCalendarTaskContextCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="11" Margin="0,3,0,0">
+                                                    <Run Text="Task #"/><Run Text="{Binding Id, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Source, Mode=OneWay}"/>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding Description}" Foreground="{DynamicResource NekoMutedTextBrush}"
+                                                           FontSize="11" TextWrapping="Wrap" MaxHeight="42" Margin="0,3,0,0"/>
+                                                <TextBlock Text="{Binding DueAt, StringFormat=Due: {0:dd MMM yyyy HH:mm}, TargetNullValue=Due: not set}"
+                                                           Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="11" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Expander>
+                        <TextBlock Text="RECENT CHANGES" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" Margin="0,16,0,6"/>
+                        <ItemsControl ItemsSource="{Binding ThreadContextDrawer.RecentChanges}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Margin="0,2"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="TEAMS CONTEXT" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" Margin="0,16,0,6"/>
+                        <ItemsControl ItemsSource="{Binding ThreadContextDrawer.TeamsConversations}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource NekoBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,3">
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="KEY EVIDENCE" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" Margin="0,16,0,6"/>
+                        <ItemsControl ItemsSource="{Binding ThreadContextDrawer.KeyEvidence}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap" Margin="0,2" Style="{DynamicResource NekoTinyText}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Border Panel.ZIndex="30" Width="430" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                    Padding="20" CornerRadius="18" Background="{DynamicResource NekoCardGradientBrush}"
+                    BorderBrush="{DynamicResource NekoWarningBrush}" BorderThickness="1">
+                <Border.Style>
+                    <Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding ThreadContextResolverVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <DockPanel LastChildFill="True">
+                    <Button Content="✕" DockPanel.Dock="Top" HorizontalAlignment="Right"
+                            Command="{Binding CloseThreadContextResolverCommand}" Padding="7,2"/>
+                    <StackPanel>
+                        <TextBlock Text="SELECT WORK THREAD" Foreground="{DynamicResource NekoWarningBrush}" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding ThreadContextResolverTitle}" Style="{DynamicResource NekoTitleText}"
+                                   FontSize="22" Margin="0,12,0,0" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ThreadContextResolverDetail}" Style="{DynamicResource NekoMutedText}"
+                                   Margin="0,7,0,14" TextWrapping="Wrap"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ThreadContextResolverOptions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Margin="0,0,0,8" Padding="12" HorizontalContentAlignment="Stretch"
+                                                Command="{Binding DataContext.ConfirmCalendarThreadContextCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding PrimaryProject, StringFormat=Project: {0}}" Style="{DynamicResource NekoTinyText}" Margin="0,4,0,0"/>
+                                                <TextBlock Text="{Binding ActiveTasks, StringFormat={}{0} active task(s)}" Style="{DynamicResource NekoTinyText}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

@@ -10,6 +10,7 @@ using Nekomata.Core.Guardian.Recommendations;
 using Nekomata.Core.Guardian.Simulation;
 using Nekomata.Core.Meetings;
 using Nekomata.Core.Missions;
+using Nekomata.Core.Guardian.Builders;
 using Nekomata.Core.Workspace;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Guardian;
@@ -34,6 +35,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IServiceProvider _services;
     private readonly GuardianSpeechService _guardianSpeech;
     private readonly PersonalProfileService _personalProfile;
+    private Mission? _manualObjectiveOverride;
 
     private readonly IGuardianRecommendationService
         _recommendationService;
@@ -176,16 +178,41 @@ public partial class MainViewModel : ObservableObject
         _clockTimer.Tick += (_, _) =>
         {
             CurrentDateTime = DateTime.Now;
+            RefreshElapsedLabourCost(CurrentDateTime);
+            EvaluateEndOfDayReview();
+            EvaluateMorningBriefingBoundary();
+            _ = EvaluateScheduledAwayStatusAsync();
         };
 
         _clockTimer.Start();
 
+        InitialisePrivacy(); // before anything can call the AI
         InitialiseIntegrationRefresh();
         InitialisePlanHealthMonitoring();
         InitialiseAttentionCentre();
         InitialiseDiagnosticsMonitoring();
         InitialiseReleaseSettings();
         InitialiseMicrosoftAccount();
+        InitialiseWelcomeBack();
+        InitialiseMeetingCopilot();
+        InitialiseHud();
+        ApplyGuardianPreferences();
+        InitialiseQuietMode();
+        InitialiseTeamsPresence();
+        InitialiseCallGuard();
+        InitialiseWatches();
+        InitialiseTeamsWatch();
+        InitialiseScreenContext();
+        InitialiseTimeTracking();
+        InitialiseAutonomy();
+        InitialiseLearning();
+        InitialiseThoughts();
+        InitialiseHome();
+        InitialiseAutopilot();
+        InitialisePromiseTasks();
+        InitialisePreparedReplies();
+        InitialiseDelegations();
+        InitialiseMeetingFollowThrough();
 
         _ = LoadAsync();
         _missionSimulationEngine = missionSimulationEngine;
@@ -209,21 +236,46 @@ public partial class MainViewModel : ObservableObject
     private void OnWorkspaceCoordinatorChanged(
         NekomataWorkspace updatedWorkspace)
     {
+        var promotedObjective = !MissionActive
+            ? _manualObjectiveOverride ?? (CalendarObjectiveAvailable ? Workspace.CurrentMission : null)
+            : null;
+        if (promotedObjective is not null &&
+            !IsPromotedObjectiveStillAvailable(promotedObjective, updatedWorkspace))
+        {
+            if (ReferenceEquals(promotedObjective, _manualObjectiveOverride))
+                _manualObjectiveOverride = null;
+            promotedObjective = null;
+            CalendarObjectiveAvailable = false;
+            CanBeginBriefingObjective = false;
+        }
         updatedWorkspace.CurrentMission =
             ActiveMissionFocusPolicy.Resolve(
                 MissionActive,
                 _activeMission,
                 updatedWorkspace.CurrentMission);
+        if (promotedObjective is not null)
+            updatedWorkspace.CurrentMission = promotedObjective;
+
+        ApplyRolePlanningBias(updatedWorkspace, replaceCurrentMission: !MissionActive && promotedObjective is null);
 
         Workspace = updatedWorkspace;
 
-        // Show the ranked default immediately. The calendar refresh can then
-        // promote it into the current free window or explain when it can run.
-        if (!MissionActive)
+        // Preserve the currently promoted objective while the asynchronous
+        // calendar refresh decides whether a scheduled block should replace it.
+        // Clearing here caused valid free-window objectives to flash briefly
+        // and then disappear whenever an integration rebuilt the workspace.
+        if (promotedObjective is not null)
+        {
+            SyncBriefingObjective(promotedObjective);
+            CalendarObjectiveAvailable = true;
+        }
+        else if (!MissionActive)
+        {
+            // Show the ranked default immediately (including imported Microsoft tasks). The calendar
+            // refresh can then promote it into the current free window or explain when it can run.
             ShowTopRankedObjective("Guardian is checking the live calendar before suggesting when to start it.");
+        }
 
-        HandleUrgentHaloAlerts(updatedWorkspace);
-        HandleKnowBe4Alerts(updatedWorkspace);
         ApplyGuardianCalendarGuidance();
         RefreshTimeAwareCapacity();
 
@@ -233,6 +285,28 @@ public partial class MainViewModel : ObservableObject
 
         OnPropertyChanged(nameof(GuardianSuggestedTasks));
         _ = RefreshCalendarAwareObjectiveAsync();
+    }
+
+    private static bool IsPromotedObjectiveStillAvailable(
+        Mission objective,
+        NekomataWorkspace workspace)
+    {
+        if (objective.SourceType.Equals("Calendar", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (objective.TaskId is long taskId)
+            return workspace.Tasks.Any(task => task.Id == taskId && !task.Completed && !task.IsCompleted);
+
+        if (!string.IsNullOrWhiteSpace(objective.SourceRecordId))
+        {
+            return workspace.IntegrationMissionCandidates.Any(candidate =>
+                candidate.SourceType.Equals(objective.SourceType, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(candidate.SourceRecordId, objective.SourceRecordId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return workspace.RankedMissionCandidates.Any(candidate =>
+            candidate.SourceType.Equals(objective.SourceType, StringComparison.OrdinalIgnoreCase) &&
+            candidate.Title.Equals(objective.Title, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task LoadAsync()
@@ -253,6 +327,8 @@ public partial class MainViewModel : ObservableObject
 
             TopRecommendation =
                 _recommendationService.GetTopRecommendation(Workspace);
+            if (showSplash)
+                _ = RecordDayStartedAsync();
 
             if (showSplash)
                 LoadingStatus = "Loading mission history and today’s progress…";
@@ -270,7 +346,18 @@ public partial class MainViewModel : ObservableObject
             if (showSplash)
                 _ = CheckForUpdatesAsync();
             if (showSplash)
-                _ = SpeakMorningBriefingAsync();
+                _ = RefreshInterruptionsAsync();
+            if (showSplash)
+            {
+                // Record that today's briefing has played, so the day-boundary check doesn't
+                // repeat it once loading finishes and Welcome back knows the day has begun.
+                MarkMorningBriefingAnnounced();
+                _ = SpeakMorningBriefingWithWeeklyAsync();
+            }
+        }
+        catch (Exception ex) when (!WorkspaceReady)
+        {
+            Think($"Waiting for the local workspace: {ex.GetBaseException().Message}");
         }
         catch (Exception ex)
         {
@@ -286,12 +373,13 @@ public partial class MainViewModel : ObservableObject
             {
                 await Task.Delay(350);
                 _initialLoadCompleted = true;
+                _ = BootSystemsCheckAsync();
                 IsInitialLoading = false;
             }
         }
     }
     [RelayCommand]
-    private async Task RefreshHaloTicketsAsync()
+    private async Task RefreshWorkspaceAsync()
     {
         await LoadAsync();
         _ = RefreshDiagnosticsAsync();
@@ -311,6 +399,24 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenMissionAnalysis()
     {
+        // Calendar-aware promotion and several manual start paths create a fresh
+        // Mission after the workspace engine has built its decision. Rebuild the
+        // comparison here so analysis always reflects the live ranked candidates.
+        var analysisMission = Workspace.CurrentMission;
+        analysisMission.Decision = _services
+            .GetRequiredService<GuardianMissionDecisionBuilder>()
+            .Build(
+                analysisMission,
+                Workspace.RankedMissionCandidates,
+                Workspace.Guardian.Confidence);
+
+        MissionAnalysisMission = analysisMission;
+        SelectedComparisonMission = analysisMission.Decision
+            .RejectedMissions
+            .OrderBy(item => item.Rank <= 0 ? int.MaxValue : item.Rank)
+            .ThenByDescending(item => item.Score)
+            .FirstOrDefault();
+
         var window =
             new MissionAnalysisWindow(this);
 
@@ -320,8 +426,20 @@ public partial class MainViewModel : ObservableObject
                 Application.Current.MainWindow;
         }
 
-        window.ShowDialog();
+        try
+        {
+            window.ShowDialog();
+        }
+        finally
+        {
+            MissionAnalysisMission = null;
+            SelectedComparisonMission = null;
+            SelectedSimulation = null;
+        }
     }
+
+    [ObservableProperty]
+    private Mission? missionAnalysisMission;
 
     [ObservableProperty]
     private MissionSimulation? selectedSimulation;
@@ -334,12 +452,21 @@ public partial class MainViewModel : ObservableObject
 
         SelectedComparisonMission =
             rejectedMission;
+    }
 
-        SelectedSimulation =
-            _missionSimulationEngine.Simulate(
-                Workspace.CurrentMission,
-                rejectedMission,
-                Workspace);
+    partial void OnSelectedComparisonMissionChanged(GuardianRejectedMission? value)
+    {
+        if (value is not null && MissionAnalysisMission is not null)
+            SelectedSimulation = _missionSimulationEngine.Simulate(MissionAnalysisMission, value, Workspace);
+        else
+            SelectedSimulation = null;
+    }
+
+    [RelayCommand]
+    private async Task SwitchSelectedMissionAsync()
+    {
+        if (SelectedComparisonMission is not null)
+            await SwitchMissionAsync(SelectedComparisonMission);
     }
     public IReadOnlyList<GuardianInsight> GuardianSuggestedTasks =>
     Workspace.Insights
@@ -349,7 +476,7 @@ public partial class MainViewModel : ObservableObject
         .ToList();
 
     [RelayCommand]
-    private void SwitchMission(
+    private async Task SwitchMissionAsync(
        GuardianRejectedMission rejectedMission)
     {
         ArgumentNullException.ThrowIfNull(rejectedMission);
@@ -364,6 +491,15 @@ public partial class MainViewModel : ObservableObject
 
         if (confirmation != MessageBoxResult.Yes)
             return;
+
+        // Preserve elapsed work and stop the old timer before changing the live
+        // objective. Otherwise completion could be attributed to the replacement.
+        if (MissionActive)
+        {
+            await HoldMissionForLaterAsync();
+            if (MissionActive)
+                return;
+        }
 
         var overrideResult =
             _missionOverrideService.Override(
@@ -380,6 +516,19 @@ public partial class MainViewModel : ObservableObject
 
             return;
         }
+
+        _manualObjectiveOverride = overrideResult.CurrentMission;
+        CalendarObjectiveAvailable = true;
+        SyncBriefingObjective(overrideResult.CurrentMission!);
+        MissionAnalysisMission = overrideResult.CurrentMission;
+        SelectedComparisonMission = overrideResult.CurrentMission?.Decision.RejectedMissions
+            .OrderBy(item => item.Rank <= 0 ? int.MaxValue : item.Rank)
+            .ThenByDescending(item => item.Score)
+            .FirstOrDefault();
+
+        await RecordRecommendationDecisionAsync(
+            $"Continue {overrideResult.PreviousMission?.Title ?? "Guardian's selected mission"}",
+            "Rejected", $"Started {rejectedMission.Title}");
 
         OnPropertyChanged(nameof(Workspace));
         OnPropertyChanged(nameof(AlternativeMissions));
@@ -477,7 +626,13 @@ public partial class MainViewModel : ObservableObject
         var viewModel =
             new GuardianTaskPlannerViewModel(
                 meetingAnalysisService,
-                Workspace);
+                Workspace,
+                _services.GetRequiredService<IGuardianApplyService>(),
+                async () =>
+                {
+                    Workspace = await _workspaceCoordinator.RefreshAsync();
+                    OnPropertyChanged(nameof(GuardianSuggestedTasks));
+                });
 
         var window =
             new GuardianTaskPlannerWindow
