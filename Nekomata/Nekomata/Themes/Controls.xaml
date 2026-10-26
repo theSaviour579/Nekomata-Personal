@@ -7,27 +7,6 @@
         <Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}" />
     </Style>
 
-    <Style TargetType="CheckBox">
-        <Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}" />
-    </Style>
-
-    <Style TargetType="Expander">
-        <Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}" />
-    </Style>
-
-    <Style TargetType="PasswordBox">
-        <Setter Property="Background" Value="{DynamicResource NekoSurfaceAltBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource NekoBorderSoftBrush}" />
-        <Setter Property="CaretBrush" Value="{DynamicResource NekoAccentBrush}" />
-    </Style>
-
-    <Style TargetType="DatePicker">
-        <Setter Property="Background" Value="{DynamicResource NekoSurfaceAltBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource NekoTextBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource NekoBorderSoftBrush}" />
-    </Style>
-
     <!-- Guardian HUD buttons: a hairline purple outline on the dark ground, rounded, lighting up on hover. -->
     <Style TargetType="Button">
         <Setter Property="Background" Value="Transparent" />

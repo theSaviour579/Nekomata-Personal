@@ -18,7 +18,6 @@
             <converters:AttentionVisibilityConverter x:Key="AttentionVisibilityConverter"/>
             <converters:ValueLeverageVisibilityConverter x:Key="ValueLeverageVisibilityConverter"/>
             <converters:DiagnosticsVisibilityConverter x:Key="DiagnosticsVisibilityConverter"/>
-            <converters:ValueLeverageVisibilityConverter x:Key="ValueLeverageVisibilityConverter"/>
             <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolVis"/>
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
