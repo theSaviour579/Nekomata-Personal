@@ -16,6 +16,7 @@ using Nekomata.Models.Workspace;
 using Nekomata.Core.Guardian.OpenLoops;
 using Nekomata.Core.Guardian.Relationships;
 using Nekomata.Core.Guardian.Context;
+using Nekomata.Core.Guardian;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -559,7 +560,6 @@ item.DraftStatus = guardianAuthored
                 From: {item.SenderLine}
                 Subject: {item.Message.Subject}
                 Received: {item.Message.ReceivedAt.LocalDateTime:f}
-                Message content: {item.DisplayContent}
                 Triage context: {item.Reason}
                 Conversation evidence:
                 {evidence.ConversationEvidence}
@@ -567,7 +567,7 @@ item.DraftStatus = guardianAuthored
                 {evidence.CalendarEvidence}
                 Calendar availability: {(string.IsNullOrWhiteSpace(item.MeetingSuggestions) ? "No availability guidance has been requested." : item.MeetingSuggestions)}
                 """;
-            var generatedDraft = (await _aiProvider.AskAsync(prompt)).Trim();
+            var generatedDraft = GeneratedTextDeduplicator.RemoveRepeatedBlocks((await _aiProvider.AskAsync(prompt)).Trim());
             item.DraftText = NormaliseVerifiedAvailabilityFormatting(generatedDraft, item.MeetingSuggestions);
             item.DraftStatus = guardianAuthored
                 ? "Guardian-authored draft ready with the formatted assistant signature; review before saving."

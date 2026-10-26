@@ -58,12 +58,17 @@ jobs:
       - name: Test
         run: dotnet test Nekomata/Nekomata.Tests/Nekomata.Tests.csproj --configuration Release --no-restore --maxcpucount:1 /p:UseSharedCompilation=false
 
+      - name: Prepare offline Kokoro voice model
+        shell: pwsh
+        run: ./.github/scripts/Get-KokoroModel.ps1 -Destination artifacts/kokoro.onnx
+
       - name: Publish self-contained application
         run: >-
           dotnet publish Nekomata/Nekomata/Nekomata.UI.csproj
           --configuration Release --runtime win-x64 --self-contained true --no-restore
           --output artifacts/publish --maxcpucount:1
           /p:Version=${{ steps.version.outputs.value }} /p:DebugType=None /p:DebugSymbols=false
+          /p:KokoroModelPath=${{ github.workspace }}\artifacts\kokoro.onnx
 
       - name: Create portable archive
         shell: pwsh

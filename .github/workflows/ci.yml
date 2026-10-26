@@ -44,8 +44,12 @@ jobs:
       - name: Restore Windows runtime assets
         run: dotnet restore Nekomata/Nekomata/Nekomata.UI.csproj --runtime win-x64 --maxcpucount:1
 
+      - name: Prepare offline Kokoro voice model
+        shell: pwsh
+        run: ./.github/scripts/Get-KokoroModel.ps1 -Destination artifacts/kokoro.onnx
+
       - name: Validate self-contained publish
-        run: dotnet publish Nekomata/Nekomata/Nekomata.UI.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore --output artifacts/publish --maxcpucount:1 /p:Version=0.0.0 /p:DebugType=None /p:DebugSymbols=false
+        run: dotnet publish Nekomata/Nekomata/Nekomata.UI.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore --output artifacts/publish --maxcpucount:1 /p:Version=0.0.0 /p:DebugType=None /p:DebugSymbols=false /p:KokoroModelPath=${{ github.workspace }}\artifacts\kokoro.onnx
 
       - name: Validate Windows installer
         shell: pwsh

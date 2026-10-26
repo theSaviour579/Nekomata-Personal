@@ -79,10 +79,12 @@ public partial class MainViewModel
             return;
         }
 
-        foreach (var candidate in Workspace.RankedMissionCandidates
+        foreach (var candidate in PaletteMissionCandidates()
                      .Select(item => (Item: item, Score: FuzzyScore(item.Title, query)))
                      .Where(item => item.Score > 0).OrderByDescending(item => item.Score).Take(4).Select(item => item.Item))
-            AddSuggestion($"start {candidate.Title}", $"Start objective · {candidate.EstimatedMinutes}m · score {candidate.Score}");
+            AddSuggestion($"start {candidate.Title}", candidate.Rank > 0
+                ? $"Start objective · {candidate.EstimatedMinutes}m · score {candidate.Score}"
+                : $"Start connected work · {candidate.EstimatedMinutes}m · {candidate.SourceType}");
         foreach (var project in Workspace.Projects.Select(item => (Item: item, Score: FuzzyScore(item.Name, query)))
                      .Where(item => item.Score > 0).OrderByDescending(item => item.Score).Take(3).Select(item => item.Item))
             AddSuggestion($"show project {project.Name}", $"Project · {project.Status} · {project.ProgressPercent}% complete");
@@ -483,11 +485,32 @@ public partial class MainViewModel
     private async Task StartPaletteMissionAsync(string query)
     {
         var resolution = ResolveEntity(query, GuardianEntityType.Task);
-        var candidate = resolution.Entity?.Value as Nekomata.Models.Missions.MissionCandidate;
-        if (!resolution.IsResolved || candidate is null) { await FallBackToGuardianAsync($"start {query}"); return; }
-        Workspace.CurrentMission = _services.GetRequiredService<IMissionFactory>().Create(candidate);
-        OnPropertyChanged(nameof(Workspace));
-        await BeginMissionAsync();
+        if (!resolution.IsResolved || resolution.Entity is null)
+        {
+            await FallBackToGuardianAsync($"start {query}");
+            return;
+        }
+
+        switch (resolution.Entity.Value)
+        {
+            case Nekomata.Models.Missions.MissionCandidate candidate:
+                if (MissionActive)
+                {
+                    GuardianResponse = $"Finish, hold or discard the active mission before starting '{candidate.Title}'.";
+                    GuardianPanelExpanded = true;
+                    return;
+                }
+                Workspace.CurrentMission = _services.GetRequiredService<IMissionFactory>().Create(candidate);
+                OnPropertyChanged(nameof(Workspace));
+                await BeginMissionAsync();
+                return;
+            case Nekomata.Models.Tasks.NekomataTask task:
+                await StartTaskMissionAsync(task);
+                return;
+            default:
+                await FallBackToGuardianAsync($"start {query}");
+                return;
+        }
     }
 
     private void ShowPaletteProject(string query)
@@ -590,18 +613,23 @@ public partial class MainViewModel
 
     private IEnumerable<GuardianEntity> BuildPaletteEntities()
     {
-        foreach (var candidate in Workspace.RankedMissionCandidates)
+        foreach (var candidate in PaletteMissionCandidates())
         {
             var id = candidate.TaskId?.ToString() ?? candidate.SourceRecordId ?? candidate.Title;
             yield return new(GuardianEntityType.Task, id, candidate.Title, candidate);
         }
-        foreach (var task in Workspace.Tasks.Where(x => Workspace.RankedMissionCandidates.All(c => c.TaskId != x.Id)))
+        foreach (var task in Workspace.Tasks.Where(x => PaletteMissionCandidates().All(c => c.TaskId != x.Id)))
             yield return new(GuardianEntityType.Task, task.Id.ToString(), task.Title, task);
         foreach (var project in Workspace.Projects)
             yield return new(GuardianEntityType.Project, project.Id.ToString(), project.Name, project);
         foreach (var email in EmailItems.DistinctBy(x => x.Message.SenderAddress))
             yield return new(GuardianEntityType.Person, email.Message.SenderAddress, email.Message.SenderName, email);
     }
+
+    private IEnumerable<Nekomata.Models.Missions.MissionCandidate> PaletteMissionCandidates() =>
+        Workspace.RankedMissionCandidates
+            .Concat(Workspace.IntegrationMissionCandidates.Where(candidate => candidate.IsActionable))
+            .DistinctBy(Nekomata.Core.Missions.NextActionPolicy.Key);
 
     private async Task FallBackToGuardianAsync(string input)
     {
