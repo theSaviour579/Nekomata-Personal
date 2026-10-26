@@ -9,10 +9,18 @@ using Nekomata.Models.Workspace;
 using Nekomata.Models.Missions;
 using Nekomata.Models.Planning;
 using Nekomata.UI.Services;
+using Nekomata.Core.Guardian.OpenLoops;
+using Nekomata.Core.Guardian.WorkThreads;
+using Nekomata.Core.Guardian.Anticipation;
+using Nekomata.Core.Guardian.Learning;
+using Nekomata.Core.Guardian.Context;
+using Nekomata.Models.Guardian;
+using Nekomata.Data.Repositories;
 using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Diagnostics;
 using System.Media;
+using System.Text.RegularExpressions;
 using System.Windows.Threading;
 
 namespace Nekomata.UI.ViewModels;
@@ -31,6 +39,16 @@ public partial class MainViewModel
     [ObservableProperty] private string thenTimelineText = "—";
     [ObservableProperty] private string calendarLastSyncedText = "Calendar not synced";
     [ObservableProperty] private string capacityBreakdownText = "Calendar capacity not loaded";
+    [ObservableProperty] private GuardianWorkThreadSummary? threadContextDrawer;
+    [ObservableProperty] private bool threadContextDrawerVisible;
+    [ObservableProperty] private bool threadContextResolverVisible;
+    [ObservableProperty] private string threadContextResolverTitle = "Select a Work Thread";
+    [ObservableProperty] private string threadContextResolverDetail = "Guardian could not confirm this relationship automatically.";
+    [ObservableProperty] private ObservableCollection<GuardianWorkThreadSummary> threadContextResolverOptions = [];
+    [ObservableProperty] private ObservableCollection<Nekomata.Models.Tasks.NekomataTask> threadContextTaskOptions = [];
+    public bool HasThreadContextTaskOptions => ThreadContextTaskOptions.Count > 0;
+    private CalendarEvent? _threadContextResolverEvent;
+    private CalendarEvent? _threadContextDrawerEvent;
     private DateTime _calendarCapacitySnapshotDate;
     private bool _hasCalendarCapacitySnapshot;
     private IReadOnlyList<(DateTimeOffset Start, DateTimeOffset End)> _cachedCalendarCapacityIntervals = [];
@@ -67,8 +85,18 @@ public partial class MainViewModel
 
     [ObservableProperty]
     private bool calendarObjectiveAvailable;
+    [ObservableProperty]
+    private bool canBeginBriefingObjective = true;
+    private readonly SemaphoreSlim _calendarObjectiveRefreshLock = new(1, 1);
 
     private async Task RefreshCalendarAwareObjectiveAsync()
+    {
+        await _calendarObjectiveRefreshLock.WaitAsync();
+        try { await RefreshCalendarAwareObjectiveCoreAsync(); }
+        finally { _calendarObjectiveRefreshLock.Release(); }
+    }
+
+    private async Task RefreshCalendarAwareObjectiveCoreAsync()
     {
         if (MissionActive)
         {
@@ -100,19 +128,36 @@ public partial class MainViewModel
             var offset = TimeZoneInfo.Local.GetUtcOffset(now.Date);
             var workStart = new DateTimeOffset(settings.GetStart(now.Date), offset);
             var workEnd = new DateTimeOffset(settings.GetEnd(now.Date), offset);
-            if (now < workStart || now >= workEnd ||
-                now.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            var service = _services.GetRequiredService<ICalendarService>();
+            // An active calendar commitment remains execution truth even when it starts
+            // before configured work hours or runs beyond them.
+            var dayStart = new DateTimeOffset(now.Date, offset);
+            var events = (await service.GetEventsAsync(dayStart, dayStart.AddDays(1))).OrderBy(item => item.Start).ToList();
+            UpdateLiveTimeline(events, now);
+            ScheduleNextCalendarBoundary(events, now);
+            var activeEvent = events.FirstOrDefault(item => item.Start <= now && item.End > now);
+            if (CalendarTimelineContextResolver.ShouldSuppressObjectiveOutsideWorkPeriod(
+                now, workStart, workEnd, activeEvent is not null))
             {
                 ShowTopRankedObjective("This is your highest-ranked available task. It is ready for the next working window.");
                 return;
             }
-
-            var service = _services.GetRequiredService<ICalendarService>();
-            var events = (await service.GetEventsAsync(workStart, workEnd)).OrderBy(item => item.Start).ToList();
-            UpdateLiveTimeline(events, now);
-            ScheduleNextCalendarBoundary(events, now);
-            var activeEvent = events.FirstOrDefault(item => item.Start <= now && item.End > now);
             MissionCandidate? candidate = null;
+            var freeMinutes = 0;
+
+            if (activeEvent is null && _manualObjectiveOverride is not null)
+            {
+                if (IsPromotedObjectiveStillAvailable(_manualObjectiveOverride, Workspace))
+                {
+                    Workspace.CurrentMission = _manualObjectiveOverride;
+                    SyncBriefingObjective(_manualObjectiveOverride);
+                    CalendarObjectiveAvailable = true;
+                    OnPropertyChanged(nameof(Workspace));
+                    return;
+                }
+
+                _manualObjectiveOverride = null;
+            }
 
             if (IsPlannedFocusBlock(activeEvent))
             {
@@ -126,20 +171,17 @@ public partial class MainViewModel
             else if (activeEvent is null)
             {
                 var freeEnd = events.Where(item => item.Start > now).Select(item => item.Start).DefaultIfEmpty(workEnd).Min();
-                var freeMinutes = Math.Max(0, (int)(freeEnd - now).TotalMinutes);
-                candidate = Workspace.RankedMissionCandidates
-                    .Where(item => item.EstimatedMinutes > 0 && item.EstimatedMinutes <= freeMinutes)
-                    .OrderByDescending(item => item.RequiresImmediateAttention)
-                    .ThenBy(item => item.Rank)
-                    .ThenByDescending(item => item.Score)
-                    .FirstOrDefault();
+                freeMinutes = Math.Max(0, (int)(freeEnd - now).TotalMinutes);
+                candidate = freeMinutes <= 0 ? null : GetBestFreeWindowCandidate(freeMinutes);
             }
 
             if (candidate is null && IsPlannedFocusBlock(activeEvent))
             {
                 Workspace.CurrentMission = new Mission
                 {
+                    TaskId = ResolveCalendarTaskId(activeEvent),
                     SourceType = "Calendar",
+                    SourceRecordId = activeEvent!.Id,
                     Title = CleanCalendarObjectiveTitle(activeEvent!.Subject),
                     Description = "Live Guardian calendar block",
                     EstimatedDuration = activeEvent.End - now,
@@ -163,14 +205,19 @@ public partial class MainViewModel
                     Description = candidate.Description,
                     Score = candidate.Score,
                     BusinessValue = candidate.BusinessValue,
-                    EstimatedDuration = TimeSpan.FromMinutes(Math.Max(candidate.EstimatedMinutes, 1)),
+                    EstimatedDuration = IsPlannedFocusBlock(activeEvent)
+                        ? activeEvent!.End - now
+                        : TimeSpan.FromMinutes(FreeWindowMissionPolicy.EffectiveMinutes(candidate)),
                     StartBefore = IsPlannedFocusBlock(activeEvent) ? activeEvent!.Start.LocalDateTime : now.LocalDateTime,
-                    Status = IsPlannedFocusBlock(activeEvent) ? "SCHEDULED NOW" : "READY IN FREE WINDOW",
+                    Status = IsPlannedFocusBlock(activeEvent) ? "SCHEDULED NOW" :
+                        candidate.IsUrgent || candidate.RequiresImmediateAttention ? "IMMEDIATE ATTENTION" : "READY IN FREE WINDOW",
                     Progress = candidate.Progress,
                     ThreatLevel = candidate.AtRisk ? "HIGH" : candidate.Score >= 80 ? "HIGH" : candidate.Score >= 50 ? "MEDIUM" : "LOW",
                     RecommendationReason = IsPlannedFocusBlock(activeEvent)
                         ? "This task is the active item in Guardian's calendar plan."
-                        : "This task fits the current free calendar window.",
+                        : candidate.IsUrgent || candidate.RequiresImmediateAttention
+                            ? "This immediate-attention item is exempt from normal free-window fitting."
+                            : "This task fits the current free calendar window.",
                     ScoreFactors = candidate.ScoreFactors.ToList(),
                     Strengths = candidate.Strengths.ToList(),
                     Risks = candidate.Risks.ToList(),
@@ -189,7 +236,7 @@ public partial class MainViewModel
                 }
                 else
                 {
-                    ShowTopRankedObjective("This is your highest-ranked available task, but it does not fit the current free calendar window.");
+                    ClearCalendarObjective(freeMinutes);
                 }
                 return;
             }
@@ -205,8 +252,75 @@ public partial class MainViewModel
         }
     }
 
+    private MissionCandidate? GetBestFreeWindowCandidate(int availableMinutes)
+    {
+        var ranked = FreeWindowMissionPolicy.Select(Workspace.RankedMissionCandidates, availableMinutes);
+        if (ranked is not null) return ranked;
+
+        var task = Workspace.Tasks
+            .Where(item => !item.IsCompleted && !item.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            .Where(item => Math.Max(1,
+                (item.PredictedActiveMinutes > 0 ? item.PredictedActiveMinutes : item.EstimatedMinutes) - item.ActualMinutes) <= availableMinutes)
+            .OrderBy(item => item.DueAt ?? DateTime.MaxValue)
+            .ThenByDescending(item => item.PriorityScore)
+            .ThenByDescending(item => item.EstimatedBusinessValue)
+            .FirstOrDefault();
+        var fallback = task is null ? null : new MissionCandidate
+        {
+            SourceType = "Task", TaskId = task.Id, ProjectId = task.ProjectId,
+            Title = task.Title, Description = task.Description ?? string.Empty,
+            EstimatedMinutes = Math.Max(1, task.EstimatedMinutes - task.ActualMinutes),
+            PredictedActiveMinutes = Math.Max(1,
+                (task.PredictedActiveMinutes > 0 ? task.PredictedActiveMinutes : task.EstimatedMinutes) - task.ActualMinutes),
+            EnteredEstimateMinutes = task.EstimatedMinutes,
+            BusinessValue = task.EstimatedBusinessValue, Priority = task.Priority,
+            DueAt = task.DueAt, Score = task.PriorityScore,
+            RecommendationReason = "This is the strongest open task available in the current free calendar window."
+        };
+        return fallback;
+    }
+
+    private async Task FindAndPromoteNextObjectiveAsync()
+    {
+        if (MissionActive)
+        {
+            ShowPaletteResponse($"{Workspace.CurrentMission.Title} is already active. Complete, hold or discard it before Guardian promotes another objective.");
+            return;
+        }
+
+        await RefreshCalendarAwareObjectiveAsync();
+        var now = DateTimeOffset.Now;
+        if (_nowTimelineEvent is not null && _nowTimelineEvent.Start <= now && _nowTimelineEvent.End > now)
+        {
+            if (IsPlannedFocusBlock(_nowTimelineEvent)) SetActiveFocusObjective(_nowTimelineEvent, now);
+            ShowPaletteResponse($"Calendar priority: {CleanCalendarObjectiveTitle(_nowTimelineEvent.Subject)} until {_nowTimelineEvent.End:HH:mm}. Guardian has kept the scheduled block as your next objective.");
+            return;
+        }
+
+        var availableMinutes = CurrentFreeCalendarMinutes();
+        var candidate = GetBestFreeWindowCandidate(availableMinutes);
+        if (candidate is null)
+        {
+            ClearCalendarObjective(availableMinutes);
+            ShowPaletteResponse($"No ranked objective fits the current {availableMinutes}-minute calendar gap. Guardian has protected the next commitment and offered a short review/capture step instead.");
+            return;
+        }
+
+        Workspace.CurrentMission = _services.GetRequiredService<IMissionFactory>().Create(candidate);
+        Workspace.CurrentMission.Status = "PROMOTED NEXT";
+        Workspace.CurrentMission.RecommendationReason = string.IsNullOrWhiteSpace(candidate.RecommendationReason)
+            ? "This is the strongest actionable item available outside a scheduled calendar block."
+            : candidate.RecommendationReason;
+        SyncBriefingObjective(Workspace.CurrentMission);
+        TrackSurfacedEntity("MissionCandidate", Nekomata.Core.Missions.NextActionPolicy.Key(candidate), candidate.Title, "FindNextThing");
+        CalendarObjectiveAvailable = true;
+        OnPropertyChanged(nameof(Workspace));
+        ShowPaletteResponse($"Next objective promoted: {Workspace.CurrentMission.Title} · approximately {(int)Math.Ceiling(Workspace.CurrentMission.EstimatedDuration.TotalMinutes)} minutes.");
+    }
+
     private void SyncBriefingObjective(Mission mission)
     {
+        CanBeginBriefingObjective = true;
         var briefing = Workspace.Briefing;
         briefing.PrimaryFocus = mission.Title;
         briefing.ObjectiveTitle = mission.Title;
@@ -220,24 +334,34 @@ public partial class MainViewModel
         briefing.Headline = mission.Status == "SCHEDULED NOW" ? $"Now: {mission.Title}." : $"Next available objective: {mission.Title}.";
         briefing.GuardianComment = mission.Status == "SCHEDULED NOW"
             ? $"Continue with '{mission.Title}' until the current calendar block ends."
-            : $"'{mission.Title}' fits the current free calendar window.";
+            : mission.SourceType == "Guardian" || mission.Status is "IMMEDIATE ATTENTION" or "MANUALLY SELECTED"
+                ? mission.RecommendationReason
+                : $"'{mission.Title}' fits the current free calendar window.";
         ApplyGuardianCalendarGuidance();
         OnPropertyChanged(nameof(HasBriefingObjective));
     }
 
     private void SetActiveMeetingContext(CalendarEvent activeMeeting, CalendarEvent? nextEvent)
     {
-        var hasRankedObjective = ShowTopRankedObjective(
-            "This is your highest-ranked available task for after the current meeting.");
         var meetingTitle = CleanCalendarObjectiveTitle(activeMeeting.Subject);
+        CalendarObjectiveAvailable = false;
+        CanBeginBriefingObjective = false;
+        var briefing = Workspace.Briefing;
+        briefing.PrimaryFocus = meetingTitle;
+        briefing.ObjectiveTitle = meetingTitle;
+        briefing.ObjectiveReason = $"Protected meeting in progress until {activeMeeting.End:HH:mm}. Stay with the meeting; capture tasks and follow-ups as they arise.";
+        briefing.ObjectiveScore = 0;
+        briefing.ObjectiveBusinessValue = 0;
+        briefing.ObjectiveEstimatedMinutes = Math.Max(1, (int)Math.Ceiling((activeMeeting.End - DateTimeOffset.Now).TotalMinutes));
+        briefing.ObjectiveStartBefore = activeMeeting.Start.LocalDateTime;
+        briefing.ObjectiveTaskId = null;
+        briefing.ObjectiveProjectId = null;
         Workspace.Briefing.Headline = $"You are currently in {meetingTitle}.";
         var calendarComment = nextEvent is null
             ? $"You are currently in {meetingTitle} until {activeMeeting.End:HH:mm}. No further block is scheduled today."
             : $"You are currently in {meetingTitle} until {activeMeeting.End:HH:mm}. " +
               $"Your next block is for {CleanCalendarObjectiveTitle(nextEvent.Subject)} at {nextEvent.Start:HH:mm}.";
-        Workspace.Briefing.GuardianComment = hasRankedObjective
-            ? $"{calendarComment} Your next ranked objective is '{Workspace.Briefing.ObjectiveTitle}'."
-            : calendarComment;
+        OnPropertyChanged(nameof(HasBriefingObjective));
         OnPropertyChanged(nameof(Workspace));
     }
 
@@ -267,7 +391,7 @@ public partial class MainViewModel
         return true;
     }
 
-    private void ClearCalendarObjective()
+    private void ClearCalendarObjective(int availableMinutes = 0)
     {
         var now = DateTimeOffset.Now;
         if (IsPlannedFocusBlock(_nowTimelineEvent) &&
@@ -278,26 +402,54 @@ public partial class MainViewModel
             return;
         }
 
-        CalendarObjectiveAvailable = false;
-        var briefing = Workspace.Briefing;
-        briefing.PrimaryFocus = string.Empty;
-        briefing.ObjectiveTitle = string.Empty;
-        briefing.ObjectiveReason = string.Empty;
-        briefing.ObjectiveScore = 0;
-        briefing.ObjectiveBusinessValue = 0;
-        briefing.ObjectiveEstimatedMinutes = 0;
-        briefing.ObjectiveStartBefore = null;
-        briefing.ObjectiveTaskId = null;
-        briefing.ObjectiveProjectId = null;
-        var available = Workspace.RankedMissionCandidates.Count(candidate => candidate.IsActionable && !candidate.IsOnHold);
-        briefing.Headline = available > 0
-            ? "No objective is scheduled in the current calendar window."
-            : "No objective is currently available in the calendar plan.";
-        briefing.GuardianComment = available > 0
-            ? $"{available} ranked work item{(available == 1 ? " is" : "s are")} available. Open What If or Plan to schedule the next block."
-            : "Guardian will show the next task when an applicable free window begins.";
-        OnPropertyChanged(nameof(HasBriefingObjective));
+        var fallback = availableMinutes >= 10 ? GetBestFreeWindowCandidate(availableMinutes) : null;
+        Workspace.CurrentMission = fallback is null
+            ? new Mission
+            {
+                SourceType = "Guardian", Title = "Review and capture next actions",
+                Description = "Clear attention items, capture new work and choose the next concrete action.",
+                EstimatedDuration = TimeSpan.FromMinutes(availableMinutes >= 5 ? Math.Min(15, availableMinutes) : 15), Status = "READY", ThreatLevel = "LOW",
+                RecommendationReason = availableMinutes >= 5
+                    ? $"No ranked objective fits the current {availableMinutes}-minute gap; use it for a short review without overrunning the next commitment."
+                    : "No safe calendar window is currently available for ranked work."
+            }
+            : _services.GetRequiredService<IMissionFactory>().Create(fallback);
+        if (fallback is not null)
+        {
+            Workspace.CurrentMission.Status = fallback.IsUrgent || fallback.RequiresImmediateAttention
+                ? "IMMEDIATE ATTENTION"
+                : "READY IN FREE WINDOW";
+            Workspace.CurrentMission.RecommendationReason = fallback.IsUrgent || fallback.RequiresImmediateAttention
+                ? "This immediate-attention item is exempt from normal free-window fitting."
+                : "This task fits the current free calendar window.";
+        }
+        SyncBriefingObjective(Workspace.CurrentMission);
+        if (fallback is null && availableMinutes < 5)
+        {
+            CanBeginBriefingObjective = false;
+            OnPropertyChanged(nameof(CanBeginBriefingObjective));
+        }
+        CalendarObjectiveAvailable = true;
         OnPropertyChanged(nameof(Workspace));
+    }
+
+    private int CurrentFreeCalendarMinutes()
+    {
+        var now = DateTimeOffset.Now;
+        var local = now.LocalDateTime;
+        var settings = _services.GetRequiredService<WorkingDaySettings>();
+        if (local.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ||
+            local < settings.GetStart(local) || local >= settings.GetEnd(local)) return 0;
+        if (CalendarEvents.Any(item => item.Start <= now && item.End > now)) return 0;
+        var boundary = new DateTimeOffset(settings.GetEnd(local));
+        foreach (var entry in CalendarEvents.Where(item => item.Start > now && item.Start < boundary)) boundary = entry.Start;
+        if (settings.IncludeLunchBreak)
+        {
+            if (local >= settings.GetLunchStart(local) && local < settings.GetLunchEnd(local)) return 0;
+            var lunch = new DateTimeOffset(settings.GetLunchStart(local));
+            if (lunch > now && lunch < boundary) boundary = lunch;
+        }
+        return Math.Max(0, (int)Math.Floor((boundary - now).TotalMinutes));
     }
 
     private void SetActiveFocusObjective(
@@ -307,7 +459,9 @@ public partial class MainViewModel
         var remaining = activeEvent.End - now;
         Workspace.CurrentMission = new Mission
         {
+            TaskId = ResolveCalendarTaskId(activeEvent),
             SourceType = "Calendar",
+            SourceRecordId = activeEvent.Id,
             Title = CleanCalendarObjectiveTitle(activeEvent.Subject),
             Description = "Live Guardian calendar block",
             EstimatedDuration = remaining > TimeSpan.Zero
@@ -351,6 +505,26 @@ public partial class MainViewModel
         return separator >= 0
             ? subject[(separator + 1)..].Trim()
             : subject.Replace("Focus", string.Empty, StringComparison.OrdinalIgnoreCase).Trim(' ', '-', '–');
+    }
+
+    internal static long? ResolveCalendarTaskId(CalendarEvent? calendarEvent)
+    {
+        if (calendarEvent is null) return null;
+
+        var marker = Regex.Match(
+            calendarEvent.BodyPreview ?? string.Empty,
+            @"NEKOMATA:(?:TASK:)?(?<id>\d+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (marker.Success && long.TryParse(marker.Groups["id"].Value, out var markerId))
+            return markerId;
+
+        var title = Regex.Match(
+            calendarEvent.Subject ?? string.Empty,
+            @"(?:\(|\b)Task\s*#?\s*(?<id>\d+)\)?",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        return title.Success && long.TryParse(title.Groups["id"].Value, out var titleId)
+            ? titleId
+            : null;
     }
 
     [RelayCommand]
@@ -399,6 +573,28 @@ public partial class MainViewModel
             var offset = TimeZoneInfo.Local.GetUtcOffset(SelectedCalendarDate);
             var start = new DateTimeOffset(SelectedCalendarDate.Date, offset);
             var events = await service.GetEventsAsync(start, start.AddDays(1));
+            var anticipationEvents = events.ToList();
+            if (SelectedCalendarDate.Date == DateTime.Today)
+            {
+                var tomorrow = await service.GetEventsAsync(start.AddDays(1), start.AddDays(2));
+                anticipationEvents.AddRange(tomorrow.Where(x => anticipationEvents.All(y => y.Id != x.Id)));
+            }
+            var contextSignals=_services.GetRequiredService<IContextSignalRepository>();
+            foreach(var calendarEvent in events)
+                await contextSignals.UpsertAsync(ContextSignalFactory.FromCalendar(calendarEvent));
+            await _services.GetRequiredService<TeamsContextEvidenceService>()
+                .CorrelateAsync(Workspace,DateTimeOffset.Now);
+            var ingestion = _services.GetRequiredService<GuardianOpenLoopIngestionService>();
+            foreach (var calendarEvent in events)
+                await ingestion.IngestMeetingScheduledAsync(calendarEvent.Id, calendarEvent.Subject);
+            await _services.GetRequiredService<GuardianCalendarThreadEnrichmentService>()
+                .EnrichAsync(Workspace, events, DateTimeOffset.Now);
+            await _services.GetRequiredService<LearnedWorkflowEngine>()
+                .ObserveAsync(Workspace, DateTimeOffset.Now);
+            Workspace.WorkThreadSummaries = (await _services.GetRequiredService<GuardianWorkThreadEnrichmentService>()
+                .BuildAsync(Workspace, DateTimeOffset.Now)).ToList();
+            await _services.GetRequiredService<Nekomata.Core.Guardian.Anticipation.AnticipatoryOperationsEngine>()
+                .EvaluateAsync(Workspace, anticipationEvents, DateTimeOffset.Now);
             CalendarEvents = new ObservableCollection<CalendarEvent>(events);
             ApplyCalendarCapacity(events);
             await RefreshCalendarAwareObjectiveAsync();
@@ -421,24 +617,110 @@ public partial class MainViewModel
             OnPropertyChanged(nameof(ShowCalendarEmptyState));
             OnPropertyChanged(nameof(CalendarDateLabel));
             OnPropertyChanged(nameof(CalendarSummary));
+            RefreshAmbientSituation();
+            CheckWorkloadForecastAttention();
         }
+    }
+
+    [RelayCommand]
+    private void OpenCalendarThreadContext(CalendarEvent? calendarEvent)
+    {
+        if (calendarEvent is null) return;
+        var context = Workspace.CalendarThreadContexts.FirstOrDefault(x => x.CalendarEventId == calendarEvent.Id);
+        if (context?.ThreadId is not Guid threadId || context.LinkStatus != WorkThreadLinkStatus.Confirmed)
+        {
+            _threadContextResolverEvent = calendarEvent;
+            ThreadContextResolverTitle = calendarEvent.Subject;
+            ThreadContextResolverDetail = context is null || context.Confidence == 0
+                ? "Guardian could not identify a confirmed Work Thread. Select the correct context."
+                : $"Guardian found a {context.Confidence}% candidate ({context.Explanation}). Confirm it or select another thread.";
+            ThreadContextResolverOptions = new ObservableCollection<GuardianWorkThreadSummary>(
+                Workspace.WorkThreadSummaries
+                    .OrderByDescending(x => context?.ThreadId == x.ThreadId)
+                    .ThenByDescending(x => x.Impact.HasUpcomingCommitment)
+                    .ThenBy(x => x.Title));
+            ThreadContextDrawerVisible = false;
+            ThreadContextResolverVisible = true;
+            return;
+        }
+        ThreadContextDrawer = Workspace.WorkThreadSummaries.FirstOrDefault(x => x.ThreadId == threadId);
+        ThreadContextDrawerVisible = ThreadContextDrawer is not null;
+        _threadContextDrawerEvent = calendarEvent;
+        PopulateThreadTaskOptions(threadId);
+    }
+
+    [RelayCommand]
+    private async Task ConfirmCalendarThreadContextAsync(GuardianWorkThreadSummary? selectedThread)
+    {
+        if (selectedThread is null || _threadContextResolverEvent is null) return;
+        var calendarEvent = _threadContextResolverEvent;
+        await _services.GetRequiredService<GuardianCalendarThreadEnrichmentService>()
+            .ConfirmThreadAsync(calendarEvent, selectedThread.ThreadId);
+        await _services.GetRequiredService<GuardianCalendarThreadEnrichmentService>()
+            .EnrichAsync(Workspace, CalendarEvents.ToList(), DateTimeOffset.Now);
+        Workspace.WorkThreadSummaries = (await _services.GetRequiredService<GuardianWorkThreadEnrichmentService>()
+            .BuildAsync(Workspace, DateTimeOffset.Now)).ToList();
+        ThreadContextResolverVisible = false;
+        _threadContextResolverEvent = null;
+        ThreadContextDrawer = Workspace.WorkThreadSummaries.FirstOrDefault(x => x.ThreadId == selectedThread.ThreadId);
+        ThreadContextDrawerVisible = ThreadContextDrawer is not null;
+        _threadContextDrawerEvent = calendarEvent;
+        PopulateThreadTaskOptions(selectedThread.ThreadId);
+    }
+
+    [RelayCommand]
+    private async Task ConfirmCalendarTaskContextAsync(Nekomata.Models.Tasks.NekomataTask? task)
+    {
+        if (task is null || _threadContextDrawerEvent is null || ThreadContextDrawer is null) return;
+        await _services.GetRequiredService<GuardianCalendarThreadEnrichmentService>()
+            .ConfirmTaskAsync(_threadContextDrawerEvent, ThreadContextDrawer.ThreadId, task.Id);
+        await _services.GetRequiredService<GuardianCalendarThreadEnrichmentService>()
+            .EnrichAsync(Workspace, CalendarEvents.ToList(), DateTimeOffset.Now);
+        Workspace.WorkThreadSummaries = (await _services.GetRequiredService<GuardianWorkThreadEnrichmentService>()
+            .BuildAsync(Workspace, DateTimeOffset.Now)).ToList();
+        ThreadContextDrawer = Workspace.WorkThreadSummaries.FirstOrDefault(x => x.ThreadId == ThreadContextDrawer.ThreadId);
+        ThreadContextTaskOptions.Clear();
+        OnPropertyChanged(nameof(HasThreadContextTaskOptions));
+    }
+
+    private void PopulateThreadTaskOptions(Guid threadId)
+    {
+        var currentContext = _threadContextDrawerEvent is null ? null : Workspace.CalendarThreadContexts
+            .FirstOrDefault(x => x.CalendarEventId == _threadContextDrawerEvent.Id);
+        if (currentContext?.TaskId is not null)
+        {
+            ThreadContextTaskOptions.Clear();
+            OnPropertyChanged(nameof(HasThreadContextTaskOptions));
+            return;
+        }
+        var thread = Workspace.WorkThreads.FirstOrDefault(x => x.Id == threadId);
+        ThreadContextTaskOptions = new ObservableCollection<Nekomata.Models.Tasks.NekomataTask>(
+            thread?.PrimaryProjectId is long projectId
+                ? Workspace.Tasks.Where(x => x.ProjectId == projectId && !x.IsCompleted).OrderBy(x => x.Title)
+                : []);
+        OnPropertyChanged(nameof(HasThreadContextTaskOptions));
+    }
+
+    [RelayCommand]
+    private void CloseThreadContextResolver()
+    {
+        ThreadContextResolverVisible = false;
+        _threadContextResolverEvent = null;
+    }
+
+    [RelayCommand]
+    private void CloseThreadContextDrawer()
+    {
+        ThreadContextDrawerVisible = false;
+        ThreadContextDrawer = null;
+        ThreadContextTaskOptions.Clear();
+        OnPropertyChanged(nameof(HasThreadContextTaskOptions));
+        _threadContextDrawerEvent = null;
     }
 
 
     private void ApplyGuardianCalendarGuidance()
     {
-        var p1 = Workspace.IntegrationMissionCandidates
-            .Where(candidate => candidate.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase) && candidate.IsP1)
-            .OrderBy(candidate => candidate.DueAt ?? DateTime.MaxValue)
-            .FirstOrDefault();
-
-        if (p1 is not null)
-        {
-            Workspace.Briefing.GuardianComment =
-                $"P1 interruption: {p1.Title}. Protect service and enter Battle Mode now.";
-            return;
-        }
-
         if (_nowTimelineEvent is not null)
         {
             Workspace.Briefing.GuardianComment =
@@ -467,6 +749,7 @@ public partial class MainViewModel
         OnPropertyChanged(nameof(HasNextTimelineAction));
         OnPropertyChanged(nameof(HasThenTimelineAction));
         EvaluateCalendarPlanHealth(events, now);
+        EvaluateTransitionProtection(events, now);
     }
 
     private void InitialisePlanHealthMonitoring()
@@ -531,7 +814,7 @@ public partial class MainViewModel
             return;
         }
 
-        ResolveAttentionByPrefix("calendar:");
+        ResolveAttentionByPrefix("calendar:plan:");
 
         PlanAttentionVisible = false;
         CanStartPlanAlert = false;
@@ -553,12 +836,7 @@ public partial class MainViewModel
         return calendarEvent.Subject.Contains(mission.Title, StringComparison.OrdinalIgnoreCase) ||
             (mission.TaskId is long taskId &&
              (calendarEvent.BodyPreview.Contains($"NEKOMATA:TASK:{taskId}", StringComparison.OrdinalIgnoreCase) ||
-              calendarEvent.BodyPreview.Contains($"NEKOMATA:{taskId}", StringComparison.OrdinalIgnoreCase))) ||
-            (mission.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase) &&
-             Workspace.IntegrationMissionCandidates.Any(item =>
-                 string.Equals(item.Title, mission.Title, StringComparison.OrdinalIgnoreCase) &&
-                 !string.IsNullOrWhiteSpace(item.SourceRecordId) &&
-                 calendarEvent.BodyPreview.Contains($"NEKOMATA:HALO:{item.SourceRecordId}", StringComparison.OrdinalIgnoreCase)));
+              calendarEvent.BodyPreview.Contains($"NEKOMATA:{taskId}", StringComparison.OrdinalIgnoreCase)));
     }
 
     private void SetPlanAlert(string key, string title, string detail, CalendarEvent? startEvent)
@@ -569,8 +847,8 @@ public partial class MainViewModel
         _planAlertEvent = startEvent;
         CanStartPlanAlert = startEvent is not null;
         PlanAttentionVisible = true;
-        var attentionKey = $"calendar:{key}";
-        ResolveAttentionByPrefix("calendar:", attentionKey);
+        var attentionKey = $"calendar:plan:{key}";
+        ResolveAttentionByPrefix("calendar:plan:", attentionKey);
         RaiseAttention(
             attentionKey,
             "CALENDAR PLAN",
@@ -578,7 +856,8 @@ public partial class MainViewModel
             title,
             detail,
             startEvent is null ? "open_calendar" : "start_calendar",
-            startEvent?.Id);
+            startEvent?.Id,
+            expiresAt: (startEvent?.End ?? DateTimeOffset.Now.AddHours(4)).AddMinutes(5));
         if (!string.Equals(_lastAlertSoundKey, key, StringComparison.Ordinal))
         {
             SystemSounds.Exclamation.Play();
@@ -592,7 +871,7 @@ public partial class MainViewModel
         if (_planAlertEvent is null) return;
         SetActiveFocusObjective(_planAlertEvent, DateTimeOffset.Now);
         await BeginMissionAsync();
-        ResolveAttentionByPrefix("calendar:");
+        ResolveAttentionByPrefix("calendar:plan:");
         PlanAttentionVisible = false;
     }
 
@@ -601,7 +880,7 @@ public partial class MainViewModel
     {
         ChatInput = $"Repair the remainder of today's calendar plan from {DateTime.Now:HH:mm}. {PlanHealthDetail} Keep protected meetings fixed, preserve completed work, and reschedule unfinished ranked tasks into valid free windows.";
         GuardianPanelExpanded = true;
-        ResolveAttentionByPrefix("calendar:");
+        ResolveAttentionByPrefix("calendar:plan:");
         PlanAttentionVisible = false;
         await SendGuardianMessageAsync();
     }
@@ -612,7 +891,7 @@ public partial class MainViewModel
         _dismissedPlanAlertKey = _planAlertEvent is not null
             ? $"inactive:{_planAlertEvent.Id}"
             : _lastAlertSoundKey;
-        ResolveAttentionByPrefix("calendar:");
+        ResolveAttentionByPrefix("calendar:plan:");
         PlanAttentionVisible = false;
     }
 
@@ -799,9 +1078,11 @@ public partial class MainViewModel
         try
         {
             var settings = _services.GetRequiredService<WorkingDaySettings>();
-            var targetDate = DateTime.Now >= settings.GetEnd(DateTime.Today) || Workspace.Capacity.IsWorkingOvertime
-                ? DateTime.Today.AddDays(1)
-                : DateTime.Today;
+            var targetDate = SelectedCalendarDate.Date > DateTime.Today
+                ? SelectedCalendarDate.Date
+                : DateTime.Now >= settings.GetEnd(DateTime.Today) || Workspace.Capacity.IsWorkingOvertime
+                    ? DateTime.Today.AddDays(1)
+                    : DateTime.Today;
             while (targetDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
                 targetDate = targetDate.AddDays(1);
 

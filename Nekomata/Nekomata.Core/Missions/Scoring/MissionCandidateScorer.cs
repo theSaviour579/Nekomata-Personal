@@ -76,7 +76,7 @@ public class MissionCandidateScorer : IMissionCandidateScorer
     private static void AddImmediateAttentionScore(
         MissionCandidate candidate)
     {
-        var points = candidate.IsP1
+        var points = candidate.IsUrgent
             ? 200
             : candidate.RequiresImmediateAttention
                 ? 100
@@ -88,9 +88,9 @@ public class MissionCandidateScorer : IMissionCandidateScorer
         candidate.ScoreFactors.Add(new MissionScoreFactor
         {
             Category = "Immediate Attention",
-            Name = candidate.IsP1 ? "P1 Incident" : "Immediate Attention",
-            Explanation = candidate.IsP1
-                ? "An assigned P1 incident takes precedence over routine planned work."
+            Name = candidate.IsUrgent ? "Urgent" : "Immediate Attention",
+            Explanation = candidate.IsUrgent
+                ? "Work marked urgent takes precedence over routine planned work."
                 : "The source system marked this item as requiring immediate attention.",
             Points = points
         });

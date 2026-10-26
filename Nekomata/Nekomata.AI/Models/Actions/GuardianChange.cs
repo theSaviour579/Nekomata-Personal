@@ -19,6 +19,22 @@ public class GuardianChange
 
     public int Confidence { get; set; } = 100;
 
+    public string ReviewDisposition { get; set; } = "";
+    public string FeedbackReason { get; set; } = "";
+    public string OriginalTitle { get; set; } = "";
+    public string OriginalValue { get; set; } = "";
+    public long OriginalEntityId { get; set; }
+    public string ReplacementInstruction { get; set; } = "";
+    public bool FeedbackRecorded { get; set; }
+    public bool IsRemoved => ReviewDisposition.Equals("Removed", StringComparison.OrdinalIgnoreCase);
+    public bool HasReviewFeedback => !string.IsNullOrWhiteSpace(ReviewDisposition);
+    public string ReviewStatusLabel => ReviewDisposition switch
+    {
+        "Removed" => "REMOVED FROM PROPOSAL",
+        "Replaced" => $"REPLACED · originally {OriginalTitle}",
+        _ => ""
+    };
+
     public bool IsCalendarChange => EntityType.Equals("Calendar", StringComparison.OrdinalIgnoreCase);
 
     public string CalendarTitle

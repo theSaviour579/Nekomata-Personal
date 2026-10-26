@@ -22,7 +22,6 @@ public class IntegrationMission
 
     public DateTime? DueAt { get; set; }
 
-    public DateTime? SlaExpiresAt { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
@@ -42,11 +41,13 @@ public class IntegrationMission
 
     public bool RevenueImpact { get; set; }
 
-    public bool SecurityRelated { get; set; }
-
     public bool RequiresImmediateAttention { get; set; }
 
-    public bool IsP1 { get; set; }
+    public bool IsUrgent { get; set; }
+    public string SuggestedOwner { get; set; } = "";
+    public string CurrentOwner { get; set; } = "";
+    public int AssignmentConfidence { get; set; }
+    public string AssignmentReason { get; set; } = "";
 
     public List<string> Tags { get; set; } = [];
 }

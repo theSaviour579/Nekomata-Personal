@@ -16,8 +16,6 @@ public class MissionCandidate
     public long? ProjectId { get; set; }
 
     public string Title { get; set; } = "";
-    public string CurrentOwner { get; set; } = "";
-    public string SuggestedOwner { get; set; } = "";
 
     public string Description { get; set; } = "";
 
@@ -28,6 +26,10 @@ public class MissionCandidate
     public decimal StrategicBusinessValue { get; set; }
 
     public int EstimatedMinutes { get; set; }
+    public int EnteredEstimateMinutes { get; set; }
+    public int PredictedActiveMinutes { get; set; }
+    public int InterruptionOverheadMinutes { get; set; }
+    public string PredictionExplanation { get; set; } = "";
 
     public DateTime? DueAt { get; set; }
 
@@ -87,9 +89,29 @@ public class MissionCandidate
 
     public bool RequiresImmediateAttention { get; set; }
 
-    public bool IsP1 { get; set; }
+    public bool IsUrgent { get; set; }
 
     public string RecommendationReason { get; set; } = "";
+    public string SuggestedOwner { get; set; } = "";
+    public string CurrentOwner { get; set; } = "";
+    public int AssignmentConfidence { get; set; }
+    public string AssignmentReason { get; set; } = "";
+    public string CurrentOwnerLabel => string.IsNullOrWhiteSpace(CurrentOwner) ? "Unassigned" : CurrentOwner;
+    public string SuggestedOwnerLabel => string.IsNullOrWhiteSpace(SuggestedOwner) ? "No recommendation" : SuggestedOwner;
+    public string AssignmentDispositionLabel => string.IsNullOrWhiteSpace(SuggestedOwner)
+        ? "NO MATCH"
+        : SuggestedOwner.Equals(CurrentOwner, StringComparison.OrdinalIgnoreCase) ? "KEEP CURRENT" : "ALTERNATIVE OWNER";
+    public string AssignmentOwnerDisplay => string.IsNullOrWhiteSpace(SuggestedOwner)
+        ? "No skill-based recommendation"
+        : SuggestedOwner;
+    public string AssignmentConfidenceLabel => string.IsNullOrWhiteSpace(SuggestedOwner)
+        ? "Add or refine skill mappings"
+        : AssignmentConfidence >= 75 ? "Strong evidence"
+        : AssignmentConfidence >= 55 ? "Moderate evidence"
+        : "Weak evidence";
+    public bool CanReassignOwner => !string.IsNullOrWhiteSpace(SuggestedOwner) &&
+        !SuggestedOwner.Equals(CurrentOwner, StringComparison.OrdinalIgnoreCase);
+    public string DueLabel => DueAt is DateTime due ? $"Due {due:ddd dd MMM · HH:mm}" : "No due date";
 
     public List<MissionScoreFactor> ScoreFactors { get; set; } = [];
 
@@ -103,6 +125,9 @@ public class MissionCandidate
     public string GuardianDecision { get; set; } = "";
 
     public int Rank { get; set; }
+    public List<Guid> AppliedPolicyIds { get; set; } = [];
+    public int RoleAlignmentScoreAdjustment { get; set; }
+    public string RoleAlignmentRecommendationSuffix { get; set; } = "";
     public string Priority { get; set; } =
     TaskPriorities.Normal;
 

@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Integrations.MicrosoftGraph.Authentication;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
 using Nekomata.Integrations.MicrosoftGraph.Mail;
+using Nekomata.Integrations.MicrosoftGraph.Context;
+using Nekomata.Integrations.MicrosoftGraph.Meetings;
 using Nekomata.Integrations.MicrosoftGraph.Tasks;
 using Nekomata.Integrations.MicrosoftGraph.Profile;
 using Nekomata.Integrations.MicrosoftGraph.People;
@@ -29,6 +31,16 @@ public static class ServiceCollectionExtensions
         {
             client.BaseAddress = new Uri("https://graph.microsoft.com/v1.0/");
             client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddHttpClient<IGraphContextService, GraphContextService>(client =>
+        {
+            client.BaseAddress = new Uri("https://graph.microsoft.com/v1.0/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddHttpClient<ITeamsTranscriptService, TeamsTranscriptService>(client =>
+        {
+            client.BaseAddress = new Uri("https://graph.microsoft.com/v1.0/");
+            client.Timeout = TimeSpan.FromSeconds(45);
         });
         services.AddHttpClient<IMicrosoftTaskService, MicrosoftTaskService>(client =>
         {

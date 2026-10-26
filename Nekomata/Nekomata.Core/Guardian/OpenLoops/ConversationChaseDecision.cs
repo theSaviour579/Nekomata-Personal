@@ -1,12 +1,13 @@
 using Nekomata.AI.Models.Actions;
 using Nekomata.Integrations.MicrosoftGraph.Mail;
+using Nekomata.Models.Guardian;
 
 namespace Nekomata.Core.Guardian.OpenLoops;
 
 public sealed record ConversationChaseDecision(string Action, string Evidence, DateTimeOffset? WaitUntil, string Draft)
 {
     public static ConversationChaseDecision Evaluate(IReadOnlyList<EmailMessage> messages, string ownAddress,
-        ChaseConversationAdvice advice, DateTimeOffset now)
+        ChaseConversationAdvice advice, DateTimeOffset now, GuardianRelationshipProfile? relationship = null)
     {
         var latest = messages.OrderByDescending(x => x.ReceivedAt).First();
         bool Own(EmailMessage x) => x.SenderAddress.Equals(ownAddress, StringComparison.OrdinalIgnoreCase);
@@ -52,14 +53,11 @@ public sealed record ConversationChaseDecision(string Action, string Evidence, D
         // Chase wording is deliberately question-based: historical email cannot
         // establish that the user has retested or that a fault still occurs today.
         var draft = $"Hi,\n\nCould you please provide an update on ‘{effective.Subject}’, including any outstanding questions and the expected next steps?\n\nThanks,";
-        var due = effective.ReceivedAt.ToLocalTime();
-        for (var days = 0; days < 2;)
-        {
-            due = due.AddDays(1);
-            if (due.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday)) days++;
-        }
+        var waitDays = relationship?.RecommendedWorkingDayWait ?? 2;
+        var due = GuardianChasePolicy.AddWorkingDays(effective.ReceivedAt.ToLocalTime(), waitDays);
+        var relationshipEvidence = relationship is null ? "" : $" {relationship.EvidenceSummary}";
         return due > now
-            ? new("Wait", evidence + $"Allow time for a reply; next check {due:ddd dd MMM HH:mm}.", due, draft)
-            : new("Chase", evidence + "No later substantive reply in this conversation. " + advice.Summary, null, draft);
+            ? new("Wait", evidence + $"Allow time for a reply; next check {due:ddd dd MMM HH:mm}." + relationshipEvidence, due, draft)
+            : new("Chase", evidence + "No later substantive reply in this conversation. " + advice.Summary + relationshipEvidence, null, draft);
     }
 }

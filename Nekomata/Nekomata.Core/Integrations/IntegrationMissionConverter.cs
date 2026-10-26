@@ -1,5 +1,4 @@
 using Nekomata.Core.Guardian.Reasoning;
-using Nekomata.Core.Integrations.Halo;
 using Nekomata.Models.Common;
 using Nekomata.Models.Integrations;
 using Nekomata.Models.Missions;
@@ -11,18 +10,11 @@ public class IntegrationMissionConverter
     private readonly GuardianReasoningEngine
         _reasoningEngine;
 
-    private readonly IHaloMissionPolicy
-    _haloMissionPolicy;
-
     public IntegrationMissionConverter(
-     GuardianReasoningEngine reasoningEngine,
-     IHaloMissionPolicy haloMissionPolicy)
+     GuardianReasoningEngine reasoningEngine)
     {
         _reasoningEngine =
             reasoningEngine;
-
-        _haloMissionPolicy =
-            haloMissionPolicy;
     }
 
     public MissionCandidate Convert(
@@ -66,12 +58,15 @@ public class IntegrationMissionConverter
 
             AtRisk =
                 mission.CustomerImpact ||
-                mission.SecurityRelated ||
                 mission.RequiresImmediateAttention,
 
             RequiresImmediateAttention = mission.RequiresImmediateAttention,
 
-            IsP1 = mission.IsP1
+            IsUrgent = mission.IsUrgent,
+            SuggestedOwner = mission.SuggestedOwner,
+            CurrentOwner = mission.CurrentOwner,
+            AssignmentConfidence = mission.AssignmentConfidence,
+            AssignmentReason = mission.AssignmentReason
         };
 
         if (mission.CustomerImpact)
@@ -86,18 +81,6 @@ public class IntegrationMissionConverter
                 "Revenue affecting");
         }
 
-        if (mission.SecurityRelated)
-        {
-            candidate.Strengths.Add(
-                "Security related");
-        }
-
-        if (mission.SlaExpiresAt is not null)
-        {
-            candidate.Strengths.Add(
-                $"SLA expires {mission.SlaExpiresAt:HH:mm}");
-        }
-
         if (mission.IsAwaitingExternalResponse)
         {
             candidate.Strengths.Add(mission.IsActionable
@@ -109,15 +92,6 @@ public class IntegrationMissionConverter
         {
             candidate.Risks.Add(
                 "Long running activity");
-        }
-
-        if (mission.SourceType.Equals(
-         "Halo",
-         StringComparison.OrdinalIgnoreCase))
-        {
-            _haloMissionPolicy.Apply(
-                mission,
-                candidate);
         }
 
         var reasons =

@@ -9,6 +9,46 @@ namespace Nekomata.Tests;
 public sealed class EmailServiceReplyAllTests
 {
     [Fact]
+    public async Task Combined_search_reads_both_folders_and_deduplicates()
+    {
+        var handler = new RecordingHandler(_ => Json("""{"value":[{"id":"same","subject":"Ticket 123"}]}"""));
+        var results = await CreateService(handler).SearchInboxAndSentAsync("123", TestContext.Current.CancellationToken);
+        Assert.Single(results);
+        Assert.Contains(handler.Requests, x => x.Uri.AbsolutePath.Contains("/inbox/"));
+        Assert.Contains(handler.Requests, x => x.Uri.AbsolutePath.Contains("/sentitems/"));
+    }
+
+    [Fact]
+    public async Task Identity_comes_from_connected_profile()
+    {
+        var handler = new RecordingHandler(_ => Json("""{"mail":"david@example.com","userPrincipalName":"login@example.com"}"""));
+        Assert.Equal("david@example.com", await CreateService(handler).GetMailboxAddressAsync(TestContext.Current.CancellationToken));
+    }
+    [Fact]
+    public async Task Latest_conversation_message_includes_later_pages()
+    {
+        var calls = 0;
+        var handler = new RecordingHandler(_ => Json(++calls == 1
+            ? """{"value":[{"id":"old","receivedDateTime":"2026-09-01T08:00:00Z"}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/messages?$skiptoken=next"}"""
+            : """{"value":[{"id":"latest","receivedDateTime":"2026-09-03T08:00:00Z"}]}"""));
+        var latest = await CreateService(handler).GetLatestConversationMessageAsync("thread", TestContext.Current.CancellationToken);
+        Assert.Equal("latest", latest?.Id);
+        Assert.Equal(2, calls);
+        Assert.Contains("isDraft eq false", Uri.UnescapeDataString(handler.Requests[0].Uri.Query));
+    }
+
+    [Fact]
+    public async Task Chase_search_only_reads_sent_items()
+    {
+        var handler = new RecordingHandler(_ => Json("{\"value\":[]}"));
+        var result = await CreateService(handler).SearchSentMessagesAsync("6131", TestContext.Current.CancellationToken);
+        Assert.Empty(result);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Get, request.Method);
+        Assert.Contains("/me/mailFolders/sentitems/messages", request.Uri.AbsoluteUri);
+        Assert.Contains("toRecipients", request.Uri.Query);
+    }
+    [Fact]
     public async Task Create_reply_draft_uses_reply_all_endpoint()
     {
         var handler = new RecordingHandler(request =>
@@ -80,11 +120,6 @@ public sealed class EmailServiceReplyAllTests
 
     private sealed class FakeAuthenticationService : IMicrosoftAuthenticationService
     {
-        public Task<string?> GetConnectedAccountAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<string?>("test@example.com");
-
-        public Task DisconnectAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-
         public Task<TokenResult> GetTokenAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult(new TokenResult

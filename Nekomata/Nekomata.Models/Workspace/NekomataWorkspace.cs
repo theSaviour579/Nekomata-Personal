@@ -43,4 +43,19 @@ public class NekomataWorkspace
     = [];
     public List<GuardianInsight> Insights { get; set; }
     = [];
+    public GuardianOutcomeSummary Outcomes { get; set; } = new();
+    public List<GuardianPolicy> Policies { get; set; } = [];
+    public List<GuardianWorkThread> WorkThreads { get; set; } = [];
+    public List<GuardianUnboundContext> UnboundContext { get; set; } = [];
+    public List<GuardianWorkThreadSummary> WorkThreadSummaries { get; set; } = [];
+    public List<GuardianCalendarThreadContext> CalendarThreadContexts { get; set; } = [];
+    public List<GuardianMissingWorkCandidate> MissingWorkCandidates { get; set; } = [];
+    public List<ExpectedWorkCandidate> ExpectedWorkCandidates { get; set; } = [];
+    public List<ProcessRequirement> ProcessRequirements { get; set; } = [];
+    public List<GuardianNewCommitment> NewCommitments { get; set; } = [];
+    public List<AnticipatedAction> AnticipatedActions { get; set; } = [];
+    public List<DetectedOperationalIntent> DetectedOperationalIntents { get; set; } = [];
+    public List<WorkThreadNextAction> WorkThreadNextActions { get; set; } = [];
+    public List<ScheduledIntervention> ScheduledInterventions { get; set; } = [];
+    public PredictionCalibrationSummary PredictionCalibration { get; set; } = new();
 }

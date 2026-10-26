@@ -28,6 +28,8 @@ public sealed class CalendarUndoService
         _pending.Clear();
     }
 
+    public void CancelBatch() => _pending.Clear();
+
     public async Task<string> UndoLastAsync()
     {
         if (_lastBatch.Count == 0)

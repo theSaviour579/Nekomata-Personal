@@ -3,6 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Foreground="{DynamicResource NekoTextBrush}">
     <StackPanel>
+        <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="10" Padding="14" Margin="0,0,0,18">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="OPEN GUARDIAN SETTINGS" Command="{Binding OpenGuardianSettingsCommand}" Background="{DynamicResource NekoSpiritPurpleBrush}"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="GUARDIAN SETTINGS" Style="{DynamicResource NekoSectionTitleText}"/>
+                    <TextBlock Text="Working hours and out-of-hours mode, background features, Teams managers, thresholds, weather location and Microsoft account permissions."
+                               Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,4,12,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
         <Grid Margin="0,0,0,18">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -40,6 +50,82 @@
                     </ProgressBar.Style>
                 </ProgressBar>
             </Grid>
+        </Border>
+
+        <!-- What Guardian may do on its own, and what it has done today. Changes save immediately. -->
+        <Border Background="{DynamicResource NekoCardGradientBrush}" BorderBrush="{DynamicResource NekoAccentBrush}" BorderThickness="1" CornerRadius="14" Padding="16" Margin="0,0,0,14">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="GUARDIAN AUTONOMY" Style="{DynamicResource NekoSectionTitleText}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding AutonomySummary}" Foreground="{DynamicResource NekoMutedTextBrush}"/>
+                </Grid>
+                <TextBlock Text="&quot;Do it&quot; acts and tells you, and &quot;undo&quot; reverses it. &quot;Ask me&quot; proposes and waits for &quot;do it&quot;. Drafts are never sent, and meetings with other people are never moved."
+                           Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,12"/>
+                <ItemsControl ItemsSource="{Binding AutonomyRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource NekoSurfaceSoftBrush}" CornerRadius="12" Padding="14,10" Margin="0,0,0,7">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="230"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="{DynamicResource NekoTextBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock FontSize="11" Margin="0,3,0,0" TextWrapping="Wrap" Text="{Binding Status}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource NekoAccentBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding NeedsAttention}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource NekoWarningBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsOff}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource NekoMutedTextBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding Description}" Foreground="{DynamicResource NekoMutedTextBrush}"
+                                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="14,0,14,0"/>
+                                    <ComboBox Grid.Column="2" Width="105" VerticalAlignment="Center"
+                                              ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption, Mode=TwoWay}"
+                                              DisplayMemberPath="Label"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <Border Background="{DynamicResource NekoCardGradientBrush}" BorderBrush="{DynamicResource NekoAccentBrush}" BorderThickness="1" CornerRadius="14" Padding="16" Margin="0,0,0,14">
+            <StackPanel>
+                <TextBlock Text="GUARDIAN POLICY ACCOUNTABILITY" Style="{DynamicResource NekoSectionTitleText}"/>
+                <TextBlock Text="Observational evidence and post-activation effectiveness are measured separately. Natural exceptions remain as counterfactual evidence." Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,12"/>
+                <ItemsControl ItemsSource="{Binding Workspace.Policies}"><ItemsControl.ItemTemplate><DataTemplate>
+                    <Border Background="{DynamicResource NekoSurfaceSoftBrush}" CornerRadius="12" Padding="14" Margin="0,0,0,9">
+                        <StackPanel>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{DynamicResource NekoAccentBrush}" TextWrapping="Wrap" Margin="0,0,18,0"/>
+                                <Border Grid.Column="1" Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="8" Padding="10,5" VerticalAlignment="Top"><TextBlock><Run Text="{Binding Lifecycle, Mode=OneWay}" FontWeight="Bold"/><Run Text=" · "/><Run Text="{Binding ConfidencePercent, Mode=OneWay}"/><Run Text="% · n="/><Run Text="{Binding EvidenceCount, Mode=OneWay}"/></TextBlock></Border>
+                            </Grid>
+                            <TextBlock Text="{Binding Statement}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock Text="{Binding AccountabilitySummary}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                            <TextBlock Margin="0,5,0,0"><Run Text="Evidence trend: "/><Run Text="{Binding EvidenceTrend, Mode=OneWay}" FontWeight="Bold"/><Run Text=" · Counterfactual exceptions: "/><Run Text="{Binding CounterfactualCount, Mode=OneWay}"/></TextBlock>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Content="VIEW EVIDENCE" Command="{Binding DataContext.ViewPolicyEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,7,0"/>
+                                <Button Content="ACTIVATE CANDIDATE" Command="{Binding DataContext.ActivateCandidatePolicyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Margin="0,0,7,0"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsLearnedCandidate}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="SUSPEND POLICY" Command="{Binding DataContext.SuspendPolicyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </StackPanel>
         </Border>
 
         <Border Background="{DynamicResource NekoCardGradientBrush}"
@@ -202,7 +288,7 @@
                 BorderThickness="1" CornerRadius="12" Padding="14" Margin="0,6,0,0">
             <StackPanel>
                 <TextBlock Text="PRIVACY" Style="{DynamicResource NekoSectionTitleText}"/>
-                <TextBlock Text="Reports contain connection names, health results, timings and safe error messages. API keys, passwords and tokens are never included. Personal backups contain workspace data and your display name, but never saved credentials."
+                <TextBlock Text="Diagnostics contain connection names, health results, timings and safe error messages. API keys, passwords and tokens are never included. Personal backups contain workspace data and your display name, but never saved credentials."
                            TextWrapping="Wrap" Foreground="{DynamicResource NekoMutedTextBrush}" Margin="0,5,0,0"/>
             </StackPanel>
         </Border>

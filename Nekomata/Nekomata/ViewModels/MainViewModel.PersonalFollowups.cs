@@ -27,9 +27,9 @@ public partial class MainViewModel
     private DateTimeOffset _lastPersonalFollowupCheck;
     private Window? _personalFollowupWindow;
     private readonly SemaphoreSlim _personalFollowupReviewGate = new(1, 1);
-    private void LoadPersonalFollowups() => _personalFollowups ??= File.Exists(PersonalFile("email-followups.json"))
-        ? JsonSerializer.Deserialize<List<PersonalFollowup>>(File.ReadAllText(PersonalFile("email-followups.json"))) ?? [] : [];
-    private void SavePersonalFollowups() => SavePersonalJson(PersonalFile("email-followups.json"), _personalFollowups);
+    private static string PersonalFollowupsPath => Path.Combine(DataFolder, "email-followups.json");
+    private void LoadPersonalFollowups() => _personalFollowups ??= LoadJson<List<PersonalFollowup>>(PersonalFollowupsPath) ?? [];
+    private void SavePersonalFollowups() => SaveJson(PersonalFollowupsPath, _personalFollowups);
 
     private async Task<(IReadOnlyList<EmailMessage> Messages, ConversationChaseDecision Decision)> ReviewPersonalFollowupAsync(PersonalFollowup item)
     {

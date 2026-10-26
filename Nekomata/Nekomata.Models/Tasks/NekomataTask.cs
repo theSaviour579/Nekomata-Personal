@@ -19,6 +19,12 @@ public class NekomataTask
     public bool AccuracySensitive { get; set; }
 
     public int EstimatedMinutes { get; set; } = 30;
+    public int OriginalEstimatedMinutes { get; set; }
+    public int EstimateConfidencePercent { get; set; }
+    public string EstimateLearningExplanation { get; set; } = "";
+    public int PredictedActiveMinutes { get; set; }
+    public int ExpectedInterruptionOverheadMinutes { get; set; }
+    public int PredictedCalendarMinutes { get; set; }
     public DateTime? DueAt { get; set; }
 
     public int PriorityScore { get; set; }
@@ -55,8 +61,6 @@ public class NekomataTask
     public int AutomationPotential { get; set; }    // 0-5
 
     public bool RequiresSql { get; set; }
-
-    public bool RequiresHalo { get; set; }
 
     public bool RequiresOutlook { get; set; }
 

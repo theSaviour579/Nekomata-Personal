@@ -26,6 +26,6 @@ public sealed class LocalTeamProfileRepository(LocalWorkspaceStore store) : ITea
         Source = value.Source, LastSyncedAt = value.LastSyncedAt, Active = value.Active,
         AvailabilityStatus = value.AvailabilityStatus, UnavailableUntil = value.UnavailableUntil,
         CapacityPercent = value.CapacityPercent, Responsibilities = value.Responsibilities, Exclusions = value.Exclusions,
-        Skills = value.Skills.Select(x => new TeamMemberSkill { SkillId = x.SkillId, Name = x.Name, Proficiency = x.Proficiency, IsPrimary = x.IsPrimary, Aliases = x.Aliases }).ToList()
+        Skills = value.Skills.Select(x => new TeamMemberSkill { SkillId = x.SkillId, Name = x.Name, Proficiency = x.Proficiency, IsPrimary = x.IsPrimary, Aliases = x.Aliases, WeakAliases = x.WeakAliases }).ToList()
     };
 }

@@ -95,7 +95,7 @@ public class BriefingEngine : IBriefingEngine
             overdue,
             unscheduled,
             critical,
-            workspace.IntegrationMissionCandidates.Count(candidate => candidate.IsP1));
+            workspace.IntegrationMissionCandidates.Count(candidate => candidate.IsUrgent));
 
         PopulateObjective(workspace);
 
@@ -181,7 +181,7 @@ public class BriefingEngine : IBriefingEngine
         IReadOnlyCollection<NekomataTask> overdue,
         IReadOnlyCollection<NekomataTask> unscheduled,
         IReadOnlyCollection<NekomataTask> critical,
-        int assignedP1Count)
+        int assignedUrgentCount)
     {
         workspace.Briefing.TasksDueToday =
             dueToday.Count;
@@ -193,7 +193,7 @@ public class BriefingEngine : IBriefingEngine
             unscheduled.Count;
 
         workspace.Briefing.CriticalTasks =
-            critical.Count + assignedP1Count;
+            critical.Count + assignedUrgentCount;
 
         workspace.Briefing.BusinessValueToday =
             dueToday.Sum(task =>
@@ -203,7 +203,7 @@ public class BriefingEngine : IBriefingEngine
             BuildTodaySummary(
                 dueToday.Count,
                 overdue.Count,
-                critical.Count + assignedP1Count);
+                critical.Count + assignedUrgentCount);
     }
 
     private static void PopulateObjective(

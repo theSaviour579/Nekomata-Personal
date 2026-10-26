@@ -2,6 +2,10 @@
 using Nekomata.Core.Integrations;
 using Nekomata.Core.Missions.Suggestions;
 using Nekomata.Core.Planning;
+using Nekomata.Core.Guardian.Outcomes;
+using Nekomata.Core.Guardian.WorkThreads;
+using Nekomata.Core.Guardian.Learning;
+using Nekomata.Core.Guardian.Context;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Workspace;
 
@@ -47,6 +51,12 @@ public class WorkspaceBuilder : IWorkspaceBuilder
 
     private readonly IEnumerable<ISuggestedMissionProvider>
         _suggestionProviders;
+    private readonly IGuardianOutcomeEngine _outcomeEngine;
+    private readonly GuardianWorkThreadCorrelationEngine _workThreadCorrelation;
+    private readonly GuardianWorkThreadEnrichmentService _workThreadEnrichment;
+    private readonly LearnedWorkflowEngine _learnedWorkflow;
+    private readonly ContextSignalResolutionService _contextSignals;
+    private readonly TeamsContextEvidenceService _teamsContext;
 
     public WorkspaceBuilder(
         ITaskRepository taskRepository,
@@ -61,7 +71,13 @@ public class WorkspaceBuilder : IWorkspaceBuilder
         IntegrationCoordinator integrationCoordinator,
         IntegrationMissionConverter integrationMissionConverter,
         MissionTimelinePlanner timelinePlanner,
-        IEnumerable<ISuggestedMissionProvider> suggestionProviders)
+        IEnumerable<ISuggestedMissionProvider> suggestionProviders,
+        IGuardianOutcomeEngine outcomeEngine,
+        GuardianWorkThreadCorrelationEngine workThreadCorrelation,
+        GuardianWorkThreadEnrichmentService workThreadEnrichment,
+        LearnedWorkflowEngine learnedWorkflow,
+        ContextSignalResolutionService contextSignals,
+        TeamsContextEvidenceService teamsContext)
     {
         _taskRepository =
             taskRepository;
@@ -101,6 +117,12 @@ public class WorkspaceBuilder : IWorkspaceBuilder
 
         _suggestionProviders =
             suggestionProviders;
+        _outcomeEngine = outcomeEngine;
+        _workThreadCorrelation = workThreadCorrelation;
+        _workThreadEnrichment = workThreadEnrichment;
+        _learnedWorkflow = learnedWorkflow;
+        _contextSignals = contextSignals;
+        _teamsContext = teamsContext;
     }
 
     public async Task<NekomataWorkspace> BuildAsync()
@@ -149,6 +171,17 @@ public class WorkspaceBuilder : IWorkspaceBuilder
                     _integrationMissionConverter
                         .Convert(mission))
                 .ToList();
+
+        // Build explainable cross-system context before downstream reasoning.
+        await _workThreadCorrelation.CorrelateAsync(workspace);
+        await _contextSignals.ResolveAsync(workspace,DateTimeOffset.Now);
+        await _teamsContext.CorrelateAsync(workspace,DateTimeOffset.Now);
+        workspace.WorkThreadSummaries = (await _workThreadEnrichment.BuildAsync(workspace, DateTimeOffset.Now)).ToList();
+        await _learnedWorkflow.ObserveAsync(workspace, DateTimeOffset.Now);
+
+        // Recommendation -> decision -> behaviour -> outcome -> learning.
+        // Apply explainable historical corrections before scoring and planning.
+        await _outcomeEngine.ApplyLearningAsync(workspace);
 
         System.Diagnostics.Debug.WriteLine(
             $"Integrations loaded " +

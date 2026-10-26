@@ -2,25 +2,29 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Nekomata / Nioh-inspired palette -->
-    <Color x:Key="NekoBackgroundColor">#070B11</Color>
-    <Color x:Key="NekoSurfaceColor">#101A26</Color>
-    <Color x:Key="NekoSurfaceAltColor">#162433</Color>
-    <Color x:Key="NekoSurfaceSoftColor">#1B2D3F</Color>
+    <Color x:Key="NekoBackgroundColor">#05060C</Color>
+    <Color x:Key="NekoSurfaceColor">#0A0B15</Color>
+    <Color x:Key="NekoSurfaceAltColor">#0F0F1E</Color>
+    <Color x:Key="NekoSurfaceSoftColor">#17152C</Color>
 
-    <Color x:Key="NekoBorderColor">#294154</Color>
-    <Color x:Key="NekoBorderSoftColor">#1E3346</Color>
+    <Color x:Key="NekoBorderColor">#2C2850</Color>
+    <Color x:Key="NekoBorderSoftColor">#1D1A36</Color>
 
     <Color x:Key="NekoLightningColor">#42D9FF</Color>
     <Color x:Key="NekoSpiritPurpleColor">#7B5DFF</Color>
     <Color x:Key="NekoSpiritWhiteColor">#F8F9FC</Color>
 
     <Color x:Key="NekoTextColor">#EAF4FF</Color>
-    <Color x:Key="NekoMutedTextColor">#8FA4B8</Color>
+    <Color x:Key="NekoMutedTextColor">#8C96B0</Color>
 
     <Color x:Key="NekoSuccessColor">#46F0B4</Color>
     <Color x:Key="NekoWarningColor">#FFC857</Color>
     <Color x:Key="NekoCriticalColor">#FF5A72</Color>
     <Color x:Key="NekoMoneyColor">#46F0B4</Color>
+
+    <!-- Guardian HUD: mono labels in soft purple -->
+    <Color x:Key="NekoHudLabelColor">#9C85FF</Color>
+    <SolidColorBrush x:Key="NekoHudLabelBrush" Color="{StaticResource NekoHudLabelColor}" />
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="NekoBackgroundBrush" Color="{StaticResource NekoBackgroundColor}" />
@@ -46,14 +50,14 @@
 
     <!-- Gradients -->
     <LinearGradientBrush x:Key="NekoCardGradientBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#111A25" Offset="0"/>
-        <GradientStop Color="#172636" Offset="1"/>
+        <GradientStop Color="#0B0B17" Offset="0"/>
+        <GradientStop Color="#0E0C1C" Offset="1"/>
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="NekoHeaderGradientBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#101A26" Offset="0"/>
-        <GradientStop Color="#121B2B" Offset="0.55"/>
-        <GradientStop Color="#1A1730" Offset="1"/>
+        <GradientStop Color="#0B0B17" Offset="0"/>
+        <GradientStop Color="#0D0C1B" Offset="0.55"/>
+        <GradientStop Color="#16112C" Offset="1"/>
     </LinearGradientBrush>
 
 </ResourceDictionary>

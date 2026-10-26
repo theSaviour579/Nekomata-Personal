@@ -71,8 +71,8 @@ public sealed class IntegrationDiagnosticsService
 
     private async Task<(string Summary, string Detail)> CheckOpenAiAsync(CancellationToken ct)
     {
-        var key = _configuration["OpenAI:ApiKey"] ??
-            Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var key = (_configuration["OpenAI:ApiKey"] ??
+            Environment.GetEnvironmentVariable("OPENAI_API_KEY"))?.Trim();
         if (string.IsNullOrWhiteSpace(key))
             throw new DiagnosticNotConfiguredException("API key is not configured.");
 

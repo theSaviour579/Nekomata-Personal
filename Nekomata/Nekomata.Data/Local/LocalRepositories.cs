@@ -41,6 +41,8 @@ public sealed class LocalGuardianMemoryRepository(LocalWorkspaceStore store) : I
     public Task<List<GuardianMemory>> GetRecentAsync(int count = 25) => store.ReadAsync(data => data.GuardianMemories.OrderByDescending(item => item.Importance).ThenByDescending(item => item.CreatedAt).Take(count).ToList());
     public Task<List<GuardianMemory>> GetProjectMemoriesAsync(long projectId, int count = 25) => store.ReadAsync(data => data.GuardianMemories.Where(item => item.ProjectId == projectId).OrderByDescending(item => item.Importance).ThenByDescending(item => item.CreatedAt).Take(count).ToList());
     public Task<List<GuardianMemory>> SearchAsync(string text, int count = 25) => string.IsNullOrWhiteSpace(text) ? Task.FromResult(new List<GuardianMemory>()) : store.ReadAsync(data => data.GuardianMemories.Where(item => Contains(item.Summary, text) || Contains(item.Detail, text) || Contains(item.Category, text) || Contains(item.Source, text)).OrderByDescending(item => item.Importance).ThenByDescending(item => item.CreatedAt).Take(count).ToList());
+    public Task<List<GuardianMemory>> GetByCategoryAsync(string category, int count = 50) => store.ReadAsync(data => data.GuardianMemories.Where(item => string.Equals(item.Category, category, StringComparison.Ordinal)).OrderByDescending(item => item.Importance).ThenByDescending(item => item.CreatedAt).Take(count).ToList());
+    public Task<bool> DeleteAsync(long id) => store.UpdateAsync(data => data.GuardianMemories.RemoveAll(item => item.Id == id) > 0);
     private static bool Contains(string? value, string text) => value?.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase) == true;
 }
 

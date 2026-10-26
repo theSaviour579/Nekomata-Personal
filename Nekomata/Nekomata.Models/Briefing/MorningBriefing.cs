@@ -15,6 +15,9 @@ public class MorningBriefing
     public string CalendarSummary { get; set; } = "";
     public string MeetingSummary { get; set; } = "";
     public string AwarenessSummary { get; set; } = "";
+    public string ExecutiveSummary { get; set; } = "";
+    public int ExecutiveDecisionCount { get; set; }
+    public List<GuardianBriefingProvenance> ExecutiveProvenance { get; set; } = [];
 
     // Yesterday
     public int MissionsCompletedYesterday { get; set; }

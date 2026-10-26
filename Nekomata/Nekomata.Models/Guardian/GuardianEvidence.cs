@@ -38,15 +38,6 @@ public class GuardianEvidence
 
     public int MissionsCompletedYesterday { get; set; }
 
-    // Future integrations
-
-    public bool HaloConnected { get; set; }
-
-    public bool CalendarConnected { get; set; }
-
-    public bool SqlConnected { get; set; }
-
-    public bool EmailConnected { get; set; }
 
     //-------------------------------------------------
     // Workspace Health

@@ -4,13 +4,14 @@ using System.Diagnostics;
 using Nekomata.Core.Engines;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Models.Missions;
+using Nekomata.Models.Guardian;
 using Nekomata.Models.Workspace;
-using Nekomata.Services.Halo;
 using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Nekomata.UI.Services;
 using Nekomata.UI.Views;
+using Nekomata.Data.Repositories;
 
 namespace Nekomata.UI.ViewModels;
 
@@ -36,26 +37,6 @@ public partial class MainViewModel
                 ? "Connect Microsoft 365 to import To Do and Planner"
                 : $"Connection issue · {status.ErrorMessage}";
             return $"{status.Status} · synced {status.LastRefresh:HH:mm}";
-        }
-    }
-
-    public bool IsKnowBe4Connected => Workspace.Integrations
-        .Any(item => item.Name.Equals("KnowBe4", StringComparison.OrdinalIgnoreCase) && item.Connected);
-
-    public int KnowBe4FailureCount => Workspace.IntegrationMissionCandidates
-        .Count(item => item.SourceType.Equals("KnowBe4", StringComparison.OrdinalIgnoreCase));
-
-    public string KnowBe4IntegrationStatus
-    {
-        get
-        {
-            var status = Workspace.Integrations
-                .FirstOrDefault(item => item.Name.Equals("KnowBe4", StringComparison.OrdinalIgnoreCase));
-            if (status is null) return "Waiting for first security sync";
-            if (!status.Connected) return "Connection issue · refresh to retry";
-            return status.LastRefresh is DateTime refreshed
-                ? $"Connected · checked {refreshed:HH:mm}"
-                : "Connected";
         }
     }
 
@@ -135,8 +116,50 @@ public partial class MainViewModel
         _spotifyStateTimer.Tick -= SpotifyStateTimerTick;
         _spotifyStateTimer.Tick += SpotifyStateTimerTick;
         _spotifyStateTimer.Start();
-        await RefreshSpotifyStateAsync();
+        var currentState = await RefreshSpotifyStateAsync();
         if (!spotify.HasSavedConnection) return;
+        if (IsDifferentPlaylistPlaying(currentState, spotify))
+        {
+            await RaiseSpotifyArrivalPromptAsync(currentState!);
+            return;
+        }
+        try
+        {
+            SpotifyBusy = true;
+            SpotifyIntegrationStatus = "Starting the Arrival Mix on shuffle...";
+            await spotify.StartArrivalAsync();
+        }
+        catch (Exception ex) { SpotifyIntegrationStatus = $"Arrival Mode waiting - {ex.Message}"; }
+        finally { SpotifyBusy = false; await RefreshSpotifyStateAsync(); }
+    }
+
+    private static bool IsDifferentPlaylistPlaying(SpotifyPlaybackState? state, SpotifyPlaybackService spotify) =>
+        state is { IsPlaying: true, ContextUri: { Length: > 0 } contextUri } &&
+        !contextUri.Equals(spotify.ArrivalPlaylistUri, StringComparison.OrdinalIgnoreCase);
+
+    // Ambient, not a modal: Guardian mentions it once by voice and leaves the actual
+    // decision as an Attention Centre item, so an unattended launch never sits blocked
+    // on a Windows dialog nobody is there to answer.
+    private async Task RaiseSpotifyArrivalPromptAsync(SpotifyPlaybackState state)
+    {
+        var nowPlaying = string.IsNullOrWhiteSpace(state.Artist) ? state.Track : $"{state.Track} - {state.Artist}";
+        SpotifyIntegrationStatus = $"Keeping \"{state.Track}\" playing \u00b7 swap from Attention if you want the Arrival Mix.";
+        RaiseAttention(
+            "spotify:arrival-swap",
+            "Spotify",
+            "Info",
+            "Swap to the Arrival Mix?",
+            $"\"{nowPlaying}\" was already playing when Nekomata started. Approve to switch to the Arrival Mix on shuffle, or resolve this to keep it playing.",
+            "spotify_arrival_swap",
+            expiresAt: DateTimeOffset.Now.AddHours(3));
+        await SpeakGuardianAsync(
+            $"You're already listening to {nowPlaying}. I'll leave it running - there's an Attention item if you'd like the Arrival Mix instead.");
+    }
+
+    private async Task SwapToArrivalMixFromAttentionAsync(GuardianAttentionItem item)
+    {
+        ResolveAttention(item.Key);
+        var spotify = _services.GetRequiredService<SpotifyPlaybackService>();
         try
         {
             SpotifyBusy = true;
@@ -224,9 +247,9 @@ public partial class MainViewModel
         finally { SpotifyBusy = false; await Task.Delay(250); await RefreshSpotifyStateAsync(); }
     }
 
-    private async Task RefreshSpotifyStateAsync()
+    private async Task<SpotifyPlaybackState?> RefreshSpotifyStateAsync()
     {
-        if (SpotifyBusy) return;
+        if (SpotifyBusy) return null;
         var state = await _services.GetRequiredService<SpotifyPlaybackService>().GetStateAsync();
         SpotifyIntegrationStatus = state.Status;
         SpotifyTrack = state.Track;
@@ -238,6 +261,7 @@ public partial class MainViewModel
         OnPropertyChanged(nameof(SpotifyPlayPauseLabel));
         OnPropertyChanged(nameof(SpotifyShuffleLabel));
         OnPropertyChanged(nameof(SpotifyConnectLabel));
+        return state;
     }
     [RelayCommand]
     private void OpenSpotify()
@@ -252,71 +276,11 @@ public partial class MainViewModel
         }
     }
 
-    [RelayCommand]
-    private void ShowKnowBe4Attention() => WorkspaceMode = WorkspaceMode.Attention;
-    private readonly HashSet<string> _seenUrgentHaloTickets = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _seenStaleHaloTickets = new(StringComparer.OrdinalIgnoreCase);
-    private DispatcherTimer? _integrationRefreshTimer;
     private bool _integrationRefreshBusy;
-
-    public IReadOnlyList<MissionCandidate> UrgentHaloTickets =>
-        Workspace.IntegrationMissionCandidates
-            .Where(candidate => candidate.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase) && candidate.RequiresImmediateAttention)
-            .OrderByDescending(candidate => candidate.Priority.Equals("Critical", StringComparison.OrdinalIgnoreCase))
-            .ThenBy(candidate => candidate.DueAt ?? DateTime.MaxValue)
-            .ToList();
-
-    public bool HasUrgentHaloTickets => UrgentHaloTickets.Count > 0;
-
-    public IReadOnlyList<MissionCandidate> HaloWatchlistTickets =>
-        Workspace.IntegrationMissionCandidates
-            .Where(candidate => candidate.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase))
-            .Where(candidate => candidate.IsAwaitingExternalResponse)
-            .OrderByDescending(candidate => candidate.IsActionable)
-            .ThenByDescending(candidate => candidate.WaitingBusinessDays)
-            .ThenBy(candidate => candidate.WaitingOwnerLabel)
-            .ThenBy(candidate => candidate.Title)
-            .ToList();
-
-    public int HaloWatchlistCount => HaloWatchlistTickets.Count;
-    public int HaloWatchlistChaseCount => HaloWatchlistTickets.Count(ticket => ticket.IsActionable);
-    public string HaloWatchlistButtonLabel => HaloWatchlistCount > 0
-        ? $"HALO WATCHLIST ({HaloWatchlistCount})"
-        : "HALO WATCHLIST";
-    public string HaloWatchlistSummary => HaloWatchlistCount == 0
-        ? "No assigned Halo tickets are currently waiting on another party."
-        : $"{HaloWatchlistCount} waiting · {HaloWatchlistChaseCount} chase{(HaloWatchlistChaseCount == 1 ? string.Empty : "s")} due";
-
-    [RelayCommand]
-    private void ShowHaloWatchlist() => WorkspaceMode = WorkspaceMode.HaloWatchlist;
-
-    [RelayCommand]
-    private void OpenHaloWatchlistTicket(MissionCandidate? ticket)
-    {
-        if (ticket is null) return;
-        OpenHaloTicket(ticket.SourceRecordId);
-    }
-
-    public string HaloIntegrationStatus
-    {
-        get
-        {
-            var halo = Workspace.Integrations.FirstOrDefault(item => item.Name.Equals("Halo", StringComparison.OrdinalIgnoreCase));
-            if (halo is null) return "Halo has not synced yet.";
-            if (!halo.Connected) return $"Halo sync failed: {halo.ErrorMessage}";
-            return $"{halo.MissionCount} monitored open · synced {halo.LastRefresh:HH:mm}";
-        }
-    }
 
     private void InitialiseIntegrationRefresh()
     {
-        var options = _services.GetRequiredService<HaloOptions>();
-        _integrationRefreshTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMinutes(Math.Clamp(options.RefreshIntervalMinutes, 1, 60))
-        };
-        _integrationRefreshTimer.Tick += async (_, _) => await RefreshIntegrationsAsync();
-        _integrationRefreshTimer.Start();
+        // Background refresh runs on its own timers. This is the explicit, on-demand refresh.
     }
 
     [RelayCommand]
@@ -326,7 +290,16 @@ public partial class MainViewModel
         _integrationRefreshBusy = true;
         try
         {
+            var previousWorkspace=Workspace;
             Workspace = await _workspaceCoordinator.RefreshAsync();
+            await RefreshProjectCommunicationAttentionAsync();
+            await RefreshCalendarAsync();
+            var reconciliation=await _services.GetRequiredService<Nekomata.Core.Guardian.Reconciliation.GuardianDayReconciliationService>()
+                .ReconcileAsync(previousWorkspace,Workspace,DateTimeOffset.Now);
+            var exceptions=await _services.GetRequiredService<Nekomata.Core.Guardian.Exceptions.GuardianExceptionManagementService>()
+                .EvaluateAsync(reconciliation,Workspace,DateTimeOffset.Now);
+            foreach(var item in exceptions.Exceptions)
+                RaiseAttention(item.Key,"Guardian",item.Severity,item.Title,item.Detail,item.ActionKind,item.ContextId);
             await RefreshDailyBriefingContextAsync();
             await RefreshCalendarAwareObjectiveAsync();
         }
@@ -337,175 +310,10 @@ public partial class MainViewModel
         finally
         {
             _integrationRefreshBusy = false;
+            RefreshContextualBriefings();
         }
     }
 
-    public IReadOnlyList<MissionCandidate> BattleTickets =>
-        Workspace.IntegrationMissionCandidates
-            .Where(candidate => candidate.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase) && candidate.IsP1)
-            .OrderBy(candidate => candidate.DueAt ?? DateTime.MaxValue)
-            .ToList();
-
-    public MissionCandidate? BattlePrimaryTicket => BattleTickets.FirstOrDefault();
-    public int ActiveBattleCount => BattleTickets.Count;
-    public string BattleIncidentLabel => ActiveBattleCount == 1
-        ? "1 ACTIVE CRITICAL INCIDENT"
-        : $"{ActiveBattleCount} ACTIVE CRITICAL INCIDENTS";
-    public string BattleSlaCountdown
-    {
-        get
-        {
-            var due = BattlePrimaryTicket?.DueAt;
-            if (due is null) return "SLA DEADLINE NOT SUPPLIED";
-            var remaining = due.Value - CurrentDateTime;
-            return remaining <= TimeSpan.Zero
-                ? $"SLA BREACHED BY {FormatBattleDuration(remaining.Duration())}"
-                : $"SLA DUE IN {FormatBattleDuration(remaining)}";
-        }
-    }
-    public string BattleSlaDeadline => BattlePrimaryTicket?.DueAt is DateTime due
-        ? $"Response deadline {due:HH:mm}"
-        : "Response deadline unavailable";
-    public string BattleEffortLabel => BattlePrimaryTicket is null
-        ? "Effort unavailable"
-        : $"Estimated response effort {BattlePrimaryTicket.EstimatedMinutes} min";
-
-    [RelayCommand]
-    private void ExitBattleMode() => WorkspaceMode = WorkspaceMode.Dashboard;
-
-    [RelayCommand]
-    private void OpenHaloBattleTicket(MissionCandidate? ticket)
-    {
-        if (ticket is null) return;
-        OpenHaloTicket(ticket.SourceRecordId);
-    }
-
-    private void OpenHaloTicket(string? ticketId)
-    {
-        if (string.IsNullOrWhiteSpace(ticketId)) return;
-        var baseUrl = _services.GetRequiredService<HaloOptions>().BaseUrl.TrimEnd('/');
-        var ticketUrl = $"{baseUrl}/tickets?id={Uri.EscapeDataString(ticketId)}";
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ticketUrl)
-        {
-            UseShellExecute = true
-        });
-    }
-
-    [RelayCommand]
-    private async Task RefreshBattleStatusAsync() => await RefreshIntegrationsAsync();
-
-    private static string FormatBattleDuration(TimeSpan duration)
-    {
-        if (duration.TotalHours >= 1)
-            return $"{(int)duration.TotalHours}H {duration.Minutes:00}M";
-        return $"{Math.Max(0, duration.Minutes)}M {duration.Seconds:00}S";
-    }
-
-    private void HandleKnowBe4Alerts(NekomataWorkspace updatedWorkspace)
-    {
-        var failures = updatedWorkspace.IntegrationMissionCandidates
-            .Where(candidate => candidate.SourceType.Equals("KnowBe4", StringComparison.OrdinalIgnoreCase))
-            .Where(candidate => candidate.RequiresImmediateAttention)
-            .Where(candidate => !string.IsNullOrWhiteSpace(candidate.SourceRecordId))
-            .ToList();
-        var newlyDetected = 0;
-
-        foreach (var failure in failures)
-        {
-            var key = $"knowbe4:failure:{failure.SourceRecordId}";
-            var alreadyTracked = AttentionItems.Any(item =>
-                item.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
-            RaiseAttention(
-                key,
-                "KNOWBE4",
-                "High",
-                failure.Title,
-                failure.Description,
-                "open_dashboard",
-                failure.SourceRecordId);
-            if (!alreadyTracked)
-                newlyDetected++;
-        }
-
-        if (newlyDetected > 0)
-        {
-            _ = SpeakGuardianAsync(
-                newlyDetected == 1
-                    ? "A KnowBe4 simulation failure has been detected. I have added it to the Attention Centre."
-                    : $"{newlyDetected} new KnowBe4 simulation failures have been detected. I have added them to the Attention Centre.",
-                interrupt: true);
-        }
-    }
-    private void HandleUrgentHaloAlerts(NekomataWorkspace updatedWorkspace)
-    {
-        HandleStaleHaloFollowUps(updatedWorkspace);
-
-        var p1Tickets = updatedWorkspace.IntegrationMissionCandidates
-            .Where(candidate => candidate.SourceType.Equals("Halo", StringComparison.OrdinalIgnoreCase) && candidate.IsP1)
-            .Where(candidate => !string.IsNullOrWhiteSpace(candidate.SourceRecordId))
-            .ToList();
-
-        var activeIds = p1Tickets
-            .Select(ticket => ticket.SourceRecordId!)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var clearedIds = _seenUrgentHaloTickets
-            .Where(ticketId => !activeIds.Contains(ticketId))
-            .ToList();
-
-        foreach (var clearedId in clearedIds)
-        {
-            _seenUrgentHaloTickets.Remove(clearedId);
-            ResolveAttention($"halo:p1:{clearedId}");
-        }
-
-        foreach (var staleAttention in AttentionItems
-                     .Where(item => item.Key.StartsWith("halo:p1:", StringComparison.OrdinalIgnoreCase))
-                     .Where(item => !activeIds.Contains(item.ContextId))
-                     .ToList())
-        {
-            ResolveAttention(staleAttention.Key);
-        }
-
-        if (p1Tickets.Count == 0)
-        {
-            if (WorkspaceMode == WorkspaceMode.Battle)
-            {
-                WorkspaceMode = WorkspaceMode.Dashboard;
-                System.Diagnostics.Debug.WriteLine("Battle Mode stood down automatically: no active P1 tickets remain.");
-            }
-            return;
-        }
-
-        var newP1Tickets = p1Tickets
-            .Where(candidate => _seenUrgentHaloTickets.Add(candidate.SourceRecordId!))
-            .ToList();
-        if (newP1Tickets.Count == 0) return;
-
-        WorkspaceMode = WorkspaceMode.Battle;
-        System.Diagnostics.Debug.WriteLine($"Battle Mode activated for Halo ticket(s): {string.Join(", ", newP1Tickets.Select(ticket => ticket.SourceRecordId))}");
-
-        foreach (var ticket in newP1Tickets)
-        {
-            _ = SpeakGuardianAsync(
-                $"Priority one interruption. {ticket.Title}. Battle Mode is now active.",
-                interrupt: true);
-            RaiseAttention(
-                $"halo:p1:{ticket.SourceRecordId}",
-                "HALO",
-                "Critical",
-                ticket.Title,
-                $"A Critical/P1 Halo ticket requires immediate attention. Priority: {ticket.Priority}; estimated effort: {ticket.EstimatedMinutes} minutes.",
-                "open_halo",
-                ticket.SourceRecordId);
-        }
-    }
-    private void HandleStaleHaloFollowUps(NekomataWorkspace updatedWorkspace)
-    {
-        // Routine Halo chasing belongs exclusively in Halo Watchlist. Retire
-        // legacy Attention Centre entries without affecting Critical/P1 alerts.
-        _seenStaleHaloTickets.Clear();
-        ResolveAttentionByPrefix("halo:followup:");
-    }
     public bool HasCapacityPushbacks => Workspace.Capacity.PushbackSuggestions.Count > 0;
 
     private void RefreshTimeAwareCapacity()

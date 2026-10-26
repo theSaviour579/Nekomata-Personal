@@ -3,12 +3,19 @@ using Nekomata.Models.Analytics;
 using Nekomata.Models.Missions;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.UI.Services;
+using Nekomata.Models.Planning;
+using Nekomata.Core.Analytics;
+using Nekomata.Core.Planning;
 using System.Collections.ObjectModel;
 
 namespace Nekomata.UI.ViewModels;
 
 public partial class MainViewModel
 {
+    private DateTime _lastElapsedCostRefreshMinute = DateTime.MinValue;
+    [ObservableProperty] private RoleAlignmentSummary? roleAlignment;
+    [ObservableProperty] private WorkDebtAnalysis workDebt = new([]);
+
     [ObservableProperty]
     private MissionAnalytics analytics = new();
 
@@ -35,6 +42,22 @@ public partial class MainViewModel
         {
             RecentMissionHistory.Add(session);
         }
+
+        await RefreshRolePlanningAsync();
+        await RefreshCommitmentSummaryAsync();
+    }
+
+    private void RefreshElapsedLabourCost(DateTime now)
+    {
+        var minute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, now.Kind);
+        if (_lastElapsedCostRefreshMinute == minute) return;
+        _lastElapsedCostRefreshMinute = minute;
+        LabourCostCalculator.ApplyElapsedWorkdayCost(
+            Analytics,
+            now,
+            _services.GetRequiredService<WorkingDaySettings>(),
+            _services.GetRequiredService<LabourCostSettings>());
+        OnPropertyChanged(nameof(Analytics));
     }
 
     [ObservableProperty]

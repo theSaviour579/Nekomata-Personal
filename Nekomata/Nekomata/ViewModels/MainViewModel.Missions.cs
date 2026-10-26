@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Core.Missions;
 using Nekomata.Data.Repositories;
+using Nekomata.Integrations.MicrosoftGraph.Calendar;
 using Nekomata.Models.Guardian;
 using System.Windows;
 
@@ -48,6 +49,7 @@ public partial class MainViewModel
     private TimeSpan _nextMissionCheckInAt;
     private bool _missionOverrunCheckInShown;
     private Nekomata.Models.Missions.Mission? _activeMission;
+    private readonly List<MissionWorkSegment> _missionWorkSegments = [];
 
     public string ObjectiveActionText => MissionEntryPolicy.Resolve(MissionActive, MissionPaused) switch
     {
@@ -56,7 +58,6 @@ public partial class MainViewModel
         _ => "BEGIN TODAY'S OBJECTIVE"
     };
 
-    partial void OnMissionActiveChanged(bool value) => OnPropertyChanged(nameof(ObjectiveActionText));
     partial void OnMissionPausedChanged(bool value) => OnPropertyChanged(nameof(ObjectiveActionText));
 
     [RelayCommand]
@@ -65,7 +66,7 @@ public partial class MainViewModel
         var entryAction = MissionEntryPolicy.Resolve(MissionActive, MissionPaused);
         if (entryAction is not MissionEntryAction.Start)
         {
-            WorkspaceMode = Models.Workspace.WorkspaceMode.Mission;
+            ReturnToActiveMission();
             if (entryAction is MissionEntryAction.ResumePausedMission)
                 ToggleMissionPause();
             return;
@@ -77,6 +78,7 @@ public partial class MainViewModel
             return;
 
         _activeMission = mission;
+        _manualObjectiveOverride = null;
         MissionActive = true;
         MissionPaused = false;
         MissionOverrun = false;
@@ -95,12 +97,14 @@ public partial class MainViewModel
         MissionStartedAt = DateTime.Now;
         _missionSegmentStartedAt = DateTime.Now;
         _missionAccumulatedElapsed = TimeSpan.Zero;
+        _missionWorkSegments.Clear();
 
         WorkspaceMode = Models.Workspace.WorkspaceMode.Mission;
 
         _missionTimer.Start();
 
         UpdateMissionTimer();
+        await BeginPolicyObservationAsync(mission);
 
         try
         {
@@ -135,6 +139,17 @@ public partial class MainViewModel
                 "Mission started, but memory could not be " +
                 $"stored: {ex.Message}";
         }
+    }
+
+    private void ReturnToActiveMission()
+    {
+        if (!MissionActive || _activeMission is null)
+            return;
+
+        Workspace.CurrentMission = _activeMission;
+        WorkspaceMode = Models.Workspace.WorkspaceMode.Mission;
+        UpdateMissionTimer();
+        OnPropertyChanged(nameof(Workspace));
     }
 
     private void UpdateMissionTimer()
@@ -175,8 +190,7 @@ public partial class MainViewModel
             var overrun =
                 elapsed - estimated;
 
-            MissionRemaining =
-                $"+{overrun:hh\\:mm\\:ss}";
+            MissionRemaining = "+" + MissionClock(overrun);
 
             MissionStateText =
                 MissionPaused
@@ -185,8 +199,8 @@ public partial class MainViewModel
         }
         else
         {
-            MissionRemaining =
-                remaining.ToString(@"hh\:mm\:ss");
+            // Minutes and seconds under an hour, so the countdown fits inside the core.
+            MissionRemaining = MissionClock(remaining);
 
             MissionStateText =
                 MissionPaused
@@ -341,6 +355,7 @@ public partial class MainViewModel
         {
             if (_missionSegmentStartedAt is not null)
             {
+                _missionWorkSegments.Add(new MissionWorkSegment(_missionSegmentStartedAt.Value, DateTime.Now));
                 _missionAccumulatedElapsed +=
                     DateTime.Now -
                     _missionSegmentStartedAt.Value;
@@ -386,7 +401,24 @@ public partial class MainViewModel
             await _missionSessionService.RecordDeferredMissionAsync(
                 mission,
                 MissionStartedAt ?? DateTime.Now,
-                elapsed);
+                elapsed,
+                CaptureMissionWorkSegments(MissionStartedAt ?? DateTime.Now, elapsed));
+            await BackfillWorkedObjectiveToCalendarAsync(mission, MissionStartedAt ?? DateTime.Now, elapsed);
+            await CompletePolicyObservationAsync(mission, "Adverse", 0);
+            await RecordWorkdayEventAsync(new WorkdayEvent
+            {
+                EventType = "ObjectiveDeferred", Category = "Mission", Title = "Objective deferred",
+                Narrative = $"{mission.Title} deferred after {(int)Math.Ceiling(elapsed.TotalMinutes)} minutes; {Math.Max(0, (int)Math.Ceiling((MissionSessionEstimate - elapsed).TotalMinutes))} predicted minutes remain.",
+                TaskId = mission.TaskId, ProjectId = mission.ProjectId, BusinessValue = mission.BusinessValue,
+                Outcome = "Deferred", Significance = 70, RecommendationId = _activeRecommendationId,
+                CorrelationId = _activeCorrelationId ?? Guid.NewGuid(), ParentEventId = _activeDecisionEventId,
+                CausedByEventId = _activeDecisionEventId,
+                Recommendation = _activeRecommendationId is null ? "" : $"Start {mission.Title}",
+                UserDecision = _activeRecommendationId is null ? "" : "Accepted"
+            });
+            _activeRecommendationId = null;
+            _activeCorrelationId = null;
+            _activeDecisionEventId = null;
 
             var workedMinutes = effort?.WorkedMinutes ??
                 Math.Max(0, (int)Math.Ceiling(elapsed.TotalMinutes));
@@ -421,9 +453,17 @@ public partial class MainViewModel
     private void ExitMission()
     {
         _missionTimer.Stop();
+        // Allow a fresh suggestion after the session transition and source refresh settle.
+        if (_nextActionState != null)
+        {
+            _nextActionState.LastPrompt = DateTimeOffset.Now.AddMinutes(-43);
+            try { SaveNextActionState(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Could not save next-action cooldown: " + ex.Message); }
+        }
 
         MissionActive = false;
         _activeMission = null;
+        _manualObjectiveOverride = null;
         MissionPaused = false;
         MissionOverrun = false;
         MissionCheckInVisible = false;
@@ -437,9 +477,12 @@ public partial class MainViewModel
         MissionStartedAt = null;
         _missionSegmentStartedAt = null;
         _missionAccumulatedElapsed = TimeSpan.Zero;
+        _missionWorkSegments.Clear();
 
         MissionElapsed = "00:00:00";
         MissionRemaining = "00:00:00";
+        CalendarObjectiveAvailable = false;
+        CanBeginBriefingObjective = false;
 
         WorkspaceMode =
             Models.Workspace.WorkspaceMode.Dashboard;
@@ -475,6 +518,12 @@ public partial class MainViewModel
                 _services.GetRequiredService<
                     IGuardianMemoryRepository>();
 
+            if (mission.TaskId is null &&
+                mission.SourceType.Equals("Calendar", StringComparison.OrdinalIgnoreCase))
+            {
+                mission.TaskId = ResolveCalendarTaskId(FindCalendarEventForMission(mission, DateTimeOffset.Now));
+            }
+
             if (mission.TaskId is not null)
             {
                 var taskRepository =
@@ -484,20 +533,30 @@ public partial class MainViewModel
                 await taskRepository.CompleteAsync(
                     mission.TaskId.Value);
             }
-            if (mission.SourceType.Equals("KnowBe4", StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(mission.SourceRecordId))
-            {
-                var acknowledgements = _services.GetRequiredService<
-                    Nekomata.Services.KnowBe4.KnowBe4AcknowledgementStore>();
-                await acknowledgements.AcknowledgeAsync(mission.SourceRecordId);
-                ResolveAttention($"knowbe4:failure:{mission.SourceRecordId}");
-            }
 
             await _missionSessionService
                 .RecordCompletedMissionAsync(
                     mission,
                     MissionStartedAt ?? DateTime.Now,
-                    elapsed);
+                    elapsed,
+                    CaptureMissionWorkSegments(MissionStartedAt ?? DateTime.Now, elapsed));
+            await BackfillWorkedObjectiveToCalendarAsync(mission, MissionStartedAt ?? DateTime.Now, elapsed);
+            await CompletePolicyObservationAsync(mission, "Successful", Math.Max(0, (int)Math.Ceiling(elapsed.TotalMinutes)));
+            await RecordWorkdayEventAsync(new WorkdayEvent
+            {
+                EventType = "ObjectiveCompleted", Category = "Mission", Title = "Objective completed",
+                Narrative = $"{mission.Title} completed in {(int)Math.Ceiling(elapsed.TotalMinutes)}m against a {(int)Math.Ceiling(mission.EstimatedDuration.TotalMinutes)}m predicted calendar requirement.",
+                TaskId = mission.TaskId, ProjectId = mission.ProjectId, ExternalId = mission.SourceRecordId ?? "",
+                BusinessValue = mission.BusinessValue, Outcome = "Successful", Significance = 85
+                , RecommendationId = _activeRecommendationId,
+                CorrelationId = _activeCorrelationId ?? Guid.NewGuid(), ParentEventId = _activeDecisionEventId,
+                CausedByEventId = _activeDecisionEventId,
+                Recommendation = _activeRecommendationId is null ? "" : $"Start {mission.Title}",
+                UserDecision = _activeRecommendationId is null ? "" : "Accepted"
+            });
+            _activeRecommendationId = null;
+            _activeCorrelationId = null;
+            _activeDecisionEventId = null;
 
             await memoryRepository.AddAsync(
                 new GuardianMemory
@@ -534,8 +593,10 @@ public partial class MainViewModel
                     mission.ProjectId.Value);
             }
 
+            var calendarRecovery = await ReconcileCompletedCalendarMissionAsync(mission, DateTimeOffset.Now);
             GuardianResponse =
-                $"Mission completed: {mission.Title}.";
+                $"Mission completed: {mission.Title}." +
+                (string.IsNullOrWhiteSpace(calendarRecovery) ? string.Empty : $" {calendarRecovery}");
 
             ChatHistory.Add(
                 new()
@@ -569,4 +630,44 @@ public partial class MainViewModel
                 MessageBoxImage.Error);
         }
     }
+
+    private async Task BackfillWorkedObjectiveToCalendarAsync(
+        Nekomata.Models.Missions.Mission mission, DateTime startedAt, TimeSpan elapsed)
+    {
+        if (elapsed < TimeSpan.FromMinutes(1) ||
+            mission.SourceType.Equals("Calendar", StringComparison.OrdinalIgnoreCase) ||
+            mission.Status.Contains("SCHEDULED", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        try
+        {
+            var segments = MissionWorkSegmentBuilder.Build(
+                _missionWorkSegments,
+                MissionPaused ? null : _missionSegmentStartedAt,
+                DateTime.Now,
+                startedAt,
+                elapsed);
+
+            var service = _services.GetRequiredService<ICalendarService>();
+            var objectiveIdentity = mission.TaskId?.ToString() ?? mission.SourceRecordId ?? mission.Title;
+            for (var index = 0; index < segments.Count; index++)
+            {
+                var segment = segments[index];
+                var marker = $"NEKOMATA:WORKED:{segment.Start:yyyyMMddHHmmss}:{index}:{objectiveIdentity}";
+                await service.CreateFocusEventAsync(mission.Title, segment.Start, segment.End, marker);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Worked-objective calendar backfill failed: {ex}");
+        }
+    }
+
+    private IReadOnlyList<MissionWorkSegment> CaptureMissionWorkSegments(DateTime startedAt, TimeSpan elapsed) =>
+        MissionWorkSegmentBuilder.Build(
+            _missionWorkSegments,
+            MissionPaused ? null : _missionSegmentStartedAt,
+            DateTime.Now,
+            startedAt,
+            elapsed);
 }

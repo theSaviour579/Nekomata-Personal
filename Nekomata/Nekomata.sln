@@ -13,8 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nekomata.Integrations", "Ne
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nekomata.Models", "Nekomata.Models\Nekomata.Models.csproj", "{75D94968-A99A-58FC-B516-8A2A6911FD85}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nekomata.Services", "Nekomata.Services\Nekomata.Services.csproj", "{9FD9F3AC-C65A-9EF0-F1D0-5B8E637CCAA9}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nekomata.Tests", "Nekomata.Tests\Nekomata.Tests.csproj", "{37362CFD-37C8-4E1A-AF3A-E6D3C85AB571}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nekomata.UI", "Nekomata\Nekomata.UI.csproj", "{61CD1107-5CBC-0CB4-780F-AC73A0310C23}"
@@ -45,10 +43,6 @@ Global
 		{75D94968-A99A-58FC-B516-8A2A6911FD85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75D94968-A99A-58FC-B516-8A2A6911FD85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75D94968-A99A-58FC-B516-8A2A6911FD85}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9FD9F3AC-C65A-9EF0-F1D0-5B8E637CCAA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9FD9F3AC-C65A-9EF0-F1D0-5B8E637CCAA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9FD9F3AC-C65A-9EF0-F1D0-5B8E637CCAA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9FD9F3AC-C65A-9EF0-F1D0-5B8E637CCAA9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{37362CFD-37C8-4E1A-AF3A-E6D3C85AB571}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{37362CFD-37C8-4E1A-AF3A-E6D3C85AB571}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{37362CFD-37C8-4E1A-AF3A-E6D3C85AB571}.Release|Any CPU.ActiveCfg = Release|Any CPU

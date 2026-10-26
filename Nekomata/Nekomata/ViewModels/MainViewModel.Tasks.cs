@@ -3,12 +3,40 @@ using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Guardian;
 using Nekomata.Models.Tasks;
+using Nekomata.Models.Missions;
+using Nekomata.Core.Missions;
+using Nekomata.Core.Guardian.OpenLoops;
 using System.Windows;
 
 namespace Nekomata.UI.ViewModels;
 
 public partial class MainViewModel
 {
+    [RelayCommand]
+    private async Task StartTaskMissionAsync(NekomataTask? task)
+    {
+        if (task is null || task.IsCompleted) return;
+        if (MissionActive)
+        {
+            GuardianResponse = $"Finish, hold or discard the active mission before starting '{task.Title}'.";
+            GuardianPanelExpanded = true;
+            return;
+        }
+
+        var candidate = Workspace.RankedMissionCandidates.FirstOrDefault(item => item.TaskId == task.Id)
+            ?? new MissionCandidate
+            {
+                SourceType = "Task", TaskId = task.Id, ProjectId = task.ProjectId,
+                Title = task.Title, Description = task.Description ?? string.Empty,
+                EstimatedMinutes = Math.Max(1, task.EstimatedMinutes - task.ActualMinutes),
+                BusinessValue = task.EstimatedBusinessValue, Priority = task.Priority,
+                DueAt = task.DueAt, Score = task.PriorityScore
+            };
+        Workspace.CurrentMission = _services.GetRequiredService<IMissionFactory>().Create(candidate);
+        OnPropertyChanged(nameof(Workspace));
+        await BeginMissionAsync();
+    }
+
     [RelayCommand]
     private async Task CompleteTaskAsync(
         NekomataTask? task)
@@ -57,6 +85,8 @@ public partial class MainViewModel
                 });
 
             await taskRepository.CompleteAsync(task.Id);
+            await _services.GetRequiredService<GuardianOpenLoopIngestionService>()
+                .IngestTaskCompletionAsync(task.Id, task.Title);
 
             await _workspaceCoordinator.RefreshAsync();
 

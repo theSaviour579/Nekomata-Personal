@@ -107,6 +107,16 @@ public sealed class CalendarTimelineContextResolverTests
         Assert.True(after.HasActiveFocus);
     }
 
+    [Fact]
+    public void Active_calendar_event_is_not_suppressed_before_configured_work_start()
+    {
+        var now=Day.AddHours(7).AddMinutes(5);
+        Assert.False(CalendarTimelineContextResolver.ShouldSuppressObjectiveOutsideWorkPeriod(
+            now,Day.AddHours(7).AddMinutes(30),Day.AddHours(17),hasActiveEvent:true));
+        Assert.True(CalendarTimelineContextResolver.ShouldSuppressObjectiveOutsideWorkPeriod(
+            now,Day.AddHours(7).AddMinutes(30),Day.AddHours(17),hasActiveEvent:false));
+    }
+
     private static CalendarEvent Event(
         string subject,
         int startHour,

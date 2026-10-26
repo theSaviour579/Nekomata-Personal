@@ -1,5 +1,6 @@
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Missions;
+using System.Text.Json;
 
 namespace Nekomata.Core.Missions;
 
@@ -16,7 +17,8 @@ public class MissionSessionService : IMissionSessionService
     public async Task RecordCompletedMissionAsync(
         Mission mission,
         DateTime startedAt,
-        TimeSpan elapsed)
+        TimeSpan elapsed,
+        IReadOnlyList<MissionWorkSegment>? activeSegments = null)
     {
         await _repository.SaveAsync(new MissionSession
         {
@@ -42,14 +44,16 @@ public class MissionSessionService : IMissionSessionService
             Cancelled = false,
 
             GuardianDecision = mission.Decision.Summary,
-            RecommendationReason = mission.RecommendationReason
+            RecommendationReason = mission.RecommendationReason,
+            ActiveIntervalsJson = SerializeSegments(activeSegments)
         });
     }
 
     public async Task RecordDeferredMissionAsync(
         Mission mission,
         DateTime startedAt,
-        TimeSpan elapsed)
+        TimeSpan elapsed,
+        IReadOnlyList<MissionWorkSegment>? activeSegments = null)
     {
         await _repository.SaveAsync(new MissionSession
         {
@@ -68,13 +72,15 @@ public class MissionSessionService : IMissionSessionService
             Completed = false,
             Cancelled = false,
             GuardianDecision = mission.Decision.Summary,
-            RecommendationReason = mission.RecommendationReason
+            RecommendationReason = mission.RecommendationReason,
+            ActiveIntervalsJson = SerializeSegments(activeSegments)
         });
     }
     public async Task RecordCancelledMissionAsync(
         Mission mission,
         DateTime startedAt,
-        TimeSpan elapsed)
+        TimeSpan elapsed,
+        IReadOnlyList<MissionWorkSegment>? activeSegments = null)
     {
         await _repository.SaveAsync(new MissionSession
         {
@@ -100,7 +106,11 @@ public class MissionSessionService : IMissionSessionService
             Cancelled = true,
 
             GuardianDecision = mission.Decision.Summary,
-            RecommendationReason = mission.RecommendationReason
+            RecommendationReason = mission.RecommendationReason,
+            ActiveIntervalsJson = SerializeSegments(activeSegments)
         });
     }
+
+    private static string SerializeSegments(IReadOnlyList<MissionWorkSegment>? segments) =>
+        segments is { Count: > 0 } ? JsonSerializer.Serialize(segments) : "[]";
 }

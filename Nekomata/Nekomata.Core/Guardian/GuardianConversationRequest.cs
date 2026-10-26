@@ -6,6 +6,7 @@ namespace Nekomata.Core.Guardian;
 public class GuardianConversationRequest
 {
     public string UserMessage { get; set; } = "";
+    public string IntentMessage { get; set; } = "";
 
     public NekomataWorkspace Workspace { get; set; } = new();
 

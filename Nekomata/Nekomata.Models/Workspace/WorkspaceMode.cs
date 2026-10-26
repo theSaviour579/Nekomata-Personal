@@ -7,8 +7,6 @@ public enum WorkspaceMode
     Calendar,
     Email,
     Attention,
-    HaloWatchlist,
-    Battle,
     Diagnostics,
     ValueLeverage
 }

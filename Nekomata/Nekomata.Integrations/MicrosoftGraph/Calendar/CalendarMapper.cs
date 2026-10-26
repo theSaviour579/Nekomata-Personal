@@ -19,14 +19,30 @@ internal static class CalendarMapper
             End = end,
             IsAllDay = source.IsAllDay,
             Location = source.Location?.DisplayName ?? string.Empty,
-            Organiser = source.Organizer?.EmailAddress?.Name ?? string.Empty,
+            Organiser = Format(source.Organizer?.EmailAddress),
             Attendees = (source.Attendees ?? [])
-                .Select(attendee => attendee.EmailAddress?.Name ?? attendee.EmailAddress?.Address ?? string.Empty)
+                .Select(attendee => Format(attendee.EmailAddress))
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList(),
             WebLink = source.WebLink ?? string.Empty,
-            BodyPreview = source.BodyPreview ?? string.Empty
+            BodyPreview = source.BodyPreview ?? string.Empty,
+            OnlineMeetingUrl = source.OnlineMeeting?.JoinUrl ?? string.Empty,
+            ResponseStatus = source.ResponseStatus?.Response ?? string.Empty,
+            IsOrganizer = source.IsOrganizer ?? false,
+            ShowAs = source.ShowAs ?? string.Empty,
+            IsCancelled = source.IsCancelled,
+            OptionalAttendeeAddresses = (source.Attendees ?? [])
+                .Where(a => string.Equals(a.Type, "optional", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(a.EmailAddress?.Address))
+                .Select(a => a.EmailAddress!.Address!.ToLowerInvariant()).ToList()
         };
+    }
+
+    private static string Format(CalendarService.GraphEmailAddress? value)
+    {
+        if (value is null) return string.Empty;
+        if (string.IsNullOrWhiteSpace(value.Name)) return value.Address ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(value.Address)) return value.Name;
+        return $"{value.Name} <{value.Address}>";
     }
 }

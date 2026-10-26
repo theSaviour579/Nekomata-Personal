@@ -1,10 +1,9 @@
 ﻿using Nekomata.AI.Models.Actions;
 using Nekomata.Models.Tasks;
-using Nekomata.Core.Personalization;
 
 namespace Nekomata.Core.Guardian.Mapping;
 
-public class GuardianTaskMapper(IUserIdentity userIdentity)
+public class GuardianTaskMapper(Nekomata.Core.Personalization.IUserIdentity userIdentity)
     : IGuardianTaskMapper
 {
     public NekomataTask Map(
@@ -26,6 +25,8 @@ public class GuardianTaskMapper(IUserIdentity userIdentity)
 
             EstimatedMinutes =
                 proposedTask.EstimatedMinutes,
+
+            DueAt = proposedTask.DueAt,
 
             EstimatedBusinessValue =
                 proposedTask.EstimatedBusinessValue,

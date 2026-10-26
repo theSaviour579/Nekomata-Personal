@@ -1,38 +1,37 @@
-# Nekomata backup and laptop recovery
+# Nekomata Personal backup and laptop recovery
 
-Nekomata source code is protected by the private GitHub repository. Workspace data is stored separately in PostgreSQL and must be backed up.
+Nekomata Personal keeps everything on the machine it runs on. There is no database server
+and nothing to configure: your workspace, tasks, projects, objectives, duties, Guardian's
+own records and its memory all live under `%LOCALAPPDATA%\Nekomata Personal`.
 
-## Configure automatic backups
+Because that folder is the only copy, take a backup before moving to another computer.
 
-Install PostgreSQL client tools (`pg_dump` and `pg_restore`). Nekomata discovers them from `PATH`, the standard PostgreSQL installation folder, or `Backup:PostgreSqlBinPath`.
+## Create a backup
 
-Set a strong encryption password outside Git. Either use the environment variable:
+1. Open **Settings → Backup & Recovery → Create backup**.
+2. Choose where to save the `.nkp` file.
+3. Enter an encryption password when prompted.
 
-```powershell
-[Environment]::SetEnvironmentVariable('NEKOMATA_BACKUP_PASSPHRASE', 'your-long-private-password', 'User')
-```
+The archive is encrypted with that password, which is never stored inside it. Keep the file
+somewhere separately protected — a cloud folder or an external drive — and remember the
+password, because the backup cannot be opened without it.
 
-Or use .NET user secrets from the UI project directory:
+## Move to another computer
 
-```powershell
-dotnet user-secrets set "Backup:Passphrase" "your-long-private-password"
-dotnet user-secrets set "Database:Password" "your-database-password"
-```
+1. Install Nekomata Personal on the new computer and launch it once, so it creates its
+   workspace folder.
+2. Open **Settings → Backup & Recovery → Restore**.
+3. Select the `.nkp` file and enter its encryption password.
+4. Restart Nekomata Personal after the restore completes.
+5. Sign in to Microsoft again, and re-enter any OpenAI key: tokens and secrets are held in
+   Windows Credential Manager on the old machine and are deliberately not carried in the backup.
 
-Restart Nekomata after changing either setting. It creates at most one automatic backup every 24 hours under `%LOCALAPPDATA%\Nekomata\Backups`, retaining seven recent daily files plus four older weekly files.
+Restoring replaces the current workspace. Nekomata Personal verifies the archive first and
+asks for explicit confirmation before it changes anything.
 
-Copy encrypted `.nkb` files to a separately protected cloud folder or external drive. The encryption password is never stored in the backup.
+## If the workspace will not load
 
-## Move to another laptop
-
-1. Install Git, .NET 10, PostgreSQL server/client tools, and clone the private repository.
-2. Create the `nekomata` PostgreSQL database and configure its password in user secrets.
-3. Launch Nekomata once so the schema is initialised.
-4. Open **Status → Backup & Recovery → Restore**.
-5. Select the `.nkb` file and enter its encryption password.
-6. Restart Nekomata after the restore completes.
-7. Run Diagnostics and confirm PostgreSQL and Backups are healthy.
-
-Restore deliberately replaces the current `assistant` schema. Nekomata verifies the encrypted archive, creates an encrypted pre-restore safety backup, and requires explicit confirmation before making changes.
-
-The old placeholder database password previously present in `appsettings.json` has been removed. If that password was ever used outside an isolated local development database, rotate it before relying on these backups.
+Nekomata Personal keeps each of Guardian's records in its own small JSON file. If one is
+damaged it is set aside as `<name>.json.unreadable-<timestamp>` and that feature starts
+again from empty, rather than the whole app failing to start. Those files can be deleted
+once you no longer need them, or inspected in a text editor to recover anything important.

@@ -43,8 +43,15 @@ public static class MeetingAnalysisSchema
           "actionType",
           "targetType",
           "targetName",
+          "taskId",
+          "projectId",
           "property",
           "newValue",
+          "description",
+          "priority",
+          "estimatedMinutes",
+          "dueAt",
+          "estimatedBusinessValue",
           "reason"
         ],
 
@@ -66,6 +73,10 @@ public static class MeetingAnalysisSchema
             "type": "string"
           },
 
+          "taskId": { "type": ["integer", "null"] },
+
+          "projectId": { "type": ["integer", "null"] },
+
           "property": {
             "type": "string"
           },
@@ -73,6 +84,19 @@ public static class MeetingAnalysisSchema
           "newValue": {
             "type": "string"
           },
+
+          "description": { "type": "string" },
+
+          "priority": {
+            "type": "string",
+            "enum": ["Low", "Normal", "High", "Critical"]
+          },
+
+          "estimatedMinutes": { "type": ["integer", "null"] },
+
+          "dueAt": { "type": "string" },
+
+          "estimatedBusinessValue": { "type": ["number", "null"] },
 
           "reason": {
             "type": "string"

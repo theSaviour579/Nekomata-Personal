@@ -1,0 +1,39 @@
+<UserControl x:Class="Nekomata.UI.Controls.GuardianWorkloadForecastCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Name="Root">
+    <Border Padding="18" CornerRadius="16" Background="{DynamicResource NekoCardGradientBrush}"
+            BorderBrush="{DynamicResource NekoBorderSoftBrush}" BorderThickness="1" Margin="0,0,0,14">
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="DAY FORECAST" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" Margin="0,0,12,0"/>
+                    <TextBlock Text="{Binding Forecast.StatusLabel, ElementName=Root}" Foreground="{DynamicResource NekoWarningBrush}" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Forecast.ConfidencePercent, ElementName=Root, StringFormat= · {0}% confidence}"
+                               Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                    <TextBlock Text="{Binding Forecast.ProjectedFinishLabel, ElementName=Root}" Foreground="{DynamicResource NekoSpiritWhiteBrush}" FontSize="18" FontWeight="SemiBold" Margin="0,0,16,0"/>
+                    <TextBlock Text="{Binding Forecast.InterruptionAllowanceLabel, ElementName=Root}" Foreground="{DynamicResource NekoSpiritPurpleBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="{Binding Forecast.Summary, ElementName=Root}" Foreground="{DynamicResource NekoTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                <TextBlock Text="{Binding Forecast.Evidence, ElementName=Root}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                <ItemsControl ItemsSource="{Binding Forecast.ThreatenedCommitments, ElementName=Root}" Margin="0,5,0,0">
+                    <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat=AT RISK · {0}}" Foreground="{DynamicResource NekoWarningBrush}" FontSize="11" Margin="0,2,0,0"/></DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="22,0,0,0">
+            <Button Content="COMPARE DAY OPTIONS" Command="{Binding SimulationCommand, ElementName=Root}" Padding="14,8"/>
+            <Button Content="PREVIEW RECOVERY PLAN" Command="{Binding RecoveryCommand, ElementName=Root}"
+                    Margin="0,8,0,0" Padding="14,8">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding Forecast.NeedsRecovery, ElementName=Root}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

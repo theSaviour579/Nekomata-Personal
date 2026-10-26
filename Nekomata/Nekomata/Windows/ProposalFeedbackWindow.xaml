@@ -1,0 +1,37 @@
+<Window x:Class="Nekomata.UI.Windows.ProposalFeedbackWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Guardian proposal feedback" Width="620" Height="470" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource NekoBackgroundBrush}"
+        TextElement.Foreground="{DynamicResource NekoTextBrush}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock x:Name="HeadingText" Text="REMOVE SUGGESTION" Foreground="{DynamicResource NekoAccentBrush}" FontSize="25" FontWeight="Bold"/>
+            <TextBlock x:Name="ItemText" TextWrapping="Wrap" FontSize="16" FontWeight="SemiBold" Margin="0,7,0,0"/>
+            <TextBlock Text="This feedback is saved only when you apply the proposal or explicitly save its feedback." Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,5,0,16"/>
+        </StackPanel>
+        <StackPanel Grid.Row="1">
+            <TextBlock Text="WHY DOES THIS NOT BELONG?" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" FontSize="11"/>
+            <ComboBox x:Name="ReasonBox" SelectedIndex="0" Margin="0,6,0,14" MinHeight="35">
+                <ComboBoxItem Content="Not relevant to this plan"/><ComboBoxItem Content="Already completed or covered"/>
+                <ComboBoxItem Content="Wrong priority or timing"/><ComboBoxItem Content="Not my responsibility"/>
+                <ComboBoxItem Content="Too broad — needs breaking down"/><ComboBoxItem Content="A better alternative exists"/>
+            </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="2">
+            <TextBlock Text="CONTEXT FOR GUARDIAN" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" FontSize="11"/>
+            <TextBox x:Name="NotesBox" MinHeight="65" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,6,0,14" Padding="8"/>
+        </StackPanel>
+        <StackPanel x:Name="ReplacementPanel" Grid.Row="3">
+            <TextBlock x:Name="ReplacementLabel" Text="REPLACEMENT TITLE OR VALUE" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold" FontSize="11"/>
+            <TextBlock Text="Enter what should appear instead. Leave blank to let Guardian choose the next eligible objective when replacing a calendar suggestion."
+                       Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="0,4,0,6"/>
+            <TextBox x:Name="ReplacementBox" MinHeight="65" AcceptsReturn="True" TextWrapping="Wrap" Padding="8"/>
+        </StackPanel>
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button Content="CANCEL" IsCancel="True" Width="100" Margin="0,0,9,0"/>
+            <Button x:Name="ConfirmButton" Content="REMOVE &amp; LEARN" Click="Confirm_Click" Width="160" Background="{DynamicResource NekoSpiritPurpleBrush}"/>
+        </StackPanel>
+    </Grid>
+</Window>

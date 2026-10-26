@@ -66,11 +66,14 @@ public class MissionOverrideService
                 SourceType =
                     alternative.SourceType,
 
+                SourceRecordId =
+                    alternative.SourceRecordId,
+
                 Status =
-                    "READY",
+                    "MANUALLY SELECTED",
 
                 RecommendationReason =
-                    "Selected manually."
+                    "Selected manually after reviewing Guardian's comparison."
             };
 
         workspace.CurrentMission.Decision =

@@ -27,14 +27,20 @@ public class TaskMissionCandidateProvider
                 Description = task.Description ?? "",
 
                 Priority = task.Priority,
-                BaseScore = task.PriorityScore,
+                // PriorityScore is already composite. Mission scoring adds its
+                // explicit priority/value factors, so using it here double-counts.
+                BaseScore = 0,
                 Score = 0,
 
                 BusinessValue =
                     task.EstimatedBusinessValue,
 
                 EstimatedMinutes =
-                    Math.Max(task.EstimatedMinutes - task.ActualMinutes, 1),
+                    Math.Max((task.PredictedCalendarMinutes > 0 ? task.PredictedCalendarMinutes : task.EstimatedMinutes) - task.ActualMinutes, 1),
+                EnteredEstimateMinutes = task.OriginalEstimatedMinutes > 0 ? task.OriginalEstimatedMinutes : task.EstimatedMinutes,
+                PredictedActiveMinutes = task.PredictedActiveMinutes > 0 ? task.PredictedActiveMinutes : task.EstimatedMinutes,
+                InterruptionOverheadMinutes = task.ExpectedInterruptionOverheadMinutes,
+                PredictionExplanation = task.EstimateLearningExplanation,
 
                 DueAt = task.DueAt,
 
@@ -93,6 +99,9 @@ public class TaskMissionCandidateProvider
 
         if (task.RequiresFocus)
             reasons.Add("requires focused work");
+
+        if (!string.IsNullOrWhiteSpace(task.EstimateLearningExplanation))
+            reasons.Add(task.EstimateLearningExplanation);
 
         return reasons.Count == 0
             ? "Highest current task priority."

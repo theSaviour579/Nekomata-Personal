@@ -37,4 +37,8 @@ public class MissionSession
     public string GuardianDecision { get; set; } = "";
 
     public string RecommendationReason { get; set; } = "";
+
+    public string ActiveIntervalsJson { get; set; } = "[]";
+
+    public string? SourceEventKey { get; set; }
 }

@@ -24,6 +24,7 @@ public class MissionFactory : IMissionFactory
             SourceRecordId = candidate.SourceRecordId,
 
             Title = candidate.Title,
+            Description = candidate.Description,
             Score = candidate.Score,
             
             GuardianReasons =
@@ -32,6 +33,11 @@ public class MissionFactory : IMissionFactory
 
             EstimatedDuration =
                 TimeSpan.FromMinutes(missionMinutes),
+            EnteredEstimateMinutes = candidate.EnteredEstimateMinutes,
+            PredictedActiveMinutes = candidate.PredictedActiveMinutes,
+            InterruptionOverheadMinutes = candidate.InterruptionOverheadMinutes,
+            PredictionExplanation = candidate.PredictionExplanation,
+            AppliedPolicyIds = candidate.AppliedPolicyIds.ToList(),
 
             Status = "READY",
             Progress = candidate.Progress,
@@ -40,6 +46,10 @@ public class MissionFactory : IMissionFactory
 
             RecommendationReason =
                 candidate.RecommendationReason,
+            CurrentOwner = candidate.CurrentOwner,
+            SuggestedOwner = candidate.SuggestedOwner,
+            AssignmentConfidence = candidate.AssignmentConfidence,
+            AssignmentReason = candidate.AssignmentReason,
 
             ThreatLevel =
                 CalculateThreatLevel(candidate),

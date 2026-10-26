@@ -9,16 +9,12 @@ public static class GuardianSpeechTextNormalizer
         (@"\bYoY\b", "year on year", RegexOptions.IgnoreCase),
         (@"\bMoM\b", "month on month", RegexOptions.None),
         (@"\bQoQ\b", "quarter on quarter", RegexOptions.IgnoreCase),
-        (@"\bP1\b", "priority one", RegexOptions.IgnoreCase),
-        (@"\bP2\b", "priority two", RegexOptions.IgnoreCase),
-        (@"\bSLA\b", "S L A", RegexOptions.None),
         (@"\bKPI\b", "K P I", RegexOptions.None),
         (@"\bROI\b", "return on investment", RegexOptions.None),
         (@"\bSQL\b", "S Q L", RegexOptions.None),
         (@"\bAPI\b", "A P I", RegexOptions.None),
         (@"\bOOO\b", "out of office", RegexOptions.None),
         (@"\bCC'd\b", "copied", RegexOptions.IgnoreCase),
-        (@"\bIT\b", "I T", RegexOptions.None)
     ];
 
     public static string Normalize(string? text)
@@ -27,8 +23,7 @@ public static class GuardianSpeechTextNormalizer
             return string.Empty;
 
         var value = Regex.Replace(text, @"https?://\S+", "a linked resource");
-        value = Regex.Replace(value, @"\bticket\s*#\s*(\d+)", "ticket $1", RegexOptions.IgnoreCase);
-        value = Regex.Replace(value, @"#\s*(\d+)", "ticket $1");
+        value = Regex.Replace(value, @"#\s*(\d+)", "number $1");
         value = Regex.Replace(value, @"\u00A3\s*([\d,]+(?:\.\d{1,2})?)", "$1 pounds");
         value = Regex.Replace(value, @"\b(\d+):(\d{2}):(\d{2})\b", match =>
             $"{Pluralise(match.Groups[1].Value, "hour")}, {Pluralise(match.Groups[2].Value, "minute")}, and {Pluralise(match.Groups[3].Value, "second")}");

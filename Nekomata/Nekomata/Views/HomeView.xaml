@@ -1,0 +1,748 @@
+<UserControl x:Class="Nekomata.UI.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:home="clr-namespace:Nekomata.UI.Controls.Home"
+             Foreground="{DynamicResource NekoTextBrush}">
+    <!-- The Guardian HUD: one core showing the day and what is happening now, with everything else laid out around and
+         below it on thin rules rather than boxes. Brighter and closer to the core = more urgent. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+        <FontFamily x:Key="HudMono">Cascadia Mono, Consolas</FontFamily>
+        <SolidColorBrush x:Key="HudText" Color="#E6E9F5"/>
+        <SolidColorBrush x:Key="HudSoft" Color="#B7C0D6"/>
+        <SolidColorBrush x:Key="HudMuted" Color="#8C96B0"/>
+        <SolidColorBrush x:Key="HudDim" Color="#5D6784"/>
+        <SolidColorBrush x:Key="HudPurple" Color="#9C85FF"/>
+        <SolidColorBrush x:Key="HudCyan" Color="#42D9FF"/>
+        <SolidColorBrush x:Key="HudAmber" Color="#FFC857"/>
+        <SolidColorBrush x:Key="HudRed" Color="#FF5A72"/>
+        <SolidColorBrush x:Key="HudGreen" Color="#46F0B4"/>
+        <SolidColorBrush x:Key="HudDivider" Color="#2E9C85FF"/>
+        <LinearGradientBrush x:Key="HudRule" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#5A9C85FF" Offset="0"/>
+            <GradientStop Color="#009C85FF" Offset="1"/>
+        </LinearGradientBrush>
+
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource HudMono}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{StaticResource HudPurple}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Mono" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource HudMono}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource HudMuted}"/>
+        </Style>
+        <Style x:Key="Body" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{StaticResource HudText}"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="Big" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource HudMono}"/>
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="Foreground" Value="{StaticResource HudText}"/>
+        </Style>
+        <!-- A plain text button: mono caps, brightens on hover. -->
+        <Style x:Key="TextBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource HudMuted}"/>
+            <Setter Property="FontFamily" Value="{StaticResource HudMono}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="0,4"/>
+            <Setter Property="Margin" Value="0,0,22,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#E6E9F5"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="LinkBtn" TargetType="Button" BasedOn="{StaticResource TextBtn}">
+            <Setter Property="Foreground" Value="{StaticResource HudPurple}"/>
+            <Setter Property="Margin" Value="0,0,16,0"/>
+        </Style>
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="#C8CEE0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" CornerRadius="8" BorderThickness="1" BorderBrush="#4D9C85FF" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#267B5DFF"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Primary" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" CornerRadius="10" Background="#7B5DFF" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#8F75FF"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Secondary" TargetType="Button" BasedOn="{StaticResource Primary}">
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Foreground" Value="#E6E9F5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" CornerRadius="10" Background="Transparent" BorderBrush="#809C85FF" BorderThickness="1" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#267B5DFF"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Margin="4,0,4,24">
+
+        <!-- TOP LINE -->
+        <DockPanel Margin="0,0,0,26">
+            <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <TextBlock Text="{Binding CurrentDateTime, StringFormat={}{0:HH:mm}}" FontFamily="{StaticResource HudMono}" FontSize="44" Foreground="{StaticResource HudText}" HorizontalAlignment="Right"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                    <TextBlock Text="{Binding CurrentDateTime, StringFormat={}{0:dddd d MMM}}" Style="{StaticResource Mono}" FontSize="11"/>
+                    <TextBlock Text="{Binding PlaceLabel, StringFormat={} · {0}}" FontSize="11" Foreground="{StaticResource HudCyan}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Mono}">
+                                <Style.Triggers><DataTrigger Binding="{Binding PlaceLabel}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+            <!-- WEATHER: animated symbol, temperature and today's outlook. Hover for the detail. -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,30,0" ToolTip="{Binding WeatherToolTip}"
+                        Visibility="{Binding HasWeather, Converter={StaticResource BoolVis}}" Background="Transparent">
+                <home:WeatherGlyph Kind="{Binding WeatherKind}" IsDay="{Binding WeatherIsDay}" Calm="{Binding HomeCalm}" Width="62" Height="62" Margin="0,0,10,0"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding WeatherTemperature}" FontFamily="{StaticResource HudMono}" FontSize="30" Foreground="{StaticResource HudText}"/>
+                    <TextBlock Text="{Binding WeatherCondition}" Style="{StaticResource Lbl}" Foreground="{StaticResource HudCyan}" Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding WeatherDetail}" Style="{StaticResource Mono}" FontSize="10" Margin="0,2,0,0"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel VerticalAlignment="Bottom">
+                <TextBlock Text="G U A R D I A N" FontFamily="{StaticResource HudMono}" FontSize="22" FontWeight="Bold" Foreground="#C9BBFF"/>
+                <WrapPanel Margin="0,8,0,0">
+                    <Button Content="{Binding DiagnosticStatusButtonLabel}" Command="{Binding ShowDiagnosticsCommand}" ToolTip="{Binding DiagnosticStatusButtonToolTip}" Style="{StaticResource TextBtn}" Margin="0,0,18,0"/>
+                    <Button Content="{Binding GuardianVoiceButtonLabel}" Command="{Binding ToggleGuardianVoiceCommand}" ToolTip="Mute or enable spoken briefings" Style="{StaticResource TextBtn}" Margin="0,0,18,0"/>
+                    <Button Content="↻ REFRESH" Command="{Binding RefreshWorkspaceCommand}" Style="{StaticResource TextBtn}" Margin="0,0,18,0"/>
+                    <Button Content="⚙ SETTINGS" Command="{Binding OpenGuardianSettingsCommand}" Style="{StaticResource TextBtn}" Margin="0,0,18,0"
+                            ToolTip="Hours, background features, Teams managers, thresholds, weather and Microsoft accounts"/>
+                    <Button Command="{Binding ToggleHomeCalmCommand}" Margin="0,0,18,0" ToolTip="Calm: the core just breathes. No orbits, ripples or flashes.">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource TextBtn}">
+                                <Setter Property="Content" Value="◌ CALM OFF"/>
+                                <Style.Triggers><DataTrigger Binding="{Binding HomeCalm}" Value="True"><Setter Property="Content" Value="◉ CALM ON"/><Setter Property="Foreground" Value="#46F0B4"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Content="UPDATE AVAILABLE" Command="{Binding InstallLatestUpdateCommand}" Foreground="{StaticResource HudAmber}" Margin="0,0,18,0"
+                            Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}" Style="{StaticResource TextBtn}"/>
+                </WrapPanel>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- ASK -->
+        <StackPanel Margin="0,0,0,10">
+            <Border BorderBrush="#739C85FF" BorderThickness="0,0,0,1" Padding="0,0,0,8">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Command="{Binding SendGuardianMessageCommand}" Style="{StaticResource Primary}" Content="Send" Height="40"/>
+                    <Button DockPanel.Dock="Right" Command="{Binding AddGuardianAttachmentsCommand}" Style="{StaticResource IconBtn}" Width="40" Height="40" ToolTip="Attach files">
+                        <TextBlock Text="&#xE723;" FontFamily="Segoe MDL2 Assets" FontSize="15"/>
+                    </Button>
+                    <Button DockPanel.Dock="Right" Command="{Binding HomeTalkCommand}" Style="{StaticResource IconBtn}" Width="40" Height="40" Foreground="{StaticResource HudCyan}" ToolTip="Talk to Guardian (or Ctrl+Alt+Space)">
+                        <TextBlock Text="&#xE720;" FontFamily="Segoe MDL2 Assets" FontSize="15"/>
+                    </Button>
+                    <TextBlock Text="ASK ›" Style="{StaticResource Lbl}" Foreground="{StaticResource HudCyan}" Margin="0,0,14,0"/>
+                    <Grid>
+                    <TextBlock Text="Ask anything, or Ctrl+Alt+Space to talk" FontSize="18" Foreground="#5D6784" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers><DataTrigger Binding="{Binding ChatInput}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBox Text="{Binding ChatInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="18" Background="Transparent" BorderThickness="0"
+                             Foreground="{StaticResource HudText}" CaretBrush="{StaticResource HudCyan}" VerticalContentAlignment="Center" Padding="0,6"
+                             ToolTip="Ask Guardian anything. Enter sends.">
+                        <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding SendGuardianMessageCommand}"/></TextBox.InputBindings>
+                    </TextBox>
+                    </Grid>
+                </DockPanel>
+            </Border>
+            <DockPanel Margin="0,8,0,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                            Visibility="{Binding IsSpotifyConfigured, Converter={StaticResource BoolVis}}">
+                    <TextBlock Style="{StaticResource Mono}" FontSize="11" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis" Margin="0,0,6,0">
+                        <Run Text="♪ " Foreground="#46F0B4"/><Run Text="{Binding SpotifyTrack, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding SpotifyArtist, Mode=OneWay}" Foreground="#5D6784"/>
+                    </TextBlock>
+                    <Button Command="{Binding SpotifyPreviousCommand}" Style="{StaticResource IconBtn}" ToolTip="Previous"><TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></Button>
+                    <Button Command="{Binding ToggleSpotifyPlaybackCommand}" Style="{StaticResource IconBtn}" ToolTip="Play / pause">
+                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="12">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="&#xE768;"/>
+                                    <Style.Triggers><DataTrigger Binding="{Binding SpotifyIsPlaying}" Value="True"><Setter Property="Text" Value="&#xE769;"/></DataTrigger></Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+                    <Button Command="{Binding SpotifyNextCommand}" Style="{StaticResource IconBtn}" ToolTip="Next"><TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></Button>
+                    <Button Command="{Binding SpotifyVolumeDownCommand}" Style="{StaticResource IconBtn}" ToolTip="Volume down"><TextBlock Text="&#xE993;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></Button>
+                    <Button Command="{Binding SpotifyVolumeUpCommand}" Style="{StaticResource IconBtn}" ToolTip="Volume up"><TextBlock Text="&#xE995;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></Button>
+                </StackPanel>
+                <WrapPanel VerticalAlignment="Center">
+                    <Button Content="AM I ON TRACK" Command="{Binding HomeQuickAskCommand}" CommandParameter="am I on track?" Style="{StaticResource TextBtn}"/>
+                    <Button Content="WHAT'S SLIPPING" Command="{Binding HomeQuickAskCommand}" CommandParameter="what am I not doing?" Style="{StaticResource TextBtn}"/>
+                    <Button Content="READ IMPORTANT EMAIL" Command="{Binding HomeQuickAskCommand}" CommandParameter="read me my important emails" Style="{StaticResource TextBtn}"/>
+                    <Button Content="BRIEF ME" Command="{Binding HomeQuickAskCommand}" CommandParameter="brief me" Style="{StaticResource TextBtn}"/>
+                    <Button Content="HAND OFF" Command="{Binding ShowHandoffCommand}" Style="{StaticResource TextBtn}" ToolTip="Today's done and moved, tomorrow's clashes and first block"/>
+                    <Button Content="WEEK IN REVIEW" Command="{Binding ToggleHomeReviewCommand}" Style="{StaticResource TextBtn}"/>
+                    <Button Content="PLANNER" Command="{Binding OpenPlannerWindowCommand}" Style="{StaticResource TextBtn}" ToolTip="Duties, objectives and where your time goes"/>
+                    <Button Command="{Binding ToggleHomeConversationCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource TextBtn}">
+                                <Setter Property="Content" Value="SHOW CONVERSATION"/>
+                                <Style.Triggers><DataTrigger Binding="{Binding GuardianPanelExpanded}" Value="True"><Setter Property="Content" Value="HIDE CONVERSATION"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </WrapPanel>
+            </DockPanel>
+
+            <!-- The conversation sits under the question. -->
+            <Border Margin="0,12,0,0" Padding="14,10" CornerRadius="12" BorderBrush="#339C85FF" BorderThickness="1" Background="#0D7B5DFF"
+                    Visibility="{Binding GuardianPanelExpanded, Converter={StaticResource BoolVis}}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Bottom" Text="Guardian is thinking…" Style="{StaticResource Mono}" Margin="2,6,0,0"
+                               Visibility="{Binding GuardianBusy, Converter={StaticResource BoolVis}}"/>
+                    <ScrollViewer x:Name="HomeChatScroll" MaxHeight="230" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding ChatHistory}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="Bubble" Background="#14101A26" BorderBrush="#339C85FF" BorderThickness="1" CornerRadius="12" Padding="12,8" Margin="0,0,0,8" MaxWidth="820" HorizontalAlignment="Left">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding CreatedAt, StringFormat={}{0:HH:mm}}" Style="{StaticResource Mono}" FontSize="11" Margin="12,0,0,0"/>
+                                                <!-- 👍 / 👎: Guardian learns from these (see MainViewModel.Feedback). -->
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0"
+                                                            Visibility="{Binding IsAssistant, Converter={StaticResource BoolVis}}">
+                                                    <Button Content="👍" ToolTip="Good answer" Padding="2,0" Margin="0,0,4,0"
+                                                            Command="{Binding DataContext.RateGoodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource TextBtn}">
+                                                                <Setter Property="Opacity" Value="0.45"/>
+                                                                <Style.Triggers><DataTrigger Binding="{Binding Rating}" Value="1"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                    <Button Content="👎" ToolTip="Not right. Say &quot;that was wrong: …&quot; to tell me what's right" Padding="2,0"
+                                                            Command="{Binding DataContext.RateBadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource TextBtn}">
+                                                                <Setter Property="Opacity" Value="0.45"/>
+                                                                <Style.Triggers><DataTrigger Binding="{Binding Rating}" Value="-1"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding DisplayRole}" Style="{StaticResource Lbl}"/>
+                                            </DockPanel>
+                                            <TextBox Text="{Binding Content, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent"
+                                                     Foreground="{StaticResource HudText}" CaretBrush="{StaticResource HudText}" FontSize="14" Margin="0,4,0,0"
+                                                     VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsUser}" Value="True">
+                                            <Setter TargetName="Bubble" Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter TargetName="Bubble" Property="Background" Value="#4D7B5DFF"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- CORE: now on the left, the ring in the middle, what needs you on the right -->
+        <Grid x:Name="CoreGrid" Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="CoreLeftCol" Width="*"/>
+                <ColumnDefinition x:Name="CoreMidCol" Width="Auto"/>
+                <ColumnDefinition x:Name="CoreRightCol" Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel x:Name="NowPane" VerticalAlignment="Center" HorizontalAlignment="Right" MaxWidth="400" Margin="0,0,24,0">
+                <TextBlock Text="{Binding HomeNowLabel}" Style="{StaticResource Lbl}" Foreground="{StaticResource HudCyan}" HorizontalAlignment="Right"/>
+                <TextBlock Text="{Binding HomeNowTitle}" FontSize="40" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Right" Margin="0,10,0,0" Foreground="{StaticResource HudText}"/>
+                <TextBlock Text="{Binding HomeNowDetail}" FontSize="14" Foreground="{StaticResource HudMuted}" TextWrapping="Wrap" TextAlignment="Right" Margin="0,8,0,0"/>
+                <WrapPanel HorizontalAlignment="Right" Margin="0,18,0,0" FlowDirection="RightToLeft">
+                    <Button Content="{Binding HomeNowPrimaryLabel}" Command="{Binding HomePrimaryCommand}" Style="{StaticResource Primary}" FlowDirection="LeftToRight"/>
+                    <Button Content="Push it" Command="{Binding HomePushCommand}" Style="{StaticResource Secondary}" FlowDirection="LeftToRight"
+                            Visibility="{Binding HomeNowCanPush, Converter={StaticResource BoolVis}}"/>
+                    <Button Content="Why?" Command="{Binding HomeWhyCommand}" Style="{StaticResource Secondary}" FlowDirection="LeftToRight"/>
+                </WrapPanel>
+                <StackPanel Margin="0,30,0,0">
+                    <TextBlock Text="NEXT" Style="{StaticResource Lbl}" HorizontalAlignment="Right">
+                        <TextBlock.Visibility>
+                            <Binding Path="HomeNext.Count"><Binding.Converter><home:NonZeroToVisibleConverter/></Binding.Converter></Binding>
+                        </TextBlock.Visibility>
+                    </TextBlock>
+                    <ItemsControl ItemsSource="{Binding HomeNext}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Body}" MaxWidth="300"/>
+                                    <TextBlock Text="{Binding Time}" Style="{StaticResource Mono}" Margin="14,1,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding HomeNowNext}" Style="{StaticResource Mono}" FontSize="11" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <Grid x:Name="CoreHost" Grid.Column="1" Width="560" Height="560">
+                <Viewbox>
+                    <home:GuardianCore Items="{Binding HomeCoreItems}" DayStart="{Binding HomeCoreDayStart}" DayEnd="{Binding HomeCoreDayEnd}"
+                                       Now="{Binding HomeNow}" ShowNow="{Binding HomeCoreShowNow}" Progress="{Binding HomeCoreProgress}"
+                                       Accent="{Binding HomeCoreAccent}" State="{Binding GuardianPresenceState}" PulseCount="{Binding HomeDoneTotal}" CelebrateCount="{Binding HomeCelebrateCount}"
+                                       RingCommand="{Binding HomeRingCommand}" MoveCommand="{Binding HomeRingMoveCommand}" Calm="{Binding HomeCalm}" IntroCount="{Binding HomeIntroCount}"/>
+                </Viewbox>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="250" IsHitTestVisible="False">
+                    <TextBlock Text="{Binding HomeCoreLabel}" Style="{StaticResource Mono}" FontSize="10" HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <TextBlock Text="{Binding HomeCoreBig}" FontFamily="{StaticResource HudMono}" FontSize="64" Foreground="#EDEAFF" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                    <TextBlock Text="{Binding HomeCoreSub}" Style="{StaticResource Mono}" FontSize="11" Foreground="{StaticResource HudPurple}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    <!-- Three dots that ripple while Guardian is working something out. -->
+                    <StackPanel x:Name="ThinkingDots" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0" Visibility="Collapsed">
+                        <Ellipse Width="6" Height="6" Fill="#42D9FF" Margin="3,0"/>
+                        <Ellipse Width="6" Height="6" Fill="#42D9FF" Margin="3,0"/>
+                        <Ellipse Width="6" Height="6" Fill="#42D9FF" Margin="3,0"/>
+                    </StackPanel>
+                    <!-- What Guardian is thinking about, typed out as it changes. -->
+                    <TextBlock FontSize="13" Foreground="{StaticResource HudMuted}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,14,0,0" MaxHeight="58" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding GuardianThoughtHistory}">
+                        <Run Text="◆ " Foreground="#42D9FF"/><Run x:Name="ThoughtRun"/><Run x:Name="CaretRun" Text="▌" Foreground="#42D9FF"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+
+            <StackPanel x:Name="NeedsPane" Grid.Column="2" VerticalAlignment="Center" MaxWidth="420" HorizontalAlignment="Left" Margin="24,0,0,0">
+                <!-- The next meeting, from 15 minutes out: who, what you promised them, the last email. -->
+                <Border BorderBrush="#8042D9FF" BorderThickness="1" CornerRadius="12" Background="#1042D9FF" Padding="16,12" Margin="0,0,0,22"
+                        Visibility="{Binding HasHomeMeeting, Converter={StaticResource BoolVis}}">
+                    <StackPanel>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="✕" Command="{Binding DismissHomeMeetingCommand}" Style="{StaticResource LinkBtn}" ToolTip="Hide this card"/>
+                            <TextBlock Style="{StaticResource Lbl}" Foreground="{StaticResource HudCyan}"><Run Text="NEXT MEETING · "/><Run Text="{Binding HomeMeetingCountdown, Mode=OneWay}"/></TextBlock>
+                        </DockPanel>
+                        <TextBlock Text="{Binding HomeMeeting.Title}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource HudText}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding HomeMeeting.People}" Style="{StaticResource Mono}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <ItemsControl ItemsSource="{Binding HomeMeeting.Lines}" Margin="0,8,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontSize="13" Foreground="{StaticResource HudSoft}" TextWrapping="Wrap" Margin="0,2,0,0"><Run Text="▸ " Foreground="#42D9FF"/><Run Text="{Binding Mode=OneWay}"/></TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Command="{Binding JoinHomeMeetingCommand}" Style="{StaticResource LinkBtn}" Margin="0,0,16,0" Visibility="{Binding HomeMeeting.CanJoin, Converter={StaticResource BoolVis}}">
+                                <TextBlock Text="JOIN ›"/>
+                            </Button>
+                            <Button Command="{Binding OpenHomeMeetingBriefCommand}" Style="{StaticResource LinkBtn}">
+                                <TextBlock Text="FULL BRIEF ›"/>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="SEE ALL ›" Command="{Binding ShowAttentionCommand}" Style="{StaticResource LinkBtn}" Margin="16,0,0,0"/>
+                    <TextBlock Text="{Binding HomeNeedsTitle}" Style="{StaticResource Lbl}" Foreground="{StaticResource HudAmber}"/>
+                </DockPanel>
+                <TextBlock Text="Nothing needs you right now." Style="{StaticResource Mono}" Margin="0,10,0,0">
+                    <TextBlock.Visibility>
+                        <Binding Path="HomeNeeds.Count"><Binding.Converter><home:ZeroToVisibleConverter/></Binding.Converter></Binding>
+                    </TextBlock.Visibility>
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding HomeNeeds}" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{Binding Dot}" BorderThickness="2,0,0,0" Padding="14,2,0,2" Margin="0,8,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource HudText}" TextWrapping="Wrap" MaxHeight="42" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Why}" FontSize="13" Foreground="{StaticResource HudMuted}" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
+                                    <Button Command="{Binding Act}" Style="{StaticResource LinkBtn}" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                        <TextBlock><Run Text="{Binding ActionLabel, Mode=OneWay}"/><Run Text=" ›"/></TextBlock>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <DockPanel Margin="0,26,0,0">
+                    <Button DockPanel.Dock="Right" Content="UNDO ›" Command="{Binding OpenGuardianActivityCommand}" Style="{StaticResource LinkBtn}" Margin="16,0,0,0" ToolTip="Guardian's activity log, where anything can be undone"/>
+                    <TextBlock Text="{Binding HomeDoneTitle}" Style="{StaticResource Lbl}" Foreground="{StaticResource HudMuted}"/>
+                </DockPanel>
+                <TextBlock Text="Nothing yet today." Style="{StaticResource Mono}" Margin="0,8,0,0">
+                    <TextBlock.Visibility>
+                        <Binding Path="HomeDone.Count"><Binding.Converter><home:ZeroToVisibleConverter/></Binding.Converter></Binding>
+                    </TextBlock.Visibility>
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding HomeDone}" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Style="{StaticResource Mono}" Foreground="{StaticResource HudSoft}" TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run Text="{Binding Time, Mode=OneWay}" Foreground="#5D6784"/><Run Text="  "/><Run Text="{Binding Text, Mode=OneWay}"/>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Style="{StaticResource Mono}" FontSize="11" TextAlignment="Center" TextWrapping="Wrap" Margin="0,10,0,0">
+            <Run Text="■ " Foreground="#9C85FF"/><Run Text="FOCUS   "/><Run Text="■ " Foreground="#42D9FF"/><Run Text="MEETINGS   "/><Run Text="■ " Foreground="#3A4560"/><Run Text="OWN TIME   ·   "/><Run Text="{Binding HomePlanLabel, Mode=OneWay}" Foreground="#C9BBFF"/><Run Text="   ·   "/><Run Text="{Binding HomeTimelineSummary, Mode=OneWay}"/>
+        </TextBlock>
+
+        <!-- The evening hand-off: after the working day ends, or on "hand off". -->
+        <Border Margin="0,30,0,0" Padding="22,18" BorderBrush="#5A42D9FF" BorderThickness="1" CornerRadius="14" Background="#0F42D9FF"
+                Visibility="{Binding HomeShowHandoff, Converter={StaticResource BoolVis}}">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,12">
+                    <Button DockPanel.Dock="Right" Content="HIDE" Command="{Binding HideHomeHandoffCommand}" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                    <Button DockPanel.Dock="Right" Content="PLAN TOMORROW ›" Command="{Binding HomeQuickAskCommand}" CommandParameter="plan tomorrow" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                    <TextBlock Text="{Binding HomeHandoffTitle}" Style="{StaticResource Lbl}" Foreground="{StaticResource HudCyan}"/>
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding HomeHandoff}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="4"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,24,0">
+                                <TextBlock Text="{Binding Label}" Style="{StaticResource Mono}" FontSize="11" Foreground="{StaticResource HudPurple}" Margin="0,0,0,8"/>
+                                <ItemsControl ItemsSource="{Binding Lines}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock FontSize="13" Foreground="{StaticResource HudText}" TextWrapping="Wrap" Margin="0,0,0,6"><Run Text="▸ " Foreground="#42D9FF"/><Run Text="{Binding Mode=OneWay}"/></TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- The week in review: Friday afternoons, or whenever asked. -->
+        <Border Margin="0,30,0,0" Padding="22,18" BorderBrush="#5A9C85FF" BorderThickness="1" CornerRadius="14" Background="#0F7B5DFF"
+                Visibility="{Binding HomeShowReview, Converter={StaticResource BoolVis}}">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,12">
+                    <Button DockPanel.Dock="Right" Content="HIDE" Command="{Binding ToggleHomeReviewCommand}" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                    <TextBlock Text="{Binding HomeReviewTitle}" Style="{StaticResource Lbl}" Foreground="#C9BBFF"/>
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding HomeReview}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="14" Foreground="{StaticResource HudText}" TextWrapping="Wrap" Margin="0,0,24,10"><Run Text="▸ " Foreground="#9C85FF"/><Run Text="{Binding Mode=OneWay}"/></TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Everything below dims while you are in focus. -->
+        <StackPanel Margin="0,34,0,0">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Opacity" Value="1"/>
+                    <Style.Triggers><DataTrigger Binding="{Binding HomeInFocus}" Value="True"><Setter Property="Opacity" Value="0.4"/></DataTrigger></Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+
+            <!-- SIGNALS: the whole day on one line -->
+            <Border BorderBrush="{StaticResource HudDivider}" BorderThickness="0,1,0,1" Padding="0,18">
+                <UniformGrid x:Name="SignalsGrid" Columns="4">
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Text="NEEDS YOU" Style="{StaticResource Lbl}"/>
+                        <TextBlock Text="{Binding ActiveAttentionCount}" Style="{StaticResource Big}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding AttentionSummaryLine}" Style="{StaticResource Mono}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Border BorderBrush="{StaticResource HudDivider}" BorderThickness="1,0,0,0" Padding="18,0,16,0">
+                        <StackPanel>
+                            <TextBlock Text="YOU OWE" Style="{StaticResource Lbl}"/>
+                            <TextBlock Text="{Binding YouOweCount}" Style="{StaticResource Big}" Margin="0,8,0,0"/>
+                            <TextBlock Style="{StaticResource Mono}" FontSize="11" Margin="0,2,0,0"><Run Text="{Binding WaitingOnOthersCount, Mode=OneWay}"/><Run Text=" WAITING ON OTHERS"/></TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <Border BorderBrush="{StaticResource HudDivider}" BorderThickness="1,0,0,0" Padding="18,0,16,0">
+                        <StackPanel>
+                            <TextBlock Text="DONE FOR YOU" Style="{StaticResource Lbl}"/>
+                            <TextBlock Text="{Binding HomeDoneTotal}" Style="{StaticResource Big}" Margin="0,8,0,0"/>
+                            <TextBlock Text="TODAY" Style="{StaticResource Mono}" FontSize="11" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border BorderBrush="{StaticResource HudDivider}" BorderThickness="1,0,0,0" Padding="18,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="SYSTEMS" Style="{StaticResource Lbl}"/>
+                            <TextBlock Text="{Binding HomeSystemsHealthy}" Style="{StaticResource Big}" Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding HomeSystemsNote}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Mono}">
+                                        <Style.Triggers><DataTrigger Binding="{Binding HomeSystemsWarn}" Value="True"><Setter Property="Foreground" Value="#FFC857"/></DataTrigger></Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+            </Border>
+
+            <!-- CONNECTIONS -->
+            <Grid x:Name="OpsGrid" Margin="0,34,0,0">
+                <StackPanel x:Name="OpsRight">
+                    <DockPanel Margin="0,0,0,10">
+                        <Button DockPanel.Dock="Right" Content="STATUS ›" Command="{Binding ShowDiagnosticsCommand}" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Content="REFRESH" Command="{Binding RefreshIntegrationsCommand}" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                        <TextBlock Text="CONNECTIONS" Style="{StaticResource Lbl}" Margin="0,0,14,0"/>
+                        <Border Height="1" Background="{StaticResource HudRule}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding HomeServices}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,20,8">
+                                    <Ellipse Width="8" Height="8" Fill="{Binding Dot}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource Mono}" Foreground="{StaticResource HudSoft}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+
+            <!-- PROJECTS AND COMMITMENTS -->
+            <Grid x:Name="WorkGrid" Margin="0,34,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.15*"/>
+                    <ColumnDefinition Width="48"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel x:Name="ProjectsPane">
+                    <DockPanel Margin="0,0,0,12">
+                        <Button DockPanel.Dock="Right" Content="+ NEW" Command="{Binding NewProjectCommand}" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                        <TextBlock Text="{Binding HomeProjectsTitle}" Style="{StaticResource Lbl}" Margin="0,0,14,0"/>
+                        <Border Height="1" Background="{StaticResource HudRule}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding HomeProjects}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Flag}" Foreground="{Binding FlagBrush}" FontFamily="{StaticResource HudMono}" FontSize="11" Margin="12,2,0,0"/>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource Body}"/>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                <StackPanel x:Name="CommitPane" Grid.Column="2">
+                    <DockPanel Margin="0,0,0,12">
+                        <TextBlock Text="COMMITMENTS" Style="{StaticResource Lbl}" Margin="0,0,14,0"/>
+                        <Border Height="1" Background="{StaticResource HudRule}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Margin="0,0,40,0"><TextBlock Text="{Binding YouOweCount}" Style="{StaticResource Big}" FontSize="28"/><TextBlock Text="YOU OWE" Style="{StaticResource Mono}" FontSize="11"/></StackPanel>
+                        <StackPanel Margin="0,0,40,0"><TextBlock Text="{Binding WaitingOnOthersCount}" Style="{StaticResource Big}" FontSize="28"/><TextBlock Text="WAITING ON OTHERS" Style="{StaticResource Mono}" FontSize="11"/></StackPanel>
+                        <StackPanel><TextBlock Text="{Binding HomeHandedOver}" Style="{StaticResource Big}" FontSize="28"/><TextBlock Text="HANDED OVER" Style="{StaticResource Mono}" FontSize="11"/></StackPanel>
+                    </StackPanel>
+                    <!-- What's slipping, each with what can be done about it right here. -->
+                    <TextBlock Text="SLIPPING" Style="{StaticResource Mono}" FontSize="11" Foreground="{StaticResource HudAmber}" Margin="0,18,0,4">
+                        <TextBlock.Visibility>
+                            <Binding Path="HomeSlippingItems.Count"><Binding.Converter><home:NonZeroToVisibleConverter/></Binding.Converter></Binding>
+                        </TextBlock.Visibility>
+                    </TextBlock>
+                    <ItemsControl ItemsSource="{Binding HomeSlippingItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{Binding Dot}" BorderThickness="2,0,0,0" Padding="12,1,0,1" Margin="0,8,0,0">
+                                    <StackPanel>
+                                        <TextBlock FontSize="13" Foreground="{StaticResource HudText}" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding Kind, Mode=OneWay}" FontFamily="{StaticResource HudMono}" FontSize="10" Foreground="{Binding Dot}"/><Run Text="  "/><Run Text="{Binding Title, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Why}" FontSize="12" Foreground="{StaticResource HudMuted}" TextWrapping="Wrap" MaxHeight="34" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                        <ItemsControl ItemsSource="{Binding Buttons}" Margin="0,2,0,0">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Command="{Binding Act}" Style="{StaticResource LinkBtn}" Margin="0,0,14,0">
+                                                        <TextBlock><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" ›"/></TextBlock>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding HomeSlippingText}" Style="{StaticResource Mono}" FontSize="11" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- TEAMS: who's waiting on the user (managers first), and what's going on in his chats. -->
+            <Grid x:Name="TeamsGrid" Margin="0,34,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="48"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel x:Name="TeamsAsksPane">
+                    <DockPanel Margin="0,0,0,4">
+                        <Button DockPanel.Dock="Right" Content="CATCH UP ›" Command="{Binding HomeQuickAskCommand}" CommandParameter="catch me up on teams" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                        <TextBlock Text="TEAMS · WAITING ON YOU" Style="{StaticResource Lbl}" Margin="0,0,14,0"/>
+                        <Border Height="1" Background="{StaticResource HudRule}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding HomeTeamsAsks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{Binding Dot}" BorderThickness="2,0,0,0" Padding="12,1,0,1" Margin="0,8,0,0">
+                                    <StackPanel>
+                                        <TextBlock FontSize="13" Foreground="{StaticResource HudText}" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding Kind, Mode=OneWay}" FontFamily="{StaticResource HudMono}" FontSize="10" Foreground="{Binding Dot}"/><Run Text="  "/><Run Text="{Binding Title, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Why}" FontSize="12" Foreground="{StaticResource HudMuted}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                        <ItemsControl ItemsSource="{Binding Buttons}" Margin="0,2,0,0">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Command="{Binding Act}" Style="{StaticResource LinkBtn}" Margin="0,0,14,0">
+                                                        <TextBlock><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" ›"/></TextBlock>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding HomeTeamsAsksText}" Style="{StaticResource Mono}" FontSize="11" Margin="0,10,0,0"/>
+                </StackPanel>
+                <StackPanel x:Name="TeamsUpdatesPane" Grid.Column="2">
+                    <DockPanel Margin="0,0,0,4">
+                        <TextBlock Text="TEAMS · WHAT'S GOING ON" Style="{StaticResource Lbl}" Margin="0,0,14,0"/>
+                        <Border Height="1" Background="{StaticResource HudRule}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding HomeTeamsUpdates}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{Binding Dot}" BorderThickness="2,0,0,0" Padding="12,1,0,1" Margin="0,8,0,0">
+                                    <StackPanel>
+                                        <TextBlock FontSize="13" Foreground="{StaticResource HudText}" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding Kind, Mode=OneWay}" FontFamily="{StaticResource HudMono}" FontSize="10" Foreground="{Binding Dot}"/><Run Text="  "/><Run Text="{Binding Title, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Why}" FontSize="12" Foreground="{StaticResource HudMuted}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                        <ItemsControl ItemsSource="{Binding Buttons}" Margin="0,2,0,0">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Command="{Binding Act}" Style="{StaticResource LinkBtn}" Margin="0,0,14,0">
+                                                        <TextBlock><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" ›"/></TextBlock>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding HomeTeamsUpdatesText}" Style="{StaticResource Mono}" FontSize="11" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- THE WEEK AHEAD -->
+            <DockPanel Margin="0,34,0,14">
+                <Button DockPanel.Dock="Right" Content="PLAN THE WEEK ›" Command="{Binding HomeQuickAskCommand}" CommandParameter="what does my week look like, and what should I protect time for?" Style="{StaticResource LinkBtn}" Margin="12,0,0,0"/>
+                <TextBlock Text="THE WEEK AHEAD" Style="{StaticResource Lbl}" Margin="0,0,14,0"/>
+                <Border Height="1" Background="{StaticResource HudRule}" VerticalAlignment="Center"/>
+            </DockPanel>
+            <ItemsControl ItemsSource="{Binding HomeWeek}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="{StaticResource HudDivider}" BorderThickness="0,0,1,0" Padding="0,2,18,2" Margin="0,0,18,0">
+                            <StackPanel>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Date}" Style="{StaticResource Mono}" FontSize="11" VerticalAlignment="Bottom"/>
+                                    <TextBlock x:Name="DayName" Text="{Binding Day}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource HudText}"/>
+                                </DockPanel>
+                                <Border Height="6" CornerRadius="3" Background="#1C1838" Margin="0,12,0,10" ClipToBounds="True">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="{Binding MeetingWidth}" Background="#42D9FF"/>
+                                        <Border Width="{Binding FocusWidth}" Background="#7B5DFF"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding Hours}" Style="{StaticResource Mono}" FontSize="11" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding Detail}" FontSize="13" Foreground="{StaticResource HudSoft}" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsToday}" Value="True"><Setter TargetName="DayName" Property="Foreground" Value="#C9BBFF"/></DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding HomeWeekSummary}" Style="{StaticResource Mono}" FontSize="11" Margin="0,12,0,0" TextWrapping="Wrap"/>
+
+            <Border BorderBrush="{StaticResource HudDivider}" BorderThickness="0,1,0,0" Margin="0,30,0,0" Padding="0,12,0,0">
+                <TextBlock Text="CTRL+K COMMANDS  ·  CTRL+ALT+SPACE TALK  ·  CTRL+ALT+H HEADS-UP" Style="{StaticResource Mono}" FontSize="10" Foreground="{StaticResource HudDim}"/>
+            </Border>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

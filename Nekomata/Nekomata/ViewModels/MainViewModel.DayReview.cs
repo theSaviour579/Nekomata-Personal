@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Core.Guardian.Outcomes;
+using Nekomata.Core.Missions;
 using Nekomata.Models.Guardian;
 using Nekomata.Models.Planning;
 using Nekomata.Models.Missions;
@@ -24,6 +25,8 @@ public partial class MainViewModel
     private bool _dayReviewLoading;
     [ObservableProperty] private string wrapUpNotes = "";
     [ObservableProperty] private string wrapUpStatus = "";
+    [ObservableProperty] private bool weeklyOvertimeVisible;
+    [ObservableProperty] private string weeklyOvertimeSummaryText = "";
     private DateTime _wrapUpDate;
     private bool _wrapUpCompleted;
     public System.Collections.ObjectModel.ObservableCollection<WrapUpObjective> WrapUpObjectives { get; } = [];
@@ -54,14 +57,21 @@ public partial class MainViewModel
         {
             if (_dayReviewLoading || DayReviewVisible || IsInitialLoading || MissionActive ||
                 DateTime.Today.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ||
-                CalendarEvents.Any(x => x.Start <= DateTimeOffset.Now && x.End > DateTimeOffset.Now)) return;
+                CalendarEvents.Any(x => IsBlockingCalendarCommitment(x, DateTimeOffset.Now))) return;
+            // Starts at the wrap-up time chosen in Personal settings (or 15 minutes before the end of the working
+            // day), or when the user's own wrap-up slot begins if there is one earlier in the day.
+            var now = DateTimeOffset.Now;
             var profile = _personalProfile.Current;
-            var settings = _services.GetRequiredService<WorkingDaySettings>();
-            var wrapUpAt = profile.WorkScheduleConfigured
+            var due = new DateTimeOffset(profile.WorkScheduleConfigured
                 ? DateTime.Today.Add(profile.WrapUpTime)
-                : settings.GetEnd(DateTime.Today).AddMinutes(-15);
-            if (DateTime.Now < wrapUpAt || File.Exists(DayReviewDismissedPath)) return;
-            if (CanPresentRoutinePrompt(Nekomata.Core.Guardian.Anticipation.GuardianPromptKind.WrapUp)) _ = ShowDayReviewSafelyAsync();
+                : _services.GetRequiredService<WorkingDaySettings>().GetEnd(DateTime.Today).AddMinutes(-15));
+            var slot = CalendarEvents
+                .Where(x => IsWrapUpSlot(x) && x.Start.LocalDateTime.Date == DateTime.Today && x.End > now)
+                .OrderBy(x => x.Start)
+                .FirstOrDefault();
+            if (slot is not null && slot.Start < due) due = slot.Start;
+            if (now < due || File.Exists(DayReviewDismissedPath)) return;
+            if (CanPresentRoutinePrompt(Nekomata.Core.Guardian.Anticipation.GuardianPromptKind.WrapUp)) _ = ShowDayReviewSafelyAsync(announce: true);
         }
         catch (Exception ex)
         {
@@ -69,9 +79,22 @@ public partial class MainViewModel
         }
     }
 
-    private async Task ShowDayReviewSafelyAsync()
+    // announce is true only when EvaluateEndOfDayReview triggers this automatically; a manually
+    // opened review (the ShowDayReviewAsync command, e.g. a toolbar button) stays silent so Guardian
+    // doesn't narrate something the user just chose to look at themselves.
+    private async Task ShowDayReviewSafelyAsync(bool announce = false)
     {
-        try { await ShowDayReviewAsync(); }
+        try
+        {
+            var promises = announce ? StartPromisesForWrapUp() : null;
+            await ShowDayReviewAsync();
+            if (announce)
+            {
+                await SpeakEndOfDayReviewAsync();
+                if (promises is not null) await RemindOfPromisesAsync(promises);
+                await OfferToPlanTomorrowAsync();
+            }
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"End-of-day review failed: {ex}");
@@ -86,7 +109,12 @@ public partial class MainViewModel
         _dayReviewLoading = true;
         try
         {
-            DayReview = await BuildPersonalDayReviewAsync();
+            DayReview = await _services.GetRequiredService<GuardianDayReviewService>().BuildAsync(Workspace);
+            await RefreshDailyActivityReconciliationAsync();
+            WeeklyOvertimeVisible = DateTime.Today.DayOfWeek == DayOfWeek.Friday;
+            WeeklyOvertimeSummaryText = WeeklyOvertimeVisible
+                ? FormatOvertimeSummary(await GetWeeklyOvertimeAsync())
+                : "";
             _wrapUpDate = DateTime.Today;
             var path = WrapUpPath(_wrapUpDate);
             var draft = File.Exists(path) ? System.Text.Json.JsonSerializer.Deserialize<WrapUpDraft>(File.ReadAllText(path)) : null;
@@ -161,6 +189,7 @@ public partial class MainViewModel
                 Completed = true,
                 GuardianDecision = "Added retrospectively by the user.",
                 RecommendationReason = string.IsNullOrWhiteSpace(AdHocObjectiveOutcome) ? "Unplanned work completed during the day." : AdHocObjectiveOutcome.Trim()
+                ,ActiveIntervalsJson = System.Text.Json.JsonSerializer.Serialize(new[] { new MissionWorkSegment(startedAt, finishedAt) })
             });
         }
 
@@ -196,7 +225,7 @@ public partial class MainViewModel
         AdHocObjectiveStatus = alreadySaved
             ? $"That objective was already in today's digest.{calendarNote}"
             : $"Objective added.{calendarNote}";
-        DayReview = await BuildPersonalDayReviewAsync();
+        DayReview = await _services.GetRequiredService<GuardianDayReviewService>().BuildAsync(Workspace);
         await RefreshAnalyticsAsync();
     }
 
@@ -208,6 +237,10 @@ public partial class MainViewModel
         DayReviewVisible = false;
         WorkspaceMode = Models.Workspace.WorkspaceMode.Calendar;
         ChatInput = $"Plan tomorrow. Roll forward {DayReview.RollForwardCount} unfinished commitments and protect the highest-value item in the strongest evidence-backed morning focus window. Use predicted calendar requirement, not the raw entered estimate.";
+        // Promises made by email today (if the wrap-up already worked them out) should get time tomorrow too.
+        if (_promisesCache is { } promised && promised.Day == DateTime.Today && promised.Summary.PromiseCount > 0)
+            ChatInput += " Also leave realistic time for these promises I made by email today: " +
+                         string.Join("; ", promised.Summary.Lines.Take(8)) + ".";
         GuardianPanelExpanded = true;
     }
 
@@ -236,11 +269,19 @@ public partial class MainViewModel
         try
         {
             if (_wrapUpDate != DateTime.Today) { WrapUpStatus = "The date has changed. Save for later and reopen today's wrap-up."; return; }
+            await RefreshDailyActivityReconciliationAsync();
+            if (ActivityReconciliation.HasGaps)
+            {
+                var result = System.Windows.MessageBox.Show(
+                    $"{ActivityReconciliation.Gaps.Count} material activity gap{(ActivityReconciliation.Gaps.Count == 1 ? " remains" : "s remain")}. Close the day anyway? No work will be inferred for those periods.",
+                    "Unexplained activity", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result != System.Windows.MessageBoxResult.Yes) { WrapUpStatus = "Wrap-up remains open for activity review."; return; }
+            }
             SaveWrapUp(false);
             await _services.GetRequiredService<WorkdayJournalService>().RecordOncePerDayAsync(new WorkdayEvent
             {
                 EventType = "DayClosed", Category = "Review", Title = "Daily wrap-up completed", Significance = 90,
-                Narrative = $"{DayReview.ObjectivesCompleted}/{DayReview.ObjectivesPlanned} planned objectives completed. Recorded work: {DayReview.CompletedLabel}. Handover: {WrapUpNotes}",
+                Narrative = $"{DayReview.ObjectivesCompleted}/{DayReview.ObjectivesPlanned} planned objectives completed. Recorded work: {DayReview.CompletedLabel}. Activity evidence coverage: {ActivityReconciliation.CoveragePercent}% with {ActivityReconciliation.Gaps.Count} unexplained gap(s). Estimated value generated: {Analytics.BusinessValueDeliveredToday:C2}. Elapsed paid-workday wage cost: {Analytics.WageCostToday:C2} at {Analytics.HourlyLabourRate:C2}/hour. Value less wages: {Analytics.ValueAfterWageCostToday:C2}. Handover: {WrapUpNotes}",
                 BusinessValue = Analytics.BusinessValueDeliveredToday, Outcome = "Day captured"
             });
             SaveWrapUp(true);

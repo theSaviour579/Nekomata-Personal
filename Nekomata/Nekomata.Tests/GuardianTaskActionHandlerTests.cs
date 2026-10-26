@@ -83,6 +83,71 @@ public sealed class GuardianTaskActionHandlerTests
     }
 
     [Fact]
+    public async Task Recovery_due_date_change_is_saved_and_auditable()
+    {
+        var repository = new FakeTaskRepository(new NekomataTask { Id = 12, Title = "Low-value admin", DueAt = new DateTime(2026, 8, 14) });
+        var handler = new GuardianTaskActionHandler(repository, new StubTaskMapper());
+        var result = new GuardianApplyResult { Success = true };
+
+        await handler.ApplyAsync(Response(new GuardianChange
+        {
+            EntityType = "Task", EntityId = 12, Property = "DueAt",
+            NewValue = new DateTime(2026, 8, 15).ToString("O"), Reason = "Recover interruption capacity"
+        }), result);
+
+        Assert.Equal(new DateTime(2026, 8, 15), repository.Task!.DueAt);
+        var action = Assert.Single(result.Actions);
+        Assert.True(action.Reversible);
+        Assert.NotNull(action.BeforeState);
+        Assert.NotNull(action.AfterState);
+    }
+
+    [Fact]
+    public async Task Urgent_meeting_priority_update_is_saved_and_auditable()
+    {
+        var repository = new FakeTaskRepository(new NekomataTask
+        {
+            Id = 14,
+            Title = "Restore supplier feed",
+            Priority = "Normal"
+        });
+        var handler = new GuardianTaskActionHandler(repository, new StubTaskMapper());
+        var result = new GuardianApplyResult { Success = true };
+
+        await handler.ApplyAsync(Response(new GuardianChange
+        {
+            EntityType = "Task",
+            EntityId = 14,
+            Property = "Priority",
+            NewValue = "Critical",
+            Reason = "Imported from an urgent meeting action"
+        }), result);
+
+        Assert.Equal("Critical", repository.Task!.Priority);
+        var action = Assert.Single(result.Actions);
+        Assert.True(action.Reversible);
+        Assert.Contains("Critical", action.Description);
+    }
+
+    [Fact]
+    public void Task_mapper_preserves_meeting_deadline_and_project()
+    {
+        var dueAt = new DateTime(2026, 8, 19, 16, 0, 0);
+        var task = new GuardianTaskMapper(new MapperIdentity()).Map(new ProposedTask
+        {
+            Title = "Urgent licence renewal",
+            Priority = "Critical",
+            EstimatedMinutes = 45,
+            DueAt = dueAt
+        }, 73);
+
+        Assert.Equal("Critical", task.Priority);
+        Assert.Equal(dueAt, task.DueAt);
+        Assert.Equal(73, task.ProjectId);
+        Assert.Equal(45, task.EstimatedMinutes);
+    }
+
+    [Fact]
     public void Unsupported_status_is_rejected()
     {
         var change = new GuardianChange
@@ -156,5 +221,13 @@ public sealed class GuardianTaskActionHandlerTests
 
         public Task<int> CompleteOpenTasksForProjectAsync(long projectId) =>
             System.Threading.Tasks.Task.FromResult(0);
+    }
+
+    private sealed class MapperIdentity : Nekomata.Core.Personalization.IUserIdentity
+    {
+        public string DisplayName => "Test User";
+        public string FirstName => "Test";
+        public string Description => "Test User";
+        public bool Is(string? nameOrAddress) => nameOrAddress == "Test User";
     }
 }

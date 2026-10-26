@@ -9,7 +9,7 @@ public class WorkingDaySettings
         new(16, 30, 0);
 
     public TimeSpan LunchStartTime { get; set; } =
-        new(12, 30, 0);
+        new(12, 0, 0);
 
     public int LunchDurationMinutes { get; set; } =
         60;
@@ -19,6 +19,9 @@ public class WorkingDaySettings
 
     public int MinimumFocusBlockMinutes { get; set; } =
         30;
+
+    public int TransitionWarningMinutes { get; set; } =
+        10;
 
     public DateTime GetStart(DateTime date) =>
         date.Date.Add(StartTime);

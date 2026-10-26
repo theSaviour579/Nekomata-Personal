@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:Nekomata.UI.Views"
         xmlns:guardian="clr-namespace:Nekomata.UI.Controls.Guardian"
+        xmlns:common="clr-namespace:Nekomata.UI.Controls.Common"
         Title="Nekomata Personal"
         Width="1200"
         Height="900"
@@ -11,6 +12,13 @@
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource NekoBackgroundBrush}"
         Icon="/Assets/Images/App.ico">
+    <Window.InputBindings>
+        <KeyBinding Key="F8" Command="{Binding OpenInterruptionCommand}"/>
+        <KeyBinding Key="K" Modifiers="Control" Command="{Binding OpenCommandPaletteCommand}"/>
+        <KeyBinding Key="Space" Modifiers="Control+Shift" Command="{Binding OpenQuickCaptureCommand}"/>
+        <KeyBinding Key="Space" Modifiers="Control+Alt" Command="{Binding TalkToGuardianCommand}"/>
+        <KeyBinding Key="H" Modifiers="Control+Alt" Command="{Binding ToggleHudCommand}"/>
+    </Window.InputBindings>
     <Grid>
     <Grid.ColumnDefinitions>
         <ColumnDefinition Width="88"/>
@@ -18,9 +26,13 @@
     </Grid.ColumnDefinitions>
     <Grid.Resources>
         <Style x:Key="NekoNavButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Width" Value="64"/><Setter Property="Height" Value="52"/>
-            <Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,0,7"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="52"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,7"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style x:Key="DashboardNavButton" TargetType="Button" BasedOn="{StaticResource NekoNavButton}"><Style.Triggers><DataTrigger Binding="{Binding WorkspaceMode}" Value="Dashboard"><Setter Property="Background" Value="{DynamicResource NekoSpiritPurpleBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource NekoAccentBrush}"/></DataTrigger></Style.Triggers></Style>
         <Style x:Key="CalendarNavButton" TargetType="Button" BasedOn="{StaticResource NekoNavButton}"><Style.Triggers><DataTrigger Binding="{Binding WorkspaceMode}" Value="Calendar"><Setter Property="Background" Value="{DynamicResource NekoSpiritPurpleBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource NekoAccentBrush}"/></DataTrigger></Style.Triggers></Style>
@@ -55,6 +67,7 @@
                 <Button Style="{StaticResource NekoNavButton}" Command="{Binding OpenGuardianPlannerCommand}" ToolTip="Meeting analyser"><StackPanel><TextBlock Text="&#xE8F2;" FontFamily="Segoe MDL2 Assets" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="MEET" FontSize="8" Margin="0,3,0,0"/></StackPanel></Button>
                 <Button Style="{StaticResource NekoNavButton}" Command="{Binding OpenTeamSkillsCommand}" ToolTip="Direct reports, skills and availability"><StackPanel><TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="TEAM" FontSize="8" Margin="0,3,0,0"/></StackPanel></Button>
                 <Button Style="{StaticResource NekoNavButton}" Command="{Binding OpenQuickWorkLogCommand}" ToolTip="Log work"><StackPanel><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="LOG" FontSize="8" Margin="0,3,0,0"/></StackPanel></Button>
+                <Button Style="{StaticResource NekoNavButton}" Command="{Binding OpenQuickCaptureCommand}" ToolTip="Quick capture: a task, note or idea"><StackPanel><TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="NOTE" FontSize="8" Margin="0,3,0,0"/></StackPanel></Button>
                 <Button Style="{StaticResource NekoNavButton}" Command="{Binding ShowDayReviewCommand}" ToolTip="Daily wrap-up"><StackPanel><TextBlock Text="&#xE73A;" FontFamily="Segoe MDL2 Assets" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="WRAP" FontSize="8" Margin="0,3,0,0"/></StackPanel></Button>
                 <Button Style="{StaticResource ValueNavButton}" Command="{Binding ShowValueLeverageCommand}" ToolTip="Value and role goals"><StackPanel><TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="VALUE" FontSize="8" Margin="0,3,0,0"/></StackPanel></Button>
                 <Button Style="{StaticResource NekoNavButton}" Command="{Binding ShowDecisionLearningCommand}" ToolTip="Decision learning"><StackPanel><TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" FontSize="19" HorizontalAlignment="Center"/><TextBlock Text="LEARN" FontSize="8" Margin="0,3,0,0"/></StackPanel></Button>
@@ -68,7 +81,7 @@
         VerticalScrollBarVisibility="Auto"
         HorizontalScrollBarVisibility="Disabled">
 
-        <Grid Margin="26">
+        <Grid Margin="18,16,20,20">
 
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -83,11 +96,12 @@
             <!-- ====================================================== -->
 
             <Border Grid.Row="0"
-                CornerRadius="30"
-                Padding="28"
+                CornerRadius="22"
+                Padding="22"
                 Background="{DynamicResource NekoHeaderGradientBrush}"
                 BorderBrush="{DynamicResource NekoBorderBrush}"
                 BorderThickness="1"
+                Visibility="{Binding ShowHudChrome, Converter={StaticResource InverseBoolVis}}"
                 Margin="0,0,0,16">
 
                 <Grid>
@@ -96,24 +110,45 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <StackPanel>
+                    <StackPanel Orientation="Horizontal">
 
-                        <TextBlock Text="{Binding ApplicationName}"
-                               Style="{DynamicResource NekoTitleText}"/>
+                        <common:GuardianPresenceOrb State="{Binding GuardianPresenceState}"
+                                                    Width="60" Height="60"
+                                                    Margin="0,0,16,0"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip="{Binding GuardianPresenceState}"/>
 
-                        <TextBlock Text="Your personal planning assistant"
-                               Foreground="{DynamicResource NekoSpiritPurpleBrush}"
-                               FontSize="14"
-                               FontWeight="SemiBold"/>
+                        <StackPanel VerticalAlignment="Center">
 
-                        <TextBlock Text="{Binding Greeting}"
-                               Style="{DynamicResource NekoMutedText}"
-                               Margin="0,10,0,0"/>
+                            <TextBlock Text="Your personal planning assistant"
+                                   Foreground="{DynamicResource NekoSpiritPurpleBrush}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+
+                            <TextBlock Text="{Binding Greeting}"
+                                   Style="{DynamicResource NekoMutedText}"
+                                   Margin="0,6,0,0"/>
+
+                            <!-- What Guardian is thinking about right now; hover for the recent history. -->
+                            <TextBlock Margin="0,6,0,0"
+                                   MaxWidth="720"
+                                   FontSize="12"
+                                   FontStyle="Italic"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource NekoAccentBrush}"
+                                   ToolTip="{Binding GuardianThoughtHistory}">
+                                <Run Text="◆ " FontStyle="Normal"/><Run Text="{Binding GuardianThought, Mode=OneWay}"/>
+                            </TextBlock>
+
+                        </StackPanel>
 
                     </StackPanel>
-
-                    <StackPanel Grid.Column="1"
+                    <StackPanel Grid.Column="1" Grid.Row="0"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
                         <TextBlock Text="{Binding CurrentDateTime,
@@ -133,7 +168,7 @@
                                     Margin="0,8,0,0">
 
                             <Button Content="UPDATE AVAILABLE"
-                                    Command="{Binding OpenLatestReleaseCommand}"
+                                    Command="{Binding InstallLatestUpdateCommand}"
                                     Foreground="{DynamicResource NekoWarningBrush}"
                                     BorderBrush="{DynamicResource NekoWarningBrush}"
                                     Padding="10,4"
@@ -178,6 +213,26 @@
 
                     </StackPanel>
 
+                    <Button Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding ShowSituationCommand}"
+                            HorizontalContentAlignment="Stretch" Padding="12,8" Margin="0,14,0,0"
+                            ToolTip="Open Guardian's current evidence and operating context">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Style.Triggers>
+                                    <!-- The new home page shows all of this itself; the ticker stays on the other pages. -->
+                                    <DataTrigger Binding="{Binding ShowModernHome}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <DockPanel LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left" Text="LIVE" Foreground="{DynamicResource NekoSuccessBrush}" FontWeight="Bold" Margin="0,0,12,0"/>
+                            <TextBlock DockPanel.Dock="Right" Text="DETAILS  ›" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="SemiBold" Margin="12,0,0,0"/>
+                            <TextBlock Text="{Binding SituationStripText}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource NekoTextBrush}"/>
+                        </DockPanel>
+                    </Button>
+
                 </Grid>
 
             </Border>
@@ -200,6 +255,10 @@
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding GuardianPanelExpanded}" Value="True">
                                 <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <!-- The new home page shows the conversation under its Ask box instead. -->
+                            <DataTrigger Binding="{Binding ShowModernHome}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -297,6 +356,21 @@
     VerticalScrollBarVisibility="Disabled"
     HorizontalScrollBarVisibility="Disabled"/>
 
+                                                    <TextBlock Text="{Binding AttachmentLabel}"
+                                                               Foreground="{DynamicResource NekoAccentBrush}"
+                                                               FontSize="10" TextWrapping="Wrap" Margin="0,7,0,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasAttachments}" Value="False">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+
                                                 </StackPanel>
 
                                             </Border>
@@ -378,6 +452,9 @@
             ProjectName="{Binding PendingGuardianProject.Name}"
             DismissCommand="{Binding DismissGuardianProposalCommand}"
             RegenerateCommand="{Binding RegenerateGuardianProposalCommand}"
+            RemoveItemCommand="{Binding RemoveGuardianProposalItemCommand}"
+            ReplaceItemCommand="{Binding ReplaceGuardianProposalItemCommand}"
+            RestoreItemCommand="{Binding RestoreGuardianProposalItemCommand}"
             CreateTasksCommand="{Binding CreateSelectedTasksCommand}">
 
                 <guardian:GuardianProposalPanel.Style>
@@ -412,9 +489,11 @@
             <Grid Grid.Row="4"
               Margin="0,4,0,0">
 
-                <views:DashboardView
-                Visibility="{Binding WorkspaceMode,
-                                     Converter={StaticResource DashboardVisibilityConverter}}"/>
+                <Grid Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource DashboardVisibilityConverter}}">
+                    <!-- The Guardian HUD home page. -->
+                    <views:HomeView/>
+                </Grid>
 
                 <views:MissionView
                 Visibility="{Binding WorkspaceMode,
@@ -435,10 +514,63 @@
                                      Converter={StaticResource DiagnosticsVisibilityConverter}}"/>
                 <views:AnalyticsView Visibility="{Binding WorkspaceMode, Converter={StaticResource ValueLeverageVisibilityConverter}}"/>
 
+                <views:AnalyticsView
+                Visibility="{Binding WorkspaceMode,
+                                     Converter={StaticResource ValueLeverageVisibilityConverter}}"/>
+
             </Grid>
 
         </Grid>
     </ScrollViewer>
+
+        <Border Grid.ColumnSpan="2" Panel.ZIndex="980" Background="#D90A111B" Padding="30">
+            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CommandPaletteVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+            <Border HorizontalAlignment="Center" VerticalAlignment="Top"
+                     Background="{DynamicResource NekoCardGradientBrush}" BorderBrush="{DynamicResource NekoSpiritPurpleBrush}" BorderThickness="1" CornerRadius="20" Padding="22">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Width" Value="720"/><Setter Property="Margin" Value="0,90,0,0"/><Setter Property="MaxHeight" Value="650"/>
+                        <Style.Triggers><DataTrigger Binding="{Binding CommandPaletteCompact}" Value="True"><Setter Property="Width" Value="560"/><Setter Property="Margin" Value="0,24,0,0"/><Setter Property="MaxHeight" Value="430"/></DataTrigger></Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <DockPanel><TextBlock Text="GUARDIAN CAPTURE / SEARCH" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/><TextBlock DockPanel.Dock="Right" Text="CTRL+SHIFT+SPACE · ESC" Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="11"/></DockPanel>
+                    <Grid Margin="0,12,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBox x:Name="CommandPaletteTextBox" Text="{Binding CommandPaletteInput, UpdateSourceTrigger=PropertyChanged}" FontSize="22" Padding="14">
+                            <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding ExecuteCommandPaletteCommand}"/><KeyBinding Key="Escape" Command="{Binding CloseCommandPaletteCommand}"/></TextBox.InputBindings>
+                        </TextBox>
+                        <Button Grid.Column="1" Content="MIC" Command="{Binding DictateCommandPaletteCommand}" Margin="8,0,0,0" MinWidth="62" ToolTip="Speak a command, answer or search"/>
+                    </Grid>
+                    <TextBlock Text="{Binding CommandPaletteStatus}" Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="12" Margin="2,0,0,10"/>
+                    <ItemsControl ItemsSource="{Binding CommandPaletteSuggestions}">
+                        <ItemsControl.ItemTemplate><DataTemplate><Button Command="{Binding DataContext.RunPaletteSuggestionCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Margin="0,3"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions><TextBlock Text="{Binding Command}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Grid.Column="1" Text="{Binding Description}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" Margin="18,0,0,0"/></Grid></Button></DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <Border Grid.ColumnSpan="2" Panel.ZIndex="985" Background="#E60A111B" Padding="30">
+            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding RecoveryPlanVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+            <Border Width="650" MaxHeight="740" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource NekoCardGradientBrush}" BorderBrush="{DynamicResource NekoWarningBrush}" BorderThickness="1" CornerRadius="24" Padding="26" TextElement.Foreground="{DynamicResource NekoTextBrush}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+                    <TextBlock Text="PLAN IMPACT DETECTED" Foreground="{DynamicResource NekoWarningBrush}" FontWeight="Bold" FontSize="14"/>
+                    <TextBlock Text="{Binding RecoveryPlan.ImpactSummary}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,20"/>
+                    <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="RECOMMENDED RECOVERY" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding RecoveryPlan.RecoverySummary}" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                            <TextBlock Text="{Binding RecoveryPlan.ExpectedFinishSummary}" Foreground="{DynamicResource NekoSuccessBrush}" FontWeight="Bold" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding RecoveryPlan.PreservedCommitments}" Margin="0,14,0,0"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat=Preserve · {0}}" Foreground="{DynamicResource NekoMutedTextBrush}" Margin="0,3"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    <TextBlock Text="Guardian will apply this through the audited action pipeline. Protected meetings are not moved; conflict-aware undo remains available in Activity." Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,16,0,0"/>
+                    <Grid Margin="0,20,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+                        <Button Content="NOT NOW" Command="{Binding DismissRecoveryPlanCommand}" Margin="0,0,6,0"/>
+                        <Button Grid.Column="1" Content="APPLY RECOVERY PLAN" Command="{Binding ApplyRecoveryPlanCommand}" Background="{DynamicResource NekoSpiritPurpleBrush}" Margin="6,0,0,0"/>
+                    </Grid>
+                </StackPanel></ScrollViewer>
+            </Border>
+        </Border>
 
         <Border Grid.ColumnSpan="2" Panel.ZIndex="990" Background="#E60A111B" Padding="30">
             <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding DayReviewVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
@@ -452,6 +584,41 @@
                         <Expander Header="AUTOMATICALLY RECONCILED TODAY" Margin="0,12,0,12">
                             <TextBlock Text="{Binding ReconciledWorkSummary}" TextWrapping="Wrap" Margin="0,8,0,0"/>
                         </Expander>
+                        <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="14" Margin="0,0,0,16">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="DAILY ACTIVITY RECONCILIATION" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding ActivityReconciliation.CoverageLabel, Mode=OneWay}" FontSize="18" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="{DynamicResource NekoSurfaceBrush}" CornerRadius="10" Padding="12,7">
+                                        <TextBlock Text="{Binding ActivityReconciliation.CoveragePercent, Mode=OneWay, StringFormat={}{0}% EVIDENCE}" Foreground="{DynamicResource NekoSuccessBrush}" FontWeight="Bold"/>
+                                    </Border>
+                                </Grid>
+                                <TextBlock Text="{Binding ActivityReconciliation.Summary, Mode=OneWay}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding ActivityReconciliation.EvidenceDetail, Mode=OneWay}" Foreground="{DynamicResource NekoMutedTextBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0"/>
+                                <TextBlock Text="{Binding ActivityReconciliationStatus}" Foreground="{DynamicResource NekoWarningBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                <ItemsControl ItemsSource="{Binding ActivityReconciliation.Gaps}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{DynamicResource NekoWarningBrush}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,5,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Foreground="{DynamicResource NekoWarningBrush}" FontWeight="Bold"><Run Text="{Binding TimeLabel, Mode=OneWay}"/><Run Text=" · REVIEW REQUIRED"/></TextBlock>
+                                                    <TextBlock Text="{Binding Prompt, Mode=OneWay}" TextWrapping="Wrap" Foreground="{DynamicResource NekoMutedTextBrush}" Margin="0,4,0,8"/>
+                                                    <TextBox Text="{Binding ReviewTitle, UpdateSourceTrigger=PropertyChanged}" ToolTip="What were you doing?"/>
+                                                    <Grid Margin="0,8,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                        <Button Content="RECORD AS WORK" Command="{Binding DataContext.ConfirmActivityGapCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                        <Button Grid.Column="2" Content="MARK NON-WORK" Command="{Binding DataContext.MarkActivityGapNonWorkCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
                         <TextBlock Text="Close today. Leave yourself a clear start tomorrow." FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,7,0,20"/>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -463,10 +630,40 @@
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="{Binding DayReview.UnplannedMinutes, StringFormat=Unplanned work: {0}m}"/>
-                                <TextBlock Margin="0,7,0,0"><Run Text="Focus blocks protected: "/><Run Text="{Binding DayReview.FocusBlocksProtected}"/><Run Text="/"/><Run Text="{Binding DayReview.FocusBlocksPlanned}"/></TextBlock>
-                                <TextBlock Margin="0,7,0,0"><Run Text="Objectives completed: "/><Run Text="{Binding DayReview.ObjectivesCompleted}"/><Run Text="/"/><Run Text="{Binding DayReview.ObjectivesPlanned}"/></TextBlock>
+                                <TextBlock Margin="0,7,0,0"><Run Text="Focus blocks protected: "/><Run Text="{Binding DayReview.FocusBlocksProtected, Mode=OneWay}"/><Run Text="/"/><Run Text="{Binding DayReview.FocusBlocksPlanned, Mode=OneWay}"/></TextBlock>
+                                <TextBlock Margin="0,7,0,0"><Run Text="Objectives completed: "/><Run Text="{Binding DayReview.ObjectivesCompleted, Mode=OneWay}"/><Run Text="/"/><Run Text="{Binding DayReview.ObjectivesPlanned, Mode=OneWay}"/></TextBlock>
                             </StackPanel>
                         </Grid>
+                        <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="14" Margin="0,16,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="ESTIMATED VALUE" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Analytics.BusinessValueDeliveredToday, StringFormat=£{0:N2}}" FontSize="18" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="ELAPSED WAGES" Foreground="{DynamicResource NekoWarningBrush}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Analytics.WageCostToday, StringFormat=£{0:N2}}" FontSize="18" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                                    <TextBlock Text="{Binding Analytics.HourlyLabourRate, StringFormat=£{0:N2}/hour}" Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="10"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="VALUE LESS WAGES" Foreground="{DynamicResource NekoSuccessBrush}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Analytics.ValueAfterWageCostToday, StringFormat=£{0:N2}}" FontSize="18" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                                    <TextBlock Text="{Binding Analytics.BusinessValueToWageCostRatio, StringFormat={}{0:N1}× wage cost}" Foreground="{DynamicResource NekoMutedTextBrush}" FontSize="10"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="14" Margin="0,12,0,0">
+                            <Border.Style>
+                                <Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers><DataTrigger Binding="{Binding WeeklyOvertimeVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="WEEKLY ADDITIONAL TIME" Foreground="{DynamicResource NekoWarningBrush}" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding WeeklyOvertimeSummaryText}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
                         <Border Background="{DynamicResource NekoSurfaceAltBrush}" CornerRadius="12" Padding="14" Margin="0,20,0,0">
                             <StackPanel><TextBlock Text="WHAT I LEARNED" Foreground="{DynamicResource NekoAccentBrush}" FontWeight="Bold"/><TextBlock Text="{Binding DayReview.LearnedSummary}" TextWrapping="Wrap" Margin="0,6,0,0"/></StackPanel>
                         </Border>
@@ -501,11 +698,11 @@
                                             <Border BorderBrush="{DynamicResource NekoSpiritPurpleBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                                    <ComboBox ItemsSource="{Binding DataContext.WrapUpDecisionOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Decision, Mode=TwoWay}" Foreground="#101820" Background="#F0F4F8"/>
+                                                    <ComboBox ItemsSource="{Binding DataContext.WrapUpDecisionOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Decision, Mode=TwoWay}"/>
                                                     <StackPanel Margin="0,8,0,0">
                                                         <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Decision}" Value="Defer until"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                                                         <TextBlock Text="RETURN TO PRE-FLIGHT ON" FontSize="10" Margin="0,0,0,4"/>
-                                                        <DatePicker SelectedDate="{Binding DeferUntil, Mode=TwoWay}"/>
+                                                        <DatePicker SelectedDate="{Binding DeferUntil, Mode=TwoWay}" Foreground="#101820"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Border>
@@ -530,6 +727,7 @@
                 </ScrollViewer>
             </Border>
         </Border>
+
         <Border x:Name="StartupOverlay"
                 Grid.ColumnSpan="2"
                 Panel.ZIndex="1000"

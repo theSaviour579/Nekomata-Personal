@@ -51,4 +51,9 @@ public static class CalendarTimelineContextResolver
 
         return calendarEvent.IsNekomataManaged;
     }
+
+    public static bool ShouldSuppressObjectiveOutsideWorkPeriod(
+        DateTimeOffset now, DateTimeOffset workStart, DateTimeOffset workEnd, bool hasActiveEvent) =>
+        !hasActiveEvent && (now < workStart || now >= workEnd ||
+                            now.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday);
 }

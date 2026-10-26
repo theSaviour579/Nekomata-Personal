@@ -17,7 +17,7 @@ Pushing a `v<version>` tag runs the same workflow.
 - `Nekomata-<version>-win-x64.zip` — portable self-contained build.
 - `SHA256SUMS.txt` — SHA-256 integrity hashes for both packages.
 
-The installer upgrades the existing per-user installation in place. It does not remove or replace .NET user secrets, Microsoft token caches, PostgreSQL data, `%LOCALAPPDATA%\Nekomata\Backups`, or first-run preferences.
+The installer upgrades the existing per-user installation in place. It does not remove or replace Microsoft token caches, saved secrets, the `%LOCALAPPDATA%\Nekomata Personal` workspace, or first-run preferences.
 
 ## Private update checks
 

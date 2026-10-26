@@ -53,6 +53,7 @@ public partial class MainViewModel
     private async Task ShowDiagnosticsAsync()
     {
         WorkspaceMode = WorkspaceMode.Diagnostics;
+        _ = RefreshAutonomyStatusAsync();
         if (Diagnostics.Count == 0)
             await RefreshDiagnosticsAsync();
     }
@@ -81,6 +82,7 @@ public partial class MainViewModel
             OnPropertyChanged(nameof(AttentionDiagnosticCount));
             OnPropertyChanged(nameof(DiagnosticsSummary));
             NotifyDiagnosticIndicatorChanged();
+            await RefreshAutonomyStatusAsync();
             DiagnosticsStatus = AttentionDiagnosticCount == 0
                 ? "Checks completed. Core connections are healthy."
                 : "Checks completed. Review the highlighted connections.";
@@ -132,7 +134,7 @@ public partial class MainViewModel
             return;
         }
 
-        Clipboard.SetText(IntegrationDiagnosticsService.FormatReport(Diagnostics));
+        Clipboard.SetText(IntegrationDiagnosticsService.FormatReport(Diagnostics) + Environment.NewLine + Environment.NewLine + FormatAutonomyReport());
         DiagnosticsStatus = "A credential-free diagnostics report was copied to the clipboard.";
     }
 }

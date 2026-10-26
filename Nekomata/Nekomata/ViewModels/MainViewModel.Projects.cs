@@ -100,6 +100,9 @@ public partial class MainViewModel
         var originalDueDate =
             freshProject.DueAt;
 
+        var originalRequiresChangeControl = freshProject.RequiresChangeControl;
+        var originalRequiresEcsv = freshProject.RequiresEcsv;
+
         var viewModel =
             new ProjectWindowViewModel(
                 projectRepository,
@@ -138,6 +141,8 @@ public partial class MainViewModel
                     Progress: {originalProgress}% → {updatedProject.ProgressPercent}%
                     Business value: {originalBusinessValue:C} → {updatedProject.EstimatedBusinessValue:C}
                     Due date: {FormatDate(originalDueDate)} → {FormatDate(updatedProject.DueAt)}
+                    Change Control required: {originalRequiresChangeControl} → {updatedProject.RequiresChangeControl}
+                    ECSV required: {originalRequiresEcsv} → {updatedProject.RequiresEcsv}
                     """,
 
                 ProjectId = updatedProject.Id
