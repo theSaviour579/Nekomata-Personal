@@ -8,7 +8,8 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>Nekomata</AssemblyName>
     <Product>Nekomata Personal Assistant</Product>
-    <VersionPrefix>0.6.0</VersionPrefix>
+    <VersionPrefix>0.6.1</VersionPrefix>
+    <KokoroSharpVersion>0.8.4</KokoroSharpVersion>
     <Authors>Nekomata Assistant</Authors>
     <UserSecretsId>2bff312d-aa43-432a-bd88-844804742564</UserSecretsId>
 	  <ApplicationIcon>Assets\Images\App.ico</ApplicationIcon>
@@ -36,6 +37,21 @@
     <PackageReference Include="Whisper.net.Runtime" Version="1.7.4" />
     <!-- Guardian's voice on this PC: Kokoro (MIT / Apache 2.0); model downloads once on first use -->
     <PackageReference Include="KokoroSharp.CPU" Version="0.8.4" />
+  </ItemGroup>
+
+  <!-- Keep installed speech offline. KokoroSharp's own target copies voices to ordinary build output only;
+       release automation supplies the checksum-verified model through KokoroModelPath. -->
+  <ItemGroup>
+    <Content Include="$(NuGetPackageRoot)kokorosharp\$(KokoroSharpVersion)\content\voices\**\*">
+      <Link>voices\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(KokoroModelPath)" Condition="'$(KokoroModelPath)' != '' and Exists('$(KokoroModelPath)')">
+      <Link>kokoro.onnx</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

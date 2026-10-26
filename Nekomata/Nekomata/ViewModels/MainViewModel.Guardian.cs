@@ -297,11 +297,16 @@ public partial class MainViewModel
                     IntentMessage = userMessage,
                     Workspace = Workspace,
                     CurrentTime = DateTime.Now,
-                    Conversation = ChatHistory.ToList()
+                    // The current message is supplied separately as UserMessage. Excluding the just-added chat turn
+                    // prevents it appearing twice in the model prompt and being echoed in responses and proposals.
+                    Conversation = ChatHistory.Take(Math.Max(0, ChatHistory.Count - 1)).ToList()
                 };
                 response = await _guardianConversationService.AskAsync(request);
             }
 
+            response.Message = GeneratedTextDeduplicator.RemoveRepeatedBlocks(response.Message);
+            foreach (var task in response.Tasks)
+                task.Description = GeneratedTextDeduplicator.RemoveRepeatedBlocks(task.Description);
             GuardianResponse = response.Message;
 
             PendingGuardianAction =

@@ -53,10 +53,24 @@ public sealed class KokoroVoiceEngine
             var synthType = Find(assembly, "KokoroWavSynthesizer");
             var managerType = Find(assembly, "KokoroVoiceManager");
 
+            // The CPU package ships the model and voices with the app. The parameterless/default overload tries to
+            // download the model from GitHub, which fails on restricted corporate networks even though it is present.
+            var assetDirectory = Path.GetDirectoryName(assembly.Location) ?? AppContext.BaseDirectory;
+            var modelPath = Path.Combine(assetDirectory, "kokoro.onnx");
+            var voicesPath = Path.Combine(assetDirectory, "voices");
+            if (!File.Exists(modelPath)) throw new FileNotFoundException("The bundled Kokoro model was not found.", modelPath);
+            if (!Directory.Exists(voicesPath)) throw new DirectoryNotFoundException($"The bundled Kokoro voices were not found: {voicesPath}");
+
+            var loadVoices = managerType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .FirstOrDefault(m => m.Name == "LoadVoicesFromPath" && m.GetParameters() is [{ ParameterType: var type }] && type == typeof(string));
+            loadVoices?.Invoke(null, [voicesPath]);
+
             var load = synthType.GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(m => m.Name == "LoadModel" && m.GetParameters().All(p => p.IsOptional))
+                .Where(m => m.Name == "LoadModel" && m.ReturnType == synthType && m.GetParameters().Length >= 1 &&
+                            m.GetParameters()[0].ParameterType == typeof(string) && m.GetParameters().Skip(1).All(p => p.IsOptional))
                 .OrderBy(m => m.GetParameters().Length).First();
-            _synthesizer = load.Invoke(null, load.GetParameters().Select(_ => Type.Missing).ToArray());
+            _synthesizer = load.Invoke(null, new object?[] { modelPath }
+                .Concat(load.GetParameters().Skip(1).Select(_ => Type.Missing)).ToArray());
 
             var getVoice = managerType.GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .First(m => m.Name == "GetVoice" && m.GetParameters().Length >= 1 && m.GetParameters()[0].ParameterType == typeof(string));
