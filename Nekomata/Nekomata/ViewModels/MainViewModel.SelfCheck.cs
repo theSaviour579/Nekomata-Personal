@@ -16,8 +16,8 @@ public sealed class SelfCheckEcho { public bool Ok { get; set; } public string W
 // Guardian checks itself. Every working morning (after 08:05) and on "are you working properly?" / "self check", each link
 // is tested with a small real call: the Microsoft account (presence), mail, calendar, Teams chats, the AI (a real
 // structured answer - the kind of call that failed silently before) and the neural voice. Connections you haven't set up
-// are shown as optional rather than broken. Anything broken goes into "Needs you" with the reason and the fix; the full
-// list is on screen. Read-only.
+// are shown as optional rather than broken. Anything broken goes into the Needs You panel on Home with the reason and
+// the fix; the full list is also shown in the self-check answer. Read-only.
 public partial class MainViewModel
 {
     private DateTime _selfCheckedOn = DateTime.MinValue;
@@ -66,7 +66,8 @@ public partial class MainViewModel
             var now = DateTimeOffset.Now;
             var microsoftConnected = await SafeAsync(async () => !string.IsNullOrWhiteSpace(
                 await _services.GetRequiredService<IMicrosoftAuthenticationService>().GetConnectedAccountAsync()), false);
-            var aiConfigured = _services.GetRequiredService<PersonalAIProvider>().IsConfigured;
+            var personalAi = _services.GetRequiredService<PersonalAIProvider>();
+            var aiConfigured = personalAi.IsConfigured;
             var results = new List<SelfCheckResult>();
             if (microsoftConnected)
             {
@@ -96,7 +97,12 @@ public partial class MainViewModel
                 results.Add(new("Microsoft account", false, "not connected", "Settings → CONNECT MICROSOFT for calendar, mail, Teams and tasks.", Optional: true));
             }
 
-            if (aiConfigured)
+            if (aiConfigured && !personalAi.SupportsStructuredAnswers)
+                results.Add(new("AI (structured answers)", false,
+                    $"{personalAi.ActiveProviderName} is available for conversation, but not for structured automation.",
+                    "Open Settings → Your Assistant and choose Automatic, Microsoft AI (Entra), or OpenAI if you want structured automation.",
+                    Optional: true));
+            else if (aiConfigured)
                 results.Add(boot ? new("AI (structured answers)", true, "checked at the morning self-check") : await CheckAsync("AI (structured answers)", async () =>
                 {
                     var echo = await _services.GetRequiredService<IStructuredAIProvider>().AskStructuredAsync<SelfCheckEcho>(
@@ -120,7 +126,7 @@ public partial class MainViewModel
             if (boot)
             {
                 // The start-up announcement: one line, then the details only if something's wrong.
-                var line = broken.Count == 0 ? "All systems online." : $"Systems online, except {JoinNames(broken.Select(b => b.Name).Take(3).ToList())}. Details are in Needs you.";
+                var line = broken.Count == 0 ? "All systems online." : $"Systems online, except {JoinNames(broken.Select(b => b.Name).Take(3).ToList())}. Details are in the Needs You panel on Home; select See All.";
                 if (lagging.Count > 0) line += lagging.Count == 1 ? $" One background job is lagging: {lagging[0]}." : $" {lagging.Count} background jobs are lagging.";
                 Think(line);
                 await SpeakGuardianAsync(line);
@@ -133,7 +139,7 @@ public partial class MainViewModel
             if (onDemand) ShowPaletteResponse(sb.ToString().TrimEnd());
             await SpeakGuardianAsync(broken.Count == 0
                 ? "All systems online: everything you've connected answered."
-                : $"{broken.Count} thing{(broken.Count == 1 ? " isn't" : "s aren't")} working: {JoinNames(broken.Select(b => b.Name).Take(4).ToList())}. The details and fixes are {(onDemand ? "on screen" : "in Needs you")}.", onDemand);
+                : $"{broken.Count} thing{(broken.Count == 1 ? " isn't" : "s aren't")} working: {JoinNames(broken.Select(b => b.Name).Take(4).ToList())}. The details and fixes are {(onDemand ? "shown in this answer" : "in the Needs You panel on Home; select See All")}.", onDemand);
         }
         catch (Exception ex) { Debug.WriteLine($"Self-check failed safely: {ex.Message}"); }
         finally { _selfChecking = false; }

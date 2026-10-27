@@ -36,6 +36,18 @@ public sealed class PersonalAIProvider(
         "No AI" => false,
         _ => IsMicrosoftConfigured || IsOpenAiConfigured
     };
+    /// <summary>
+    /// Copilot Chat can answer Guardian conversations, but it does not expose the strict JSON-schema
+    /// responses used by Nekomata's automations. Keep that distinction visible to the self-check so
+    /// a deliberately selected conversation-only provider is not reported as a broken connection.
+    /// </summary>
+    public bool SupportsStructuredAnswers => Selection switch
+    {
+        CopilotChatService.ProviderName or "No AI" => false,
+        "Microsoft AI (Entra)" => IsMicrosoftConfigured,
+        "OpenAI" => IsOpenAiConfigured,
+        _ => IsMicrosoftConfigured || IsOpenAiConfigured
+    };
     public string ActiveProviderName => Selection switch
     {
         CopilotChatService.ProviderName => CopilotChatService.ProviderName,
@@ -177,5 +189,5 @@ public sealed class PersonalAIProvider(
         typeof(T) == typeof(Nekomata.AI.Models.Actions.ChaseConversationAdvice) ? (ChaseConversationAdviceSchema.Name, ChaseConversationAdviceSchema.Json) :
         typeof(T) == typeof(MeetingAnalysisResponse) ? (MeetingAnalysisSchema.Name, MeetingAnalysisSchema.Json) :
         typeof(T) == typeof(GuardianActionResponse) ? (GuardianConversationSchema.Name, GuardianConversationSchema.Json) :
-        throw new NotSupportedException($"No schema has been registered for {typeof(T).Name}.");
+        ReflectionSchema.For(typeof(T));
 }

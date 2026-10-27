@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>Nekomata</AssemblyName>
     <Product>Nekomata Personal Assistant</Product>
-    <VersionPrefix>0.6.1</VersionPrefix>
+    <VersionPrefix>0.6.2</VersionPrefix>
     <KokoroSharpVersion>0.8.4</KokoroSharpVersion>
     <Authors>Nekomata Assistant</Authors>
     <UserSecretsId>2bff312d-aa43-432a-bd88-844804742564</UserSecretsId>
