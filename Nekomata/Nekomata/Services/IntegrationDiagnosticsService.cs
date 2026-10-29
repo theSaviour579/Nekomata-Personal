@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nekomata.Core.Diagnostics;
+using Nekomata.AI.Interfaces;
 using Nekomata.Data.Local;
 using Nekomata.Integrations.MicrosoftGraph.Calendar;
 using Nekomata.Integrations.MicrosoftGraph.Tasks;
@@ -33,6 +34,7 @@ public sealed class IntegrationDiagnosticsService
         var checks = new List<IntegrationDiagnosticItem>
         {
             await CheckAsync("Local workspace", CheckLocalWorkspaceAsync, cancellationToken),
+            await CheckAsync("AI structured automation", CheckStructuredAiAsync, cancellationToken),
             await CheckAsync("OpenAI", CheckOpenAiAsync, cancellationToken),
             await CheckAsync("Microsoft 365", CheckMicrosoftGraphAsync, cancellationToken),
             await CheckAsync("Microsoft To Do and Planner", CheckMicrosoftTasksAsync, cancellationToken),
@@ -84,6 +86,24 @@ public sealed class IntegrationDiagnosticsService
         return ("Connected", "Authentication succeeded with a read-only models request.");
     }
 
+    private async Task<(string Summary, string Detail)> CheckStructuredAiAsync(CancellationToken ct)
+    {
+        var personalAi = _services.GetRequiredService<PersonalAIProvider>();
+        if (!personalAi.IsConfigured)
+            throw new DiagnosticNotConfiguredException("No AI provider is configured in Settings → Your Assistant.");
+        if (!personalAi.SupportsStructuredAnswers)
+            throw new DiagnosticLimitedException(
+                $"{personalAi.ActiveProviderName} is available for Guardian conversations, but it is conversation-only.",
+                "Structured automations such as AI-assisted triage, planning and extraction require Automatic, Microsoft AI (Entra), or OpenAI in Settings → Your Assistant.");
+
+        var echo = await _services.GetRequiredService<IStructuredAIProvider>()
+            .AskStructuredAsync<StructuredDiagnosticEcho>("Return Ok = true and Word = 'ready'.", "Diagnostics check.")
+            .WaitAsync(ct);
+        if (echo is not { Ok: true } || !echo.Word.Equals("ready", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The selected provider answered, but did not return the required structured result.");
+        return ("Connected", $"{personalAi.ActiveProviderName} returned a valid structured result. AI-assisted automations are available.");
+    }
+
     private async Task<(string Summary, string Detail)> CheckMicrosoftGraphAsync(CancellationToken ct)
     {
         var calendar = _services.GetRequiredService<ICalendarService>();
@@ -130,6 +150,11 @@ public sealed class IntegrationDiagnosticsService
             return new(name, "Not configured", ex.Message, "This integration is optional.",
                 DateTime.Now, stopwatch.ElapsedMilliseconds);
         }
+        catch (DiagnosticLimitedException ex)
+        {
+            return new(name, "Limited", ex.Message, ex.Detail,
+                DateTime.Now, stopwatch.ElapsedMilliseconds);
+        }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
@@ -147,4 +172,13 @@ public sealed class IntegrationDiagnosticsService
     }
 
     private sealed class DiagnosticNotConfiguredException(string message) : Exception(message);
+    private sealed class DiagnosticLimitedException(string message, string detail) : Exception(message)
+    {
+        public string Detail { get; } = detail;
+    }
+    private sealed class StructuredDiagnosticEcho
+    {
+        public bool Ok { get; set; }
+        public string Word { get; set; } = "";
+    }
 }
