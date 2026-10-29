@@ -28,6 +28,7 @@ public partial class MainViewModel
     private async Task SpeakGuardianAsync(string? message, bool interrupt = false)
     {
         if (GuardianVoiceEnabled && HoldIfQuiet(message)) return;
+        message = Nekomata.Core.Guardian.GeneratedTextDeduplicator.RemoveRepeatedBlocks(message);
         message = BreakThroughPreface(message ?? "");
         Nekomata.Core.Guardian.FormalManner.Enabled = FeatureOn("formal-voice");
         Nekomata.Core.Guardian.FormalManner.UserFirstName = UserFirstName;
@@ -78,7 +79,9 @@ public partial class MainViewModel
         _announcingNewDay = true;
         try
         {
-            MarkMorningBriefingAnnounced();
+            // Claim the briefing before doing any asynchronous work. Startup and the
+            // midnight timer can overlap, and only one of them should deliver it.
+            if (!TryMarkMorningBriefingAnnounced()) return;
             Workspace = await _workspaceCoordinator.RefreshAsync();
             OnPropertyChanged(nameof(GuardianSuggestedTasks));
             UpdateGreeting();
@@ -98,16 +101,30 @@ public partial class MainViewModel
         }
     }
 
-    private static void MarkMorningBriefingAnnounced()
+    private static bool TryMarkMorningBriefingAnnounced()
     {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(MorningBriefingAnnouncedPath)!);
-            File.WriteAllText(MorningBriefingAnnouncedPath, DateTimeOffset.Now.ToString("O"));
+            using var marker = new FileStream(
+                MorningBriefingAnnouncedPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.Read);
+            using var writer = new StreamWriter(marker);
+            writer.Write(DateTimeOffset.Now.ToString("O"));
+            return true;
+        }
+        catch (IOException) when (File.Exists(MorningBriefingAnnouncedPath))
+        {
+            return false;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Could not record today's morning briefing: {ex.Message}");
+            // A marker failure must not silence the briefing completely. The in-process
+            // announcement guard still prevents the timer from starting it concurrently.
+            return true;
         }
     }
 

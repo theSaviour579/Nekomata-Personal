@@ -15,6 +15,7 @@ using Nekomata.Core.Workspace;
 using Nekomata.Data.Repositories;
 using Nekomata.Models.Guardian;
 using Nekomata.Models.Missions;
+using Nekomata.Models.Planning;
 using Nekomata.Models.Tasks;
 using Nekomata.Models.Workspace;
 using Nekomata.UI.Services;
@@ -349,10 +350,15 @@ public partial class MainViewModel : ObservableObject
                 _ = RefreshInterruptionsAsync();
             if (showSplash)
             {
-                // Record that today's briefing has played, so the day-boundary check doesn't
-                // repeat it once loading finishes and Welcome back knows the day has begun.
-                MarkMorningBriefingAnnounced();
-                _ = SpeakMorningBriefingWithWeeklyAsync();
+                // A restart must not replay a briefing that was already delivered today.
+                // Before working hours, leave the marker unclaimed so the day-boundary
+                // timer can deliver the proper morning briefing at the configured start.
+                var workingDay = _services.GetRequiredService<WorkingDaySettings>();
+                if (DateTime.Now >= workingDay.GetStart(DateTime.Today) &&
+                    TryMarkMorningBriefingAnnounced())
+                {
+                    _ = SpeakMorningBriefingWithWeeklyAsync();
+                }
             }
         }
         catch (Exception ex) when (!WorkspaceReady)
