@@ -4,6 +4,7 @@ using Nekomata.AI.Providers;
 using Nekomata.AI.Models.Actions;
 using Nekomata.AI.Models.Meetings;
 using Nekomata.AI.Schemas;
+using Nekomata.Core.Guardian;
 using Nekomata.Integrations.MicrosoftGraph.Authentication;
 using Nekomata.Integrations.MicrosoftGraph.Copilot;
 using System.Net.Http.Headers;
@@ -60,19 +61,19 @@ public sealed class PersonalAIProvider(
     public async Task<string> AskAsync(string prompt)
     {
         if (Selection == CopilotChatService.ProviderName)
-            return await copilot.AskAsync(prompt, profile.Current.CopilotWebSearchEnabled);
+            return CleanGeneratedText(await copilot.AskAsync(prompt, profile.Current.CopilotWebSearchEnabled));
         if (Selection == "Microsoft AI (Entra)")
-            return IsMicrosoftConfigured ? await AskMicrosoftAsync("You are Guardian, the AI assistant inside Nekomata. Be concise, practical, and helpful.", prompt) : NotConfigured;
+            return IsMicrosoftConfigured ? CleanGeneratedText(await AskMicrosoftAsync("You are Guardian, the AI assistant inside Nekomata. Be concise, practical, and helpful.", prompt)) : NotConfigured;
         if (Selection == "OpenAI")
-            return CreateProvider() is { } selectedOpenAi ? await selectedOpenAi.AskAsync(prompt) : NotConfigured;
+            return CreateProvider() is { } selectedOpenAi ? CleanGeneratedText(await selectedOpenAi.AskAsync(prompt)) : NotConfigured;
         if (Selection == "No AI") return NotConfigured;
         if (IsMicrosoftConfigured)
         {
-            try { return await AskMicrosoftAsync("You are Guardian, the AI assistant inside Nekomata. Be concise, practical, and helpful.", prompt); }
+            try { return CleanGeneratedText(await AskMicrosoftAsync("You are Guardian, the AI assistant inside Nekomata. Be concise, practical, and helpful.", prompt)); }
             catch when (IsOpenAiConfigured) { }
         }
         var provider = CreateProvider();
-        return provider is null ? NotConfigured : await provider.AskAsync(prompt);
+        return provider is null ? NotConfigured : CleanGeneratedText(await provider.AskAsync(prompt));
     }
 
     public async Task<T?> AskJsonAsync<T>(string prompt)
@@ -183,6 +184,7 @@ public sealed class PersonalAIProvider(
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static string CleanGeneratedText(string value) => GeneratedTextDeduplicator.RemoveRepeatedBlocks(value);
     private static string FirstConfigured(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? string.Empty;
     private static string CleanJson(string value) => value.Trim().Trim('`').Replace("json\n", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
     private static (string Name, string Json) GetSchema<T>() =>

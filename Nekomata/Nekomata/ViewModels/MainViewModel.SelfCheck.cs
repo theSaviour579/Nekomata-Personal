@@ -120,7 +120,10 @@ public partial class MainViewModel
             foreach (var r in broken)
                 RaiseAttention($"selfcheck:{r.Name.ToLowerInvariant()}:{now:yyyyMMdd}", "Guardian", "Warning", $"{r.Name} isn't working",
                     $"{r.Detail} Fix: {r.Fix}", "self_check");
-            foreach (var r in results.Where(r => r.Ok)) ResolveAttentionByPrefix($"selfcheck:{r.Name.ToLowerInvariant()}:");
+            // Optional means unavailable by choice (for example Copilot conversation-only), not a fault. Clear any
+            // warning left by an older build so Guardian does not keep announcing an issue that no longer exists.
+            foreach (var r in results.Where(r => r.Ok || r.Optional))
+                ResolveAttentionByPrefix($"selfcheck:{r.Name.ToLowerInvariant()}:");
 
             var lagging = JobHealthLines();
             if (boot)
