@@ -55,4 +55,17 @@ public sealed class GeneratedTextDeduplicatorTests
     {
         Assert.Equal("No. No.", GeneratedTextDeduplicator.RemoveRepeatedBlocks("No. No."));
     }
+
+    [Fact]
+    public void Removes_repeated_answer_before_a_unique_final_sentence()
+    {
+        const string text =
+            "You have three items due today. Start with the customer reply. " +
+            "You have three items due today. Start with the customer reply. " +
+            "I can schedule it when you are ready.";
+
+        Assert.Equal(
+            "You have three items due today. Start with the customer reply. I can schedule it when you are ready.",
+            GeneratedTextDeduplicator.RemoveRepeatedBlocks(text));
+    }
 }

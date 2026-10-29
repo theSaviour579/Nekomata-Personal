@@ -639,6 +639,7 @@ public partial class MainViewModel
 
     private void ShowPaletteResponse(string message)
     {
+        message = Nekomata.Core.Guardian.GeneratedTextDeduplicator.RemoveRepeatedBlocks(message);
         GuardianResponse = message;
         PendingGuardianAction = null;
         PendingGuardianProject = null;

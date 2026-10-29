@@ -33,6 +33,38 @@ public static partial class GeneratedTextDeduplicator
             }
         }
 
+        // Models also sometimes repeat an answer and then add a final sentence, so
+        // the duplicated portion is not necessarily two exact halves. Remove the
+        // later copy of any substantial, non-overlapping repeated sequence.
+        var removedSequence = true;
+        while (removedSequence)
+        {
+            removedSequence = false;
+            var canonical = blocks.Select(Canonical).ToList();
+            for (var first = 0; first < blocks.Count && !removedSequence; first++)
+            {
+                for (var second = first + 1; second < blocks.Count; second++)
+                {
+                    var maximumLength = Math.Min(second - first, blocks.Count - second);
+                    var length = 0;
+                    var contentLength = 0;
+                    while (length < maximumLength && canonical[first + length].Equals(
+                               canonical[second + length], StringComparison.OrdinalIgnoreCase))
+                    {
+                        contentLength += canonical[first + length].Length;
+                        length++;
+                    }
+
+                    if (length == 0 || contentLength < 20) continue;
+
+                    blocks.RemoveRange(second, length);
+                    changed = true;
+                    removedSequence = true;
+                    break;
+                }
+            }
+        }
+
         var result = new List<string>(blocks.Count);
         foreach (var block in blocks)
         {

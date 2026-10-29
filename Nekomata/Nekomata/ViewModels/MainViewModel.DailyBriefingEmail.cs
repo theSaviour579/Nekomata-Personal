@@ -44,6 +44,7 @@ public partial class MainViewModel
                 .AppendLine()
                 .AppendLine("Sent by Nekomata Personal using your configured daily briefing preference.")
                 .ToString();
+            body = Nekomata.Core.Guardian.GeneratedTextDeduplicator.RemoveRepeatedBlocks(body);
 
             await email.SendMessageAsync(mailbox, $"Nekomata daily briefing · {today:dddd d MMMM}", body);
             var path = DailyBriefingSentPath(today);

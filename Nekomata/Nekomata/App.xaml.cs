@@ -50,7 +50,11 @@ namespace Nekomata.UI;
 
 public partial class App : System.Windows.Application
 {
+    private const string SingleInstanceMutexName = @"Local\NekomataPersonal-5F882F30-5168-4F37-BBAA-2C67C03E7CF8";
     private readonly IHost _host;
+    private readonly Mutex _singleInstanceMutex = new(false, SingleInstanceMutexName);
+    private bool _ownsSingleInstance;
+    private bool _hostStarted;
 
     public App()
     {
@@ -266,10 +270,31 @@ public partial class App : System.Windows.Application
         Nekomata.UI.Services.CrashLog.Install(this);
         base.OnStartup(e);
 
+        try
+        {
+            _ownsSingleInstance = _singleInstanceMutex.WaitOne(0, false);
+        }
+        catch (AbandonedMutexException)
+        {
+            _ownsSingleInstance = true;
+        }
+
+        if (!_ownsSingleInstance)
+        {
+            MessageBox.Show(
+                "Nekomata Personal is already running. Check the taskbar or notification area for the existing window.",
+                "Nekomata Personal",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
         var workspaceReady = true;
         try
         {
             await _host.StartAsync();
+            _hostStarted = true;
 
             var localStore = _host.Services.GetRequiredService<LocalWorkspaceStore>();
             await localStore.EnsureCreatedAsync();
@@ -308,8 +333,13 @@ public partial class App : System.Windows.Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
-        await _host.StopAsync();
+        if (_hostStarted)
+            await _host.StopAsync();
         _host.Dispose();
+
+        if (_ownsSingleInstance)
+            _singleInstanceMutex.ReleaseMutex();
+        _singleInstanceMutex.Dispose();
 
         base.OnExit(e);
     }
